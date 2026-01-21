@@ -28,9 +28,12 @@
     // $table->uuid('cluster_id')->nullable();
     // $table->foreign('cluster_id')->references('id')->on('clusters')->nullOnDelete();
 
-
+$table->timestamp('last_login_at')->nullable();
+    $table->string('last_login_ip', 45)->nullable();
                 $table->rememberToken();
                 $table->timestamps();
+                $table->timestamp('deleted_at')->nullable();
+                
             });
 
             Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -41,7 +44,7 @@
 
             Schema::create('sessions', function (Blueprint $table) {
                 $table->string('id')->primary();
-                $table->foreignId('user_id')->nullable()->index();
+                 $table->uuid('user_id')->nullable()->index();
                 $table->string('ip_address', 45)->nullable();
                 $table->text('user_agent')->nullable();
                 $table->longText('payload');

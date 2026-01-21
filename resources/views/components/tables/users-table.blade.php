@@ -2,7 +2,8 @@
     <table class="min-w-full border border-gray-200 dark:border-gray-800 rounded-lg">
         <thead class="bg-gray-50 dark:bg-gray-800">
             <tr>
-                <th class="px-4 py-3 text-left text-sm font-semibold">User</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold">Id</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold">Name</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold">Email</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold">Division</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold">Cluster</th>
@@ -12,9 +13,15 @@
         </thead>
 
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-            @forelse($users as $user)
+            @forelse($users as $index => $user)
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <td class="px-4 py-3">
+                                    <div class="font-medium text-gray-800 dark:text-white">
+                                        {{ $index + 1 }}
+                                    </div>
+                                </td>
                     <!-- Avatar + Name -->
+
                     <td class="px-4 py-3 flex items-center gap-3">
                         <img
                             src="https://ui-avatars.com/api/?name={{ urlencode($user->full_name) }}"

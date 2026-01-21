@@ -13,6 +13,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\MaintenanceRequestAssigned;
+use App\Notifications\MaintenanceRequestCreated;
+use App\Notifications\MaintenanceRequestApproval;
 
 class MaintenanceRequestController extends Controller
 {
@@ -101,68 +105,111 @@ class MaintenanceRequestController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreMaintenanceRequestRequest $request)
-    {
-        DB::beginTransaction();
+
+public function store(StoreMaintenanceRequestRequest $request)
+{
+    DB::beginTransaction();
+    
+    try {
+        // Create maintenance request
+        $maintenanceRequest = MaintenanceRequest::create([
+            'user_id' => auth()->id(),
+            'item_id' => $request->item_id,
+            'description' => $request->description,
+            'issue_type_id' => $request->issue_type_id,
+            'priority' => $request->priority,
+            'status' =>"pending",
+        ]);
         
-        
-        try {
-            // Create maintenance request
-            // dd($request->all());
-            $maintenanceRequest = MaintenanceRequest::create([
-                'user_id' => auth()->id(),
-                'item_id' => $request->item_id,
-                'title' => $request->title,
-                'description' => $request->description,
-                 'issue_type_id' => $request->issue_type_id,
-                'priority' => $request->priority,
-                'status' => MaintenanceRequest::STATUS_PENDING,
-                'requested_at' => now(),
-            ]);
-            
-            // Handle file uploads
-            if ($request->hasFile('files')) {
-                foreach ($request->file('files') as $file) {
-                    $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-                    $path = $file->storeAs('maintenance-requests/' . $maintenanceRequest->id, $filename, 'public');
-                    
-                    MaintenanceRequestFile::create([
-                        'maintenance_request_id' => $maintenanceRequest->id,
-                        'filename' => $filename,
-                        'original_name' => $file->getClientOriginalName(),
-                        'mime_type' => $file->getMimeType(),
-                        'path' => $path,
-                        'size' => $file->getSize(),
-                    ]);
-                }
-            }
-            
-            // Update item status if it's a critical/high priority request
-            if (in_array($request->priority, ['high', 'emergency'])) {
-                $item = Item::find($request->item_id);
-                if ($item) {
-                    $item->update(['status' => Item::STATUS_MAINTENANCE]);
-                }
-            }
-            
-            DB::commit();
-            
-            // Send notification to admin/technicians (you can implement this)
-            // Notification::send($admins, new NewMaintenanceRequest($maintenanceRequest));
-            
-            return redirect()->route('maintenance-requests.show', $maintenanceRequest)
-                ->with('success', 'Maintenance request submitted successfully! Ticket #: ' . $maintenanceRequest->ticket_number);
+        // Handle file uploads
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('maintenance-requests/' . $maintenanceRequest->id, $filename, 'public');
                 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            \Log::error('Maintenance request creation failed: ' . $e->getMessage());
-            
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Failed to submit maintenance request. Please try again.');
+                MaintenanceRequestFile::create([
+                    'maintenance_request_id' => $maintenanceRequest->id,
+                    'filename' => $filename,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                    'path' => $path,
+                    'size' => $file->getSize(),
+                ]);
+            }
         }
+        
+        // Update item status if it's a critical/high priority request
+        // if (in_array($request->priority, ['high', 'emergency'])) {
+        //     $item = Item::find($request->item_id);
+        //     if ($item) {
+        //         $item->update(['status' => Item::STATUS_MAINTENANCE]);
+        //     }
+        // }
+        
+        DB::commit();
+        
+        return redirect()->route('maintenance-requests.index')
+            ->with('success', 'Maintenance request created successfully. Ticket: ' . $maintenanceRequest->ticket_number);
+            
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Maintenance request creation failed: ' . $e->getMessage(), [
+            'user_id' => auth()->id(),
+            'error' => $e->getTraceAsString()
+        ]);
+        return back()->with('error', 'Failed to create maintenance request: ' . $e->getMessage());
     }
+}
+
+    public function getStaffRequestsForApproval(Request $request)
+{
+    $chairman = auth()->user();
+
+    // Get requests that need approval for this chairman
+    $requests = MaintenanceRequest::with([
+            'user:id,full_name,division_id,cluster_id',
+            'issueType:id,name,is_need_approval'
+        ])
+        ->whereHas('issueType', function($query) {
+            $query->where('is_need_approval', true);
+        })
+        ->whereHas('user', function($query) use ($chairman) {
+            // Match requests where the user belongs to a division or cluster under this chairman
+            $query->where(function($q) use ($chairman) {
+                // If chairman is division_chairman
+                $q->whereHas('division', function($d) use ($chairman) {
+                    $d->where('division_chairman', $chairman->id);
+                })
+                // OR if chairman is cluster_chairman
+                ->orWhereHas('cluster', function($c) use ($chairman) {
+                    $c->where('cluster_chairman', $chairman->id);
+                });
+            });
+        })
+        ->orderBy('created_at', 'desc')
+        ->paginate(10);
+
+    return view('chairman.requests.index', compact('requests'));
+}
+public function approve(MaintenanceRequest $request)
+{
+    $approver = $request->getRequiredApprover();
+
+    abort_unless(
+        auth()->id() === optional($approver)->id,
+        403,
+        'You are not authorized to approve this request.'
+    );
+
+    $request->update([
+        'is_approved' => true,
+        'approved_by' => auth()->id(),
+        'approved_at' => now(),
+        'status' => MaintenanceRequest::STATUS_PENDING, // now goes to ICT
+    ]);
+
+    return back()->with('success', 'Request approved successfully.');
+}
 
     /**
      * Display the specified resource.

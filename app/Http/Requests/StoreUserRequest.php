@@ -21,26 +21,24 @@ class StoreUserRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array
-    {
-        return [
-            'full_name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email',
-            'phone' => 'nullable|string|max:20|unique:users,phone',
-            'password' => ['required', 'confirmed', Password::min(8)
-                ->letters()
-                ->mixedCase()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()],
-            'division_id' => 'nullable|exists:divisions,id',
-            'cluster_id' => 'nullable|exists:clusters,id',
-            'roles' => 'nullable|array|min:1',
-            'roles.*' => 'exists:roles,name',
-            'send_welcome_email' => 'nullable|boolean',
-            'email_verified' => 'nullable|boolean',
-        ];
-    }
+public function rules(): array
+{
+    return [
+        'full_name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email',
+        'phone' => 'nullable|string|unique:users,phone',
+
+        'assign_type' => 'required|in:cluster,division',
+
+        'cluster_id' => 'required_if:assign_type,cluster|nullable|exists:clusters,id',
+        'division_id' => 'required_if:assign_type,division|nullable|exists:divisions,id',
+
+        'roles' => 'required|exists:roles,name',
+
+        'password' => ['required', 'confirmed', Password::min(8)],
+    ];
+}
+
 
     /**
      * Get custom messages for validator errors.

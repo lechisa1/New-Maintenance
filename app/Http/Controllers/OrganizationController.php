@@ -16,61 +16,76 @@ class OrganizationController extends Controller
     /**
      * Display a listing of the resource.
      */
-public function index()
+public function index(Request $request)
 {
-    // Paginate
-    $paginator = Organization::withCount('clusters')
-        ->orderByDesc('created_at')
-        ->paginate(10);
+    $search = $request->query('search'); // Get search term from query string
 
-    // Convert to plain array for Alpine.js
-    $organizations = $paginator->items(); // returns array of organizations
+    $query = Organization::withCount('clusters')
+        ->orderByDesc('created_at');
 
-    $users = User::select('id', 'full_name')->get();
+    // Apply search if present
+    if ($search) {
+        $query->where('name', 'like', "%{$search}%");
+    }
 
-    return view('organizations.index', compact('organizations', 'users', 'paginator'));
+    // Paginate results
+    $paginator = $query->paginate(5)->withQueryString(); // keep search in pagination links
+
+    return view('organizations.index', [
+        'organizations' => $paginator,
+    ]);
 }
+
 
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:organizations,name',
-        ]);
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255|unique:organizations,name',
+    ]);
 
-        $organization = Organization::create([
-            'id' => Str::uuid(),
-            'name' => $validated['name']
-        ]);
+    $organization = Organization::create([
+        'id' => (string) Str::uuid(), // Ensure it's cast to string
+        'name' => $validated['name']
+    ]);
 
-        return response()->json($organization);
-    }
+    return response()->json([
+        'message' => 'Organization created successfully',
+        'data' => $organization
+    ], 201);
+}
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Organization $organization)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:organizations,name,' . $organization->id . ',id',
-        ]);
+// Update Organization
+public function update(Request $request, Organization $organization)
+{
+    $validated = $request->validate([
+        // Unique check ignores the current record ID
+        'name' => 'required|string|max:255|unique:organizations,name,' . $organization->id,
+    ]);
 
-        $organization->update($validated);
+    $organization->update($validated);
 
-        return response()->json($organization);
-    }
+    return response()->json([
+        'message' => 'Organization updated successfully',
+        'data' => $organization
+    ]);
+}
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Organization $organization)
-    {
-        $organization->delete();
-        return response()->json(['message' => 'Organization deleted successfully']);
-    }
+// Delete Organization
+public function destroy(Organization $organization)
+{
+    $organization->delete();
+
+    return response()->json([
+        'message' => 'Organization deleted successfully'
+    ]);
+}
 
     /**
      * Get clusters for an organization
@@ -127,6 +142,18 @@ public function clusters($organizationId)
             ->orderBy('name')
             ->get()
     );
+}
+    public function show(Organization $organization)
+{
+    $organization->loadCount('clusters');
+
+    $clusters = $organization->clusters()
+        ->withCount('divisions')
+        ->latest()
+        ->paginate(10);
+        $users = \App\Models\User::select('id', 'full_name')->orderBy('full_name')->get();
+
+    return view('organizations.show', compact('organization', 'clusters', 'users'));
 }
 
 

@@ -5,29 +5,30 @@ namespace App\Http\Controllers;
 use App\Models\Cluster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-
+use App\Models\Division;
 class ClusterController extends Controller
 {
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:clusters,name',
-            'organization_id' => 'required|exists:organizations,id',
-            'cluster_chairman' => 'nullable|exists:users,id'
-        ]);
+// In ClusterController.php
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255|unique:clusters,name',
+        'organization_id' => 'required|exists:organizations,id',
+        'cluster_chairman' => 'nullable|exists:users,id' // This is fine
+    ]);
 
-        $cluster = Cluster::create([
-            'id' => Str::uuid(),
-            'name' => $validated['name'],
-            'organization_id' => $validated['organization_id'],
-            'cluster_chairman' => $validated['cluster_chairman']
-        ]);
+    $cluster = Cluster::create([
+        'id' => (string) Str::uuid(),
+        'name' => $validated['name'],
+        'organization_id' => $validated['organization_id'],
+        'cluster_chairman' => $request->input('cluster_chairman') // Use input() to avoid array key errors
+    ]);
 
-        return response()->json($cluster->load('chairman:id,name'));
-    }
+    return response()->json($cluster->load('chairman:id,full_name'));
+}
 
     /**
      * Update the specified resource in storage.
@@ -41,7 +42,7 @@ class ClusterController extends Controller
 
         $cluster->update($validated);
 
-        return response()->json($cluster->load('chairman:id,name'));
+        return response()->json($cluster->load('chairman:id,full_name'));
     }
 
     /**
@@ -60,6 +61,20 @@ public function divisions($clusterId)
             ->orderBy('name')
             ->get()
     );
+}
+public function showDivisions(Cluster $cluster)
+{
+    $cluster->loadCount('divisions');
+
+    $divisions = $cluster->divisions()
+        ->with('chairman') // Eager load chairman
+        ->orderBy('name')
+        ->paginate(10);
+
+    // Fetch users for the chairman dropdown
+    $users = \App\Models\User::select('id', 'full_name')->orderBy('full_name')->get();
+
+    return view('organizations.clusters.show', compact('cluster', 'divisions', 'users'));
 }
 
 

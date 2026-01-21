@@ -13,10 +13,17 @@ return [
     |
     */
 
-    'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
-        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
+ 'defaults' => [
+    'guard' => 'web',
+    'passwords' => 'users',
+],
+
+'guards' => [
+    'web' => [
+        'driver' => 'session',
+        'provider' => 'users',
     ],
+],
 
     /*
     |--------------------------------------------------------------------------
@@ -35,12 +42,7 @@ return [
     |
     */
 
-    'guards' => [
-        'web' => [
-            'driver' => 'session',
-            'provider' => 'users',
-        ],
-    ],
+
 
     /*
     |--------------------------------------------------------------------------
@@ -98,6 +100,11 @@ return [
             'throttle' => 60,
         ],
     ],
+        'throttle' => [
+        'max_attempts' => env('AUTH_MAX_LOGIN_ATTEMPTS', 5),
+        'lockout_time' => env('AUTH_LOCKOUT_TIME', 15),
+    ],
+    'allow_registration' => env('AUTH_ALLOW_REGISTRATION', false),
 
     /*
     |--------------------------------------------------------------------------

@@ -114,4 +114,24 @@ class OrganizationController extends Controller
         
         return response()->json($divisions);
     }
+public function show(Organization $organization)
+{
+    $organization->loadCount('clusters');
+
+    // For the Table (Paginated)
+    $clusters = $organization->clusters()
+        ->withCount('divisions')
+        ->latest()
+        ->paginate(10);
+
+    // For the Tree (Full hierarchy)
+    $treeData = $organization->clusters()
+        ->with(['divisions' => function($q) {
+            $q->with('chairman:id,full_name');
+        }, 'chairman:id,full_name'])
+        ->get();
+
+    return view('organizations.show', compact('organization', 'clusters', 'treeData'));
+}
+
 }

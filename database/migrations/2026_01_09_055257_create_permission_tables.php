@@ -49,6 +49,8 @@ return new class extends Migration
             }
 
             $table->string('name');
+            $table->text('description')->nullable();
+            $table->boolean('is_system_role')->default(false);
             $table->string('guard_name');
 
             // OPTIONAL (RECOMMENDED)
@@ -151,6 +153,7 @@ return new class extends Migration
         ) {
             $table->uuid($pivotPermission);
             $table->uuid($pivotRole);
+            $table->timestamps();
 
             $table->foreign($pivotPermission)
                 ->references('id')

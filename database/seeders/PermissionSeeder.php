@@ -3,18 +3,21 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\DB;
+use App\Models\Permission;
+use App\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissionSeeder extends Seeder
 {
     public function run(): void
     {
         // Clear cached permissions
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         DB::transaction(function () {
+
+            $guard = 'web';
 
             /*
             |--------------------------------------------------------------------------
@@ -25,9 +28,9 @@ class PermissionSeeder extends Seeder
                 'users',
                 'roles',
                 'organizations',
-                'maintenance_requests',
                 'departments',
                 'divisions',
+                'maintenance_requests',
                 'reports',
             ];
 
@@ -48,8 +51,10 @@ class PermissionSeeder extends Seeder
             foreach ($resources as $resource) {
                 foreach ($actions as $action) {
                     Permission::firstOrCreate([
-                        'name' => "{$resource}.{$action}",
-                        'guard_name' => 'web',
+                        'name'       => "{$resource}.{$action}",
+                        'guard_name' => $guard,
+                    ], [
+                        'resource' => $resource,
                     ]);
                 }
             }
@@ -59,16 +64,18 @@ class PermissionSeeder extends Seeder
             | EXTRA SYSTEM PERMISSIONS
             |--------------------------------------------------------------------------
             */
-            $extraPermissions = [
-                'dashboard.view',
-                'settings.manage',
-                'profile.update',
+            $extras = [
+                'dashboard.view' => 'dashboard',
+                'profile.update' => 'profile',
+                'settings.manage' => 'settings',
             ];
 
-            foreach ($extraPermissions as $permission) {
+            foreach ($extras as $permission => $resource) {
                 Permission::firstOrCreate([
-                    'name' => $permission,
-                    'guard_name' => 'web',
+                    'name'       => $permission,
+                    'guard_name' => $guard,
+                ], [
+                    'resource' => $resource,
                 ]);
             }
 
@@ -77,22 +84,32 @@ class PermissionSeeder extends Seeder
             | ROLES
             |--------------------------------------------------------------------------
             */
-            $superAdmin = Role::firstOrCreate(['name' => 'superadmin']);
-            $admin      = Role::firstOrCreate(['name' => 'admin']);
-            $manager    = Role::firstOrCreate(['name' => 'manager']);
-            $employee   = Role::firstOrCreate(['name' => 'employee']);
+            $roles = [
+                'superadmin',
+                'admin',
+                'manager',
+                'employee',
+            ];
+
+            $roleModels = [];
+            foreach ($roles as $role) {
+                $roleModels[$role] = Role::firstOrCreate([
+                    'name'       => $role,
+                    'guard_name' => $guard,
+                ]);
+            }
 
             /*
             |--------------------------------------------------------------------------
-            | ROLE → PERMISSION ASSIGNMENT
+            | ASSIGN PERMISSIONS TO ROLES
             |--------------------------------------------------------------------------
             */
 
-            // Super Admin → ALL permissions
-            $superAdmin->syncPermissions(Permission::all());
+            // Super Admin → Everything
+            $roleModels['superadmin']->syncPermissions(Permission::all());
 
-            // Admin
-            $admin->syncPermissions([
+            // Admin → Limited permissions
+            $roleModels['admin']->syncPermissions(Permission::whereIn('name', [
                 'dashboard.view',
                 'users.view',
                 'users.create',
@@ -107,25 +124,26 @@ class PermissionSeeder extends Seeder
                 'maintenance_requests.assign',
                 'maintenance_requests.approve',
                 'reports.view',
-            ]);
+            ])->get());
 
-            // Manager
-            $manager->syncPermissions([
+            // Manager → Limited permissions
+            $roleModels['manager']->syncPermissions(Permission::whereIn('name', [
                 'dashboard.view',
                 'maintenance_requests.view',
                 'maintenance_requests.assign',
                 'maintenance_requests.approve',
                 'reports.view',
-            ]);
+            ])->get());
 
-            // Employee
-            $employee->syncPermissions([
+            // Employee → Limited permissions
+            $roleModels['employee']->syncPermissions(Permission::whereIn('name', [
                 'dashboard.view',
                 'maintenance_requests.view',
                 'maintenance_requests.create',
                 'maintenance_requests.update',
                 'profile.update',
-            ]);
+            ])->get());
         });
+
     }
 }

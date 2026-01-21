@@ -26,7 +26,7 @@ class DivisionController extends Controller
             'division_chairman' => $validated['division_chairman']
         ]);
 
-        return response()->json($division->load(['cluster:id,name', 'chairman:id,name']));
+        return response()->json($division->load(['cluster:id,name', 'chairman:id,full_name']));
     }
 
     /**
@@ -42,7 +42,7 @@ class DivisionController extends Controller
 
         $division->update($validated);
 
-        return response()->json($division->load(['cluster:id,name', 'chairman:id,name']));
+        return response()->json($division->load(['cluster:id,name', 'chairman:id,full_name']));
     }
 
     /**
@@ -53,4 +53,15 @@ class DivisionController extends Controller
         $division->delete();
         return response()->json(['message' => 'Division deleted successfully']);
     }
+
+public function show(Division $division)
+{
+    $division->load([
+        'cluster.organization',
+        'cluster.chairman', // Load the Cluster's chairman
+        'chairman'          // Load the Division's chairman
+    ])->loadCount('users');
+
+    return view('organizations.divisions.show', compact('division'));
+}
 }

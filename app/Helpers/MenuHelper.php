@@ -1,96 +1,107 @@
 <?php
 
 namespace App\Helpers;
-
+use Illuminate\Support\Facades\Auth;
 class MenuHelper
 {
     public static function getMainNavItems()
     {
-        return [
+        $user = Auth::user();
+
+        $items = [
             [
                 'icon' => 'dashboard',
                 'name' => 'Dashboard',
                 'subItems' => [
-                    ['name' => 'Ecommerce', 'path' => '/'],
+                    ['name' => 'Ecommerce', 'path' => '/', 'permission' => 'dashboard.view'],
                 ],
             ],
-                    // ===============================
-        // Added User Management menu
-        [
-            'name' => 'User Management',
-            'icon' => 'user-profile', // you can create a separate icon if needed
-            'subItems' => [
-                ['name' => 'Users', 'path' => '/users', 'pro' => false],
-                ['name' => 'Roles', 'path' => '/roles', 'pro' => false],
-                ['name' => 'Permissions', 'path' => '/permissions', 'pro' => false],
-            ],
-        ],
             [
-                'icon' => 'calendar',
-                'name' => 'Calendar',
-                'path' => '/calendar',
+                'name' => 'User Management',
+                'icon' => 'user-profile',
+                'subItems' => [
+                    ['name' => 'Users', 'path' => '/users', 'permission' => 'users.view'],
+                    ['name' => 'Roles', 'path' => '/roles', 'permission' => 'roles.view'],
+                    ['name' => 'Permissions', 'path' => '/permissions', 'permission' => 'roles.view'],
+                ],
+            ],
+
+            [
+                'icon' => 'task',
+                'name' => 'Tasks',
+                'path' => '/task',
+              'permission' => 'maintenance_requests.view',
+            ],
+                        [
+                'icon' => 'task',
+                'name' => 'Base Data',
+                'path' => '/base-data',
+                'permission' => 'maintenance_requests.view',
+            ],
+            [
+                'icon' => 'forms',
+                'name' => 'Forms',
+                'path' => '/forms',
+                'permission' => 'forms.view',
+            ],
+            [
+                'icon' => 'tables',
+                'name' => 'Maintenance',
+                'path' => '/maintenance-requests',
+                'permission' => 'maintenance_requests.view',
             ],
             [
                 'icon' => 'user-profile',
-                'name' => 'User Profile',
-                'path' => '/profile',
-            ],
-            [
-                'name' => 'Forms',
-                'icon' => 'forms',
-                'subItems' => [
-                    ['name' => 'Form Elements', 'path' => '/form-elements', 'pro' => false],
-                ],
-            ],
-            [
-                'name' => 'Tables',
-                'icon' => 'tables',
-                'subItems' => [
-                    ['name' => 'Basic Tables', 'path' => '/basic-tables', 'pro' => false]
-                ],
-            ],
-            [
-                'name' => 'Pages',
-                'icon' => 'pages',
-                'subItems' => [
-                    ['name' => 'Blank Page', 'path' => '/blank', 'pro' => false],
-                    ['name' => '404 Error', 'path' => '/error-404', 'pro' => false]
-                ],
+                'name' => 'Organization Unit',
+                'path' => '/organizations',
+                'permission' => 'organizations.view',
             ],
         ];
+
+        // Filter items based on permission
+        return array_filter($items, function ($item) use ($user) {
+            if (isset($item['subItems'])) {
+                // Filter subItems
+                $item['subItems'] = array_filter($item['subItems'], function ($sub) use ($user) {
+                    return !isset($sub['permission']) || $user->can($sub['permission']);
+                });
+                return count($item['subItems']) > 0;
+            }
+            return !isset($item['permission']) || $user->can($item['permission']);
+        });
     }
 
     public static function getOthersItems()
     {
         return [
-            [
-                'icon' => 'charts',
-                'name' => 'Charts',
-                'subItems' => [
-                    ['name' => 'Line Chart', 'path' => '/line-chart', 'pro' => false],
-                    ['name' => 'Bar Chart', 'path' => '/bar-chart', 'pro' => false]
-                ],
-            ],
-            [
-                'icon' => 'ui-elements',
-                'name' => 'UI Elements',
-                'subItems' => [
-                    ['name' => 'Alerts', 'path' => '/alerts', 'pro' => false],
-                    ['name' => 'Avatar', 'path' => '/avatars', 'pro' => false],
-                    ['name' => 'Badge', 'path' => '/badge', 'pro' => false],
-                    ['name' => 'Buttons', 'path' => '/buttons', 'pro' => false],
-                    ['name' => 'Images', 'path' => '/image', 'pro' => false],
-                    ['name' => 'Videos', 'path' => '/videos', 'pro' => false],
-                ],
-            ],
-            [
-                'icon' => 'authentication',
-                'name' => 'Authentication',
-                'subItems' => [
-                    ['name' => 'Sign In', 'path' => '/signin', 'pro' => false],
-                    ['name' => 'Sign Up', 'path' => '/signup', 'pro' => false],
-                ],
-            ],
+            // [
+            //     'icon' => 'charts',
+            //     'name' => 'Charts',
+            //     'subItems' => [
+            //         ['name' => 'Line Chart', 'path' => '/line-chart', 'pro' => false],
+            //         ['name' => 'Bar Chart', 'path' => '/bar-chart', 'pro' => false]
+            //     ],
+            // ],
+            // [
+            //     'icon' => 'ui-elements',
+            //     'name' => 'UI Elements',
+            //     'subItems' => [
+            //         ['name' => 'Alerts', 'path' => '/alerts', 'pro' => false],
+            //         ['name' => 'Avatar', 'path' => '/avatars', 'pro' => false],
+            //         ['name' => 'Badge', 'path' => '/badge', 'pro' => false],
+            //         ['name' => 'Buttons', 'path' => '/buttons', 'pro' => false],
+            //         // ['name' => 'Images', 'path' => '/image', 'pro' => false],
+            //         // ['name' => 'Videos', 'path' => '/videos', 'pro' => false],
+            //     ],
+            // ],
+            // [
+            //     'icon' => 'authentication',
+            //     'name' => 'Authentication',
+            //     'subItems' => [
+            //         ['name' => 'Sign In', 'path' => '/signin', 'pro' => false],
+            //         // ['name' => 'Sign Up', 'path' => '/signup', 'pro' => false],
+            //     ],
+            // ],
         ];
     }
 

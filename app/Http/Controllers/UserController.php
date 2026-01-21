@@ -15,7 +15,7 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\UserWelcomeMail;
 use Illuminate\Support\Str;
-
+use Illuminate\Support\Facades\Auth;
 class UserController extends Controller
 {
     /**
@@ -24,14 +24,15 @@ class UserController extends Controller
 public function index(Request $request)
 {
     $filters = $request->only(['search', 'division_id', 'cluster_id', 'role', 'status']);
-
+    //   dd(auth()->id());
+      
     $usersQuery = User::with(['division', 'cluster', 'roles'])
         ->filter($filters);
 
     // Paginated users
     $users = (clone $usersQuery)
         ->latest()
-        ->paginate(2)
+        ->paginate(5)
         ->withQueryString();
 
     // ✅ STATISTICS
@@ -79,59 +80,58 @@ public function index(Request $request)
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreUserRequest $request)
-    {
-        // $this->authorize('create', User::class);
+public function store(StoreUserRequest $request)
+{
+    DB::beginTransaction();
+ 
+    try {
+        $clusterId = null;
+        $divisionId = null;
 
-        DB::beginTransaction();
-
-        try {
-            // Create user
-            $user = User::create([
-                'id' => Str::uuid(),
-                'full_name' => $request->full_name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'password' => Hash::make($request->password),
-                'division_id' => $request->division_id,
-                'cluster_id' => $request->cluster_id,
-                'email_verified_at' => $request->boolean('email_verified') ? now() : null,
-            ]);
-
-            // Assign roles
-            $user->syncRoles($request->roles);
-
-            // Send welcome email if requested
-            if ($request->boolean('send_welcome_email')) {
-                $tempPassword = $request->password;
-                Mail::to($user->email)->queue(new UserWelcomeMail($user, $tempPassword));
-            }
-
-            // Log activity
-            // activity()
-            //     ->causedBy(auth()->user())
-            //     ->performedOn($user)
-            //     ->withProperties([
-            //         'email' => $user->email,
-            //         'roles' => $request->roles
-            //     ])
-            //     ->log('created user');
-
-            DB::commit();
-
-            return redirect()->route('users.index')
-                ->with('success', 'User created successfully.');
-                
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            \Log::error('User creation failed: ' . $e->getMessage());
-            
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Failed to create user. Please try again.');
+        if ($request->assign_type === 'cluster') {
+            $clusterId = $request->cluster_id;
         }
+
+        if ($request->assign_type === 'division') {
+            $division = Division::findOrFail($request->division_id);
+            $divisionId = $division->id;
+            $clusterId  = $division->cluster_id; // inferred automatically
+        }
+
+        $user = User::create([
+            'id' => Str::uuid(),
+            'full_name' => $request->full_name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'password' => Hash::make($request->password),
+            'cluster_id' => $clusterId,
+            'division_id' => $divisionId,
+            
+        ]);
+
+        // ONE role only
+      $user->assignRole($request->roles);
+
+
+        DB::commit();
+
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'User created successfully');
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+            dd(
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine()
+    );
+        report($e);
+
+        return back()->withInput()->with('error', 'Failed to create user');
     }
+}
+
 
     /**
      * Display the specified resource.
@@ -155,77 +155,79 @@ public function index(Request $request)
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(User $user)
-    {
-        // $this->authorize('update', $user);
+public function edit(User $user)
+{
+    $divisions = Division::orderBy('name')->get(['id', 'name']);
+    $clusters = Cluster::orderBy('name')->get(['id', 'name']);
+    $organizations = Organization::orderBy('name')->get(['id', 'name']);
+    $roles = Role::orderBy('name')->get(['id', 'name']);
 
-        $divisions = Division::orderBy('name')->get(['id', 'name']);
-        $clusters = Cluster::orderBy('name')->get(['id', 'name']);
-        $organizations = Organization::orderBy('name')->get(['id', 'name']);
-        $roles = Role::orderBy('name')->get(['id', 'name']);
+    return view('users.edit', compact(
+        'user',
+        'divisions',
+        'clusters',
+        'organizations',
+        'roles'
+    ));
+}
 
-        return view('users.edit', compact('user', 'divisions', 'clusters', 'organizations', 'roles'));
-    }
+/**
+ * Update the specified user
+ */
+public function update(UpdateUserRequest $request, User $user)
+{
+    DB::beginTransaction();
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateUserRequest $request, User $user)
-    {
-        $this->authorize('update', $user);
+    try {
+        $clusterId  = null;
+        $divisionId = null;
 
-        DB::beginTransaction();
-
-        try {
-            // Prepare update data
-            $updateData = [
-                'full_name' => $request->full_name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'division_id' => $request->division_id,
-                'cluster_id' => $request->cluster_id,
-            ];
-
-            // Update password if provided
-            if ($request->filled('password')) {
-                $updateData['password'] = Hash::make($request->password);
-            }
-
-            // Update email verification status
-            if ($request->has('is_active')) {
-                $updateData['email_verified_at'] = $request->boolean('is_active') ? now() : null;
-            }
-
-            // Update user
-            $user->update($updateData);
-
-            // Sync roles if provided (admin only)
-            if (auth()->user()->hasRole('admin') && $request->has('roles')) {
-                $user->syncRoles($request->roles);
-            }
-
-            // Log activity
-            activity()
-                ->causedBy(auth()->user())
-                ->performedOn($user)
-                ->withProperties($request->validated())
-                ->log('updated user');
-
-            DB::commit();
-
-            return redirect()->route('users.index')
-                ->with('success', 'User updated successfully.');
-                
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            \Log::error('User update failed: ' . $e->getMessage());
-            
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Failed to update user. Please try again.');
+        if ($request->assign_type === 'cluster') {
+            $clusterId = $request->cluster_id;
         }
+
+        if ($request->assign_type === 'division') {
+            $division = Division::findOrFail($request->division_id);
+            $divisionId = $division->id;
+            $clusterId  = $division->cluster_id;
+        }
+
+        $updateData = [
+            'full_name'   => $request->full_name,
+            'email'       => $request->email,
+            'phone'       => $request->phone,
+            'cluster_id'  => $clusterId,
+            'division_id' => $divisionId,
+        ];
+
+        // Update password only if provided
+        if ($request->filled('password')) {
+            $updateData['password'] = Hash::make($request->password);
+        }
+
+        $user->update($updateData);
+
+        // 🔐 SINGLE ROLE (same as create)
+        if ($request->filled('roles')) {
+            $user->syncRoles([$request->roles]);
+        }
+
+        DB::commit();
+
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'User updated successfully');
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+
+        report($e);
+
+        return back()
+            ->withInput()
+            ->with('error', 'Failed to update user');
     }
+}
 
     /**
      * Remove the specified resource from storage.

@@ -17,6 +17,7 @@ use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\MyRequestController;
 
 
 
@@ -118,7 +119,7 @@ Route::middleware(['web','auth'])->group(function () {
     Route::resource('maintenance-requests', MaintenanceRequestController::class);
     Route::get('/maintenance-requests/export', [MaintenanceRequestController::class, 'export'])->name('maintenance-requests.export');
     Route::get('/maintenance-requests/statistics', [MaintenanceRequestController::class, 'statistics'])->name('maintenance-requests.statistics');
-    Route::post('/maintenance-requests/{maintenanceRequest}/assign', [MaintenanceRequestController::class, 'assign'])->name('maintenance-requests.assign');
+    // Route::post('/maintenance-requests/{maintenanceRequest}/assign', [MaintenanceRequestController::class, 'assign'])->name('maintenance-requests.assign');
     Route::post('/maintenance-requests/{maintenanceRequest}/update-status', [MaintenanceRequestController::class, 'updateStatus'])->name('maintenance-requests.update-status');
     Route::get('/maintenance-requests/{maintenanceRequest}/download-file/{file}', [MaintenanceRequestController::class, 'downloadFile'])->name('maintenance-requests.download-file');
     Route::delete('/maintenance-requests/{maintenanceRequest}/delete-file/{file}', [MaintenanceRequestController::class, 'deleteFile'])->name('maintenance-requests.delete-file');
@@ -161,6 +162,11 @@ Route::get('/base-data', [BaseDataController::class, 'index'])->name('base-data.
 
     Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
     Route::patch('/permissions/{permission}/toggle', [PermissionController::class, 'toggleStatus'])->name('permissions.toggle');
+
+    Route::put('maintenance-requests/{maintenanceRequest}/assign', [MaintenanceRequestController::class, 'assign'])
+    ->name('maintenance-requests.assign');
+    Route::get('/my-requests', [MyRequestController::class, 'index'])->name('my.requests');
+    
 });
 
 // Default route - redirect to login if not authenticated, dashboard if authenticated

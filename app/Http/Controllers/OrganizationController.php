@@ -143,15 +143,27 @@ public function clusters($organizationId)
             ->get()
     );
 }
-    public function show(Organization $organization)
+public function show(Request $request, Organization $organization)
 {
     $organization->loadCount('clusters');
 
-    $clusters = $organization->clusters()
+    $query = $organization->clusters()
         ->withCount('divisions')
-        ->latest()
-        ->paginate(10);
-        $users = \App\Models\User::select('id', 'full_name')->orderBy('full_name')->get();
+        ->latest();
+
+    // Add search logic
+    if ($search = $request->input('search')) {
+        $query->where(function($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhereHas('chairman', function($userQuery) use ($search) {
+                  $userQuery->where('full_name', 'like', "%{$search}%");
+              });
+        });
+    }
+
+    $clusters = $query->paginate(10)->withQueryString(); // withQueryString keeps search in pagination links
+    
+    $users = \App\Models\User::select('id', 'full_name')->orderBy('full_name')->get();
 
     return view('organizations.show', compact('organization', 'clusters', 'users'));
 }

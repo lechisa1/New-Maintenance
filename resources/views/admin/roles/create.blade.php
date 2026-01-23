@@ -68,79 +68,107 @@
                 {{-- RIGHT SIDE: Permissions --}}
                 <div class="lg:col-span-8">
                     <div
-                        class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03] flex flex-col h-full max-h-[600px]">
-                        {{-- Sticky Header for Permissions --}}
-                        <div
-                            class="sticky top-0 z-10 bg-white dark:bg-[#121212] border-b border-gray-200 p-5 dark:border-gray-800 flex flex-wrap items-center justify-between gap-4 rounded-t-2xl">
-                            <h3 class="text-base font-bold text-gray-800 dark:text-white/90">
-                                <i class="bi bi-key mr-2 text-blue-600"></i> Permissions Assignment
-                            </h3>
+                        class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 flex flex-col h-full">
 
-                            <div class="flex items-center gap-4">
+                        {{-- Header with Quick Stats --}}
+                        <div
+                            class="border-b border-gray-200 p-5 dark:border-gray-800 bg-gray-50/50 dark:bg-white/[0.02] rounded-t-2xl flex items-center justify-between">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white/90">Permissions</h3>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Selected: <span class="font-bold text-blue-600"
+                                        x-text="selectedPermissions.length"></span> permissions
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-3">
                                 <div class="relative">
-                                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                                        <i class="bi bi-search text-xs"></i>
-                                    </span>
-                                    <input type="text" x-model="searchQuery" placeholder="Search..."
-                                        class="h-9 w-48 rounded-md border border-gray-200 bg-gray-50 pl-9 pr-3 text-xs focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800">
+                                    <i
+                                        class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                                    <input type="text" x-model="searchQuery" placeholder="Filter permissions..."
+                                        class="h-9 w-40 md:w-56 rounded-full border-gray-200 bg-white pl-9 text-xs focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800">
                                 </div>
-                                <div class="flex gap-2 border-l pl-4 dark:border-gray-700">
-                                    <button type="button" @click="selectAllPermissions"
-                                        class="text-xs font-bold text-blue-600 hover:underline">Select All</button>
-                                    <button type="button" @click="clearAllPermissions"
-                                        class="text-xs font-bold text-red-500 hover:underline">Clear</button>
-                                </div>
+                                <button type="button" @click="selectAllPermissions"
+                                    class="text-xs font-semibold px-3 py-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 transition">All</button>
+                                <button type="button" @click="clearAllPermissions"
+                                    class="text-xs font-semibold px-3 py-1.5 rounded-md bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 transition">None</button>
                             </div>
                         </div>
 
-                        {{-- Scrollable Body --}}
-                        <div class="p-6 overflow-y-auto custom-scrollbar" style="max-height: 650px;">
-                            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                @foreach ($permissions as $group => $groupPermissions)
-                                    @php
-                                        $groupIds = $groupPermissions
-                                            ->pluck('id')
-                                            ->map(fn($id) => (string) $id)
-                                            ->toArray();
-                                    @endphp
-
-                                    <div class="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-transparent h-fit"
-                                        x-show="shouldShowGroup('{{ $group }}', @json($groupPermissions->pluck('name')))">
-
-                                        <div
-                                            class="flex items-center justify-between bg-gray-50/50 px-4 py-2.5 dark:bg-gray-800/50">
-                                            <label class="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox" @change="toggleGroup(@json($groupIds))"
-                                                    :checked="isGroupFullySelected(@json($groupIds))"
-                                                    :indeterminate="isGroupPartiallySelected(@json($groupIds))"
-                                                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                                <span
-                                                    class="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{{ $group }}</span>
-                                            </label>
-                                            <span
-                                                class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full dark:bg-blue-900/30">
-                                                <span
-                                                    x-text="getSelectedCount(@json($groupIds))"></span>/{{ count($groupPermissions) }}
-                                            </span>
-                                        </div>
-
-                                        <div class="p-4 grid gap-3">
-                                            @foreach ($groupPermissions as $permission)
-                                                <label class="flex items-start cursor-pointer group"
-                                                    x-show="searchQuery === '' || '{{ strtolower($permission->name) }}'.includes(searchQuery.toLowerCase())">
-                                                    <input type="checkbox" value="{{ (string) $permission->id }}"
-                                                        x-model="selectedPermissions"
-                                                        class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800">
+                        {{-- Optimized Matrix Body --}}
+                        <div class="p-0 overflow-y-auto custom-scrollbar" style="max-height: 600px;">
+                            <table class="w-full text-left border-separate border-spacing-0">
+                                <thead class="sticky top-0 bg-white dark:bg-gray-900 z-10 shadow-sm">
+                                    <tr>
+                                        <th
+                                            class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 border-b dark:border-gray-800">
+                                            Module / Resource</th>
+                                        <th
+                                            class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 border-b dark:border-gray-800">
+                                            Actions & Privileges</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    @foreach ($permissions as $group => $groupPermissions)
+                                        @php
+                                            $groupIds = $groupPermissions
+                                                ->pluck('id')
+                                                ->map(fn($id) => (string) $id)
+                                                ->toArray();
+                                        @endphp
+                                        <tr x-show="shouldShowGroup('{{ $group }}', @json($groupPermissions->pluck('name')))"
+                                            class="hover:bg-gray-50/50 dark:hover:bg-white/[0.01] transition">
+                                            {{-- Resource Name --}}
+                                            <td class="px-6 py-4 align-top w-1/3">
+                                                <div class="flex items-center gap-3">
+                                                    <input type="checkbox"
+                                                        @change="toggleGroup(@json($groupIds))"
+                                                        :checked="isGroupFullySelected(@json($groupIds))"
+                                                        :indeterminate="isGroupPartiallySelected(@json($groupIds))"
+                                                        class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                                                     <span
-                                                        class="ml-3 text-sm text-gray-600 group-hover:text-blue-600 dark:text-gray-400 transition-colors">
-                                                        {{ $permission->display_name ?? ucwords(str_replace(['.', '_'], ' ', $permission->name)) }}
-                                                    </span>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
+                                                        class="text-sm font-bold text-gray-700 dark:text-gray-300">{{ ucwords(str_replace('_', ' ', $group)) }}</span>
+                                                </div>
+                                            </td>
+
+                                            {{-- Permissions Grid --}}
+                                            <td class="px-6 py-4">
+                                                <div class="flex flex-wrap gap-2">
+                                                    @foreach ($groupPermissions as $permission)
+                                                        @php
+                                                            $action = str_contains($permission->name, '.')
+                                                                ? explode('.', $permission->name)[1]
+                                                                : $permission->name;
+                                                            $colorClass = match ($action) {
+                                                                'view'
+                                                                    => 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+                                                                'create'
+                                                                    => 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20',
+                                                                'update',
+                                                                'edit'
+                                                                    => 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+                                                                'delete'
+                                                                    => 'bg-red-50 text-red-700 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20',
+                                                                default
+                                                                    => 'bg-gray-50 text-gray-700 border-gray-100 dark:bg-white/5 dark:text-gray-400 dark:border-white/10',
+                                                            };
+                                                        @endphp
+                                                        <label class="cursor-pointer">
+                                                            <input type="checkbox" value="{{ (string) $permission->id }}"
+                                                                x-model="selectedPermissions" class="hidden peer">
+                                                            <div
+                                                                class="px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all peer-checked:ring-2 peer-checked:ring-offset-1 peer-checked:ring-blue-500 {{ $colorClass }}">
+                                                                <i
+                                                                    class="bi bi-{{ $action == 'view' ? 'eye' : ($action == 'create' ? 'plus-lg' : ($action == 'delete' ? 'trash' : 'pencil')) }} mr-1"></i>
+                                                                {{ strtoupper($action) }}
+                                                            </div>
+                                                        </label>
+                                                    @endforeach
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

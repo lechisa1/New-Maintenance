@@ -16,31 +16,30 @@ class RoleController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
-    {
-        // $this->authorize('viewAny', Role::class);
+public function index(Request $request)
+{
+    $search = $request->input('search');
+    $status = $request->input('status'); // '1' for active, '0' for inactive
+    $perPage = $request->input('per_page', 10);
+    
+    $roles = Role::withCount(['permissions', 'users'])
+        ->when($search, function ($query, $search) {
+            return $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        })
+        // Simple 1/0 status filter
+        ->when($status !== null && $status !== '', function ($query) use ($status) {
+            return $query->where('is_active', $status);
+        })
+        ->orderByRaw("CASE WHEN name = 'super-admin' THEN 1 ELSE 2 END")
+        ->orderBy('created_at', 'desc')
+        ->paginate($perPage)
+        ->withQueryString();
 
-        $search = $request->input('search');
-        $guard = $request->input('guard');
-        $perPage = $request->input('per_page', 5);
-        $permissions = Permission::all();
-        $roles = Role::withCount(['permissions', 'users'])
-            ->when($search, function ($query, $search) {
-                return $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            })
-            ->when($guard, function ($query, $guard) {
-                return $query->where('guard_name', $guard);
-            })
-            ->orderByRaw("CASE WHEN name = 'super-admin' THEN 1 ELSE 2 END")
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage)
-            ->withQueryString();
-
-        $guards = array_keys(config('auth.guards'));
-
-        return view('admin.roles.index', compact('roles', 'guards', 'permissions'));
-    }
+    return view('admin.roles.index', compact('roles'));
+}
 
 /**
  * Show the form for creating a new resource.

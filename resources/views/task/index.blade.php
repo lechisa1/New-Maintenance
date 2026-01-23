@@ -8,7 +8,7 @@
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">
-                    <i class="bi bi-tools me-2"></i>Maintenance Requests
+                    <i class="bi bi-tools me-2"></i>{{ $pageType === 'tasks' ? 'My Tasks' : 'My Requests' }}
                 </h2>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     Track and manage all maintenance requests
@@ -44,7 +44,8 @@
                 <i class="bi bi-funnel me-2"></i>Filter Requests
             </h3>
 
-            <form action="{{ route('maintenance-requests.index') }}" method="GET">
+            <form action="{{ $pageType === 'tasks' ? route('user.task') : route('my.requests') }}" method="GET">
+
                 <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
                     <!-- Search -->
                     <div>
@@ -98,10 +99,11 @@
                                 class="h-11 flex-1 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                                 Apply Filters
                             </button>
-                            <a href="{{ route('maintenance-requests.index') }}"
+                            <a href="{{ $pageType === 'tasks' ? route('user.task') : route('my.requests') }}"
                                 class="h-11 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                                 Clear
                             </a>
+
                         </div>
                     </div>
                 </div>

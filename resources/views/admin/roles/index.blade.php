@@ -14,59 +14,48 @@
             <x-common.stat-card title="Total Users" value="{{ $totalUsers ?? 0 }}" icon="bi bi-people" variant="info" />
         </div>
 
-        <!-- Filters Card -->
         <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="mb-4 flex items-center justify-between">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    <i class="bi bi-funnel me-2"></i>Filter Roles
+                    <i class="bi bi-funnel me-2 text-blue-500"></i>Filter Roles
                 </h3>
-                <a href="{{ route('roles.index') }}" class="text-sm font-medium text-blue-500 hover:text-blue-600">
+                <a href="{{ route('roles.index') }}"
+                    class="text-sm font-medium text-blue-500 hover:text-blue-600 transition">
                     Reset All
                 </a>
             </div>
 
             <form action="{{ route('roles.index') }}" method="GET" id="filterForm">
-                <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
-                    <div>
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-12">
+                    {{-- Search - Takes more space --}}
+                    <div class="md:col-span-6">
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Search</label>
                         <div class="relative">
                             <input type="text" name="search" id="searchInput"
                                 class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-11 text-sm text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                                placeholder="Name or description..." value="{{ request('search') }}">
-                            <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                placeholder="Search name or description..." value="{{ request('search') }}">
+                            <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         </div>
                     </div>
 
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Guard</label>
-                        <select name="guard_name"
+                    {{-- Status Filter --}}
+                    <div class="md:col-span-3">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Account
+                            Status</label>
+                        <select name="status"
                             class="filter-select h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-                            <option value="">All Guards</option>
-                            @foreach ($guards as $guard)
-                                <option value="{{ $guard }}" {{ request('guard_name') == $guard ? 'selected' : '' }}>
-                                    {{ ucfirst($guard) }}
-                                </option>
-                            @endforeach
+                            <option value="">All Statuses</option>
+                            <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Active Only</option>
+                            <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Inactive Only</option>
                         </select>
                     </div>
 
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Role Type</label>
-                        <select name="type"
-                            class="filter-select h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-                            <option value="">All Types</option>
-                            <option value="system" {{ request('type') == 'system' ? 'selected' : '' }}>System Roles
-                            </option>
-                            <option value="custom" {{ request('type') == 'custom' ? 'selected' : '' }}>Custom Roles
-                            </option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Per Page</label>
+                    {{-- Per Page --}}
+                    <div class="md:col-span-3">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Show</label>
                         <select name="per_page"
                             class="filter-select h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-                            @foreach ([10, 25, 50, 100] as $size)
+                            @foreach ([10, 25, 50] as $size)
                                 <option value="{{ $size }}"
                                     {{ request('per_page', 10) == $size ? 'selected' : '' }}>{{ $size }} items
                                 </option>
@@ -103,7 +92,8 @@
                                 Permissions</th>
                             <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-white/90">Users
                             </th>
-
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-white/90">Status
+                            </th>
                             </th>
                             <th class="px-4 py-3 text-center text-sm font-semibold text-gray-800 dark:text-white/90">Actions
                             </th>
@@ -158,6 +148,24 @@
                                         <span class="text-xs text-gray-500 dark:text-gray-400">
                                             users
                                         </span>
+                                    </div>
+                                </td>
+
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-2">
+
+
+                                        @if ($role->is_active)
+                                            <span
+                                                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                                Active
+                                            </span>
+                                        @else
+                                            <span
+                                                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                                Inactive
+                                            </span>
+                                        @endif
                                     </div>
                                 </td>
 

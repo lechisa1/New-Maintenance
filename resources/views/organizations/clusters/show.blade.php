@@ -25,14 +25,34 @@
         </div>
 
         <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="mb-6 flex items-center justify-between">
+            <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
                     <i class="bi bi-building me-2"></i> Divisions
                 </h3>
-                <button onclick="openDivisionModal()"
-                    class="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-600">
-                    <i class="bi bi-plus-lg me-2"></i> Add Division
-                </button>
+
+                <div class="flex flex-1 items-center justify-end gap-3">
+                    <form action="{{ route('clusters.divisions', $cluster) }}" method="GET"
+                        class="relative w-full max-w-sm">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" name="search" value="{{ request('search') }}"
+                            placeholder="Search divisions or chairmen..."
+                            class="h-10 w-full rounded-lg border border-gray-300 pl-10 pr-4 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+
+                        @if (request('search'))
+                            <a href="{{ route('clusters.divisions', $cluster) }}"
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-red-500">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </a>
+                        @endif
+                    </form>
+
+                    <button onclick="openDivisionModal()"
+                        class="inline-flex items-center whitespace-nowrap rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600">
+                        <i class="bi bi-plus-lg me-2"></i> Add Division
+                    </button>
+                </div>
             </div>
 
             <div class="overflow-x-auto">

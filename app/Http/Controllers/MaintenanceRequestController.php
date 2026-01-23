@@ -25,7 +25,7 @@ class MaintenanceRequestController extends Controller
      */
     public function index(Request $request)
     {
-        $query = MaintenanceRequest::with(['user', 'item', 'assignedTechnician']);
+        $query = MaintenanceRequest::where('user_id', auth()->id())->with(['user', 'item', 'assignedTechnician']);
         
         // Apply filters
         if ($request->filled('search')) {
@@ -61,16 +61,16 @@ class MaintenanceRequestController extends Controller
         $requests = $query->latest()->paginate(15);
         
         // Statistics
-        $totalRequests = MaintenanceRequest::count();
-        $openRequests = MaintenanceRequest::open()->count();
-        $completedRequests = MaintenanceRequest::where('status', MaintenanceRequest::STATUS_COMPLETED)->count();
+        $totalRequests = MaintenanceRequest::where('user_id', auth()->id())->count();
+        $openRequests = MaintenanceRequest::where('user_id', auth()->id())->open()->count();
+        $completedRequests = MaintenanceRequest::where('user_id', auth()->id())->where('status', MaintenanceRequest::STATUS_COMPLETED)->count();
         // $myRequests = $request->user()->hasRole('user') ? 
         //     MaintenanceRequest::forUser($request->user()->id)->count() : 
         //     MaintenanceRequest::assignedTo($request->user()->id)->count();
         
         $myRequests =10;
         // Recent requests for sidebar
-        $recentRequests = MaintenanceRequest::with('item')
+        $recentRequests = MaintenanceRequest::where('user_id', auth()->id())->with('item')
             ->latest()
             ->take(5)
             ->get();
@@ -214,36 +214,80 @@ public function approve(MaintenanceRequest $request)
     /**
      * Display the specified resource.
      */
-    public function show(MaintenanceRequest $maintenanceRequest)
-    {
-        // Authorization check
-        // if (auth()->user()->hasRole('user') && $maintenanceRequest->user_id !== auth()->id()) {
-        //     abort(403, 'Unauthorized access.');
-        // }
-        
-        $maintenanceRequest->load(['user', 'item', 'assignedTechnician', 'files']);
-        
-        // Get technicians for assignment
-        // $technicians = User::role('technician')->orderBy('full_name')->get(['id', 'full_name', 'email']);
-        $technicians=[
-            '1' => 'Tech One',
-            '2' => 'Tech Two',
-            '3' => 'Tech Three',
-        ];
-        // Get similar requests
-        $similarRequests = MaintenanceRequest::where('item_id', $maintenanceRequest->item_id)
-            ->where('id', '!=', $maintenanceRequest->id)
-            ->latest()
-            ->take(3)
-            ->get();
-        
-        return view('maintenance-requests.show', compact(
-            'maintenanceRequest', 
-            'technicians',
-            'similarRequests'
-        ));
+public function show(MaintenanceRequest $maintenanceRequest)
+{
+    
+    $maintenanceRequest->load(['user', 'item', 'assignedTechnician', 'files']);
+    
+    // Get technicians who have 'reports.assign' permission
+    $technicians = User::whereHas('roles.permissions', function ($query) {
+            $query->where('name', 'reports.assign');
+        })
+        ->orWhereHas('permissions', function ($query) {
+            $query->where('name', 'reports.assign');
+        })
+        ->select('id', 'full_name', 'email')
+        ->get()
+        ->mapWithKeys(function ($user) {
+            return [$user->id => $user->full_name . ' (' . $user->email . ')'];
+        })
+        ->toArray();
+
+    // Get similar requests
+    $similarRequests = MaintenanceRequest::where('item_id', $maintenanceRequest->item_id)
+        ->where('id', '!=', $maintenanceRequest->id)
+        ->orderBy('created_at', 'desc')
+        ->limit(5)
+        ->get();
+
+    return view('maintenance-requests.show', compact(
+        'maintenanceRequest', 
+        'technicians', 
+        'similarRequests'
+    ));
+}
+/**
+ * Assign technician to maintenance request.
+ */
+public function assign(Request $request, MaintenanceRequest $maintenanceRequest)
+{
+    // Check if user has permission to assign
+    if (!auth()->user()->can('maintenance_requests.assign')) {
+        return redirect()->back()
+            ->with('error', 'You do not have permission to assign technicians.');
     }
 
+    // Validate the request
+    $validated = $request->validate([
+        'assigned_to' => 'required|exists:users,id',
+        'technician_notes' => 'nullable|string|max:1000',
+    ]);
+
+    // Check if the assigned user has 'reports.assign' permission
+    $assignedUser = User::findOrFail($validated['assigned_to']);
+    if (!$assignedUser->hasPermissionTo('reports.assign')) {
+        return redirect()->back()
+            ->with('error', 'Selected user does not have the required permission.');
+    }
+
+    // Update the maintenance request
+    $maintenanceRequest->update([
+        'assigned_to' => $validated['assigned_to'],
+        'assigned_at' => now(),
+        'status' => $maintenanceRequest->status === 'waiting_approval' ? 'assigned' : $maintenanceRequest->status,
+        'technician_notes' => $validated['technician_notes'] ?? $maintenanceRequest->technician_notes,
+    ]);
+
+    // Optional: Send notification to assigned technician
+    try {
+        $assignedUser->notify(new \App\Notifications\MaintenanceRequestAssigned($maintenanceRequest));
+    } catch (\Exception $e) {
+        \Log::error('Failed to send assignment notification: ' . $e->getMessage());
+    }
+
+    return redirect()->back()
+        ->with('success', 'Technician assigned successfully.');
+}
     /**
      * Show the form for editing the specified resource.
      */
@@ -581,36 +625,36 @@ public function approve(MaintenanceRequest $request)
     /**
      * Assign request to technician
      */
-    public function assign(Request $request, MaintenanceRequest $maintenanceRequest)
-    {
-        if (!auth()->user()->hasAnyRole(['admin', 'technician_lead'])) {
-            abort(403, 'Unauthorized.');
-        }
+    // public function assign(Request $request, MaintenanceRequest $maintenanceRequest)
+    // {
+    //     if (!auth()->user()->hasAnyRole(['admin', 'technician_lead'])) {
+    //         abort(403, 'Unauthorized.');
+    //     }
         
-        $request->validate([
-            'assigned_to' => 'required|exists:users,id',
-        ]);
+    //     $request->validate([
+    //         'assigned_to' => 'required|exists:users,id',
+    //     ]);
         
-        try {
-            $maintenanceRequest->update([
-                'assigned_to' => $request->assigned_to,
-                'status' => MaintenanceRequest::STATUS_ASSIGNED,
-                'assigned_at' => now(),
-            ]);
+    //     try {
+    //         $maintenanceRequest->update([
+    //             'assigned_to' => $request->assigned_to,
+    //             'status' => MaintenanceRequest::STATUS_ASSIGNED,
+    //             'assigned_at' => now(),
+    //         ]);
             
-            // Send notification to technician
-            // Notification::send($technician, new MaintenanceRequestAssigned($maintenanceRequest));
+    //         // Send notification to technician
+    //         // Notification::send($technician, new MaintenanceRequestAssigned($maintenanceRequest));
             
-            return redirect()->back()
-                ->with('success', 'Request assigned to technician successfully.');
+    //         return redirect()->back()
+    //             ->with('success', 'Request assigned to technician successfully.');
                 
-        } catch (\Exception $e) {
-            \Log::error('Request assignment failed: ' . $e->getMessage());
+    //     } catch (\Exception $e) {
+    //         \Log::error('Request assignment failed: ' . $e->getMessage());
             
-            return redirect()->back()
-                ->with('error', 'Failed to assign request.');
-        }
-    }
+    //         return redirect()->back()
+    //             ->with('error', 'Failed to assign request.');
+    //     }
+    // }
 
     /**
      * Update status (for technicians)

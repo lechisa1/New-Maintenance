@@ -62,16 +62,26 @@ public function divisions($clusterId)
             ->get()
     );
 }
-public function showDivisions(Cluster $cluster)
+public function showDivisions(Request $request, Cluster $cluster)
 {
     $cluster->loadCount('divisions');
 
-    $divisions = $cluster->divisions()
-        ->with('chairman') // Eager load chairman
-        ->orderBy('name')
-        ->paginate(10);
+    $query = $cluster->divisions()
+        ->with('chairman')
+        ->orderBy('name');
 
-    // Fetch users for the chairman dropdown
+    // Add search logic
+    if ($search = $request->input('search')) {
+        $query->where(function($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhereHas('chairman', function($userQuery) use ($search) {
+                  $userQuery->where('full_name', 'like', "%{$search}%");
+              });
+        });
+    }
+
+    $divisions = $query->paginate(10)->withQueryString();
+
     $users = \App\Models\User::select('id', 'full_name')->orderBy('full_name')->get();
 
     return view('organizations.clusters.show', compact('cluster', 'divisions', 'users'));

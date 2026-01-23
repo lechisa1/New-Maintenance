@@ -28,12 +28,19 @@ class MenuHelper
 
             [
                 'icon' => 'task',
-                'name' => 'Tasks',
+                'name' => 'My Tasks',
                 'path' => '/task',
               'permission' => 'maintenance_requests.view',
             ],
+            
                         [
-                'icon' => 'task',
+                'icon' => 'base',
+                'name' => 'My Request',
+                'path' => '/my-requests',
+              'permission' => 'maintenance_requests.view',
+            ],
+                        [
+                'icon' => 'pages',
                 'name' => 'Base Data',
                 'path' => '/base-data',
                 'permission' => 'maintenance_requests.view',
@@ -44,14 +51,14 @@ class MenuHelper
                 'path' => '/forms',
                 'permission' => 'forms.view',
             ],
+            // [
+            //     'icon' => 'tables',
+            //     'name' => 'Maintenance',
+            //     'path' => '/maintenance-requests',
+            //     'permission' => 'maintenance_requests.view',
+            // ],
             [
                 'icon' => 'tables',
-                'name' => 'Maintenance',
-                'path' => '/maintenance-requests',
-                'permission' => 'maintenance_requests.view',
-            ],
-            [
-                'icon' => 'user-profile',
                 'name' => 'Organization Unit',
                 'path' => '/organizations',
                 'permission' => 'organizations.view',

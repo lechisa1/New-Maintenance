@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\MaintenanceRequest;
+use App\Models\MaintenanceRequestFile;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -45,30 +47,62 @@ class ApprovalController extends Controller
     /**
      * Approve a maintenance request
      */
-    public function approve(MaintenanceRequest $maintenanceRequest)
-    {
-        $user = auth()->user();
-        
-        // Check authorization
-        if (!$this->isAuthorizedToApprove($user, $maintenanceRequest)) {
-            return back()->with('error', 'You are not authorized to approve this request.');
-        }
-        
-        DB::beginTransaction();
-        
-        try {
-            $maintenanceRequest->approve($user);
-            
-            DB::commit();
-            
-            return back()->with('success', 'Request approved successfully.');
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Approval failed: ' . $e->getMessage());
-            return back()->with('error', 'Failed to approve request.');
-        }
+public function approve(Request $request, MaintenanceRequest $maintenanceRequest)
+{
+   
+    // 🔒 Status guard (NOT authorization)
+    if ($maintenanceRequest->status !== MaintenanceRequest::STATUS_WAITING_APPROVAL) {
+        return back()->with('error', 'This request is not awaiting approval.');
     }
+
+
+    // ✅ Attachment REQUIRED
+    $validated = $request->validate([
+        'attachments' => 'required|array|min:1',
+        'attachments.*' => 'file|mimes:pdf,jpg,jpeg,png,gif,doc,docx,xls,xlsx|max:5120',
+
+        'approval_notes' => 'nullable|string|max:1000',
+    ]);
+
+    \DB::transaction(function () use ($maintenanceRequest, $validated) {
+
+        // ✅ Update request status
+        $maintenanceRequest->update([
+            'status' => MaintenanceRequest::STATUS_APPROVED,
+            'approved_at' => now(),
+            'is_approved' => true,
+            'approved_by' => auth()->id(),
+            'forwarded_to_ict_director_at' => now(),
+            'approval_notes' => $validated['approval_notes'] ?? null,
+        ]);
+
+        // 📎 Store attachments
+        foreach ($validated['attachments'] as $file) {
+
+            $filename = \Str::uuid() . '.' . $file->getClientOriginalExtension();
+
+            $path = $file->storeAs(
+                "maintenance-requests/{$maintenanceRequest->id}/approval",
+                $filename,
+                'public'
+            );
+
+           MaintenanceRequestFile::create([
+    'maintenance_request_id' => $maintenanceRequest->id,
+    'filename'        => $filename, // ✅ CORRECT
+    'original_name'   => $file->getClientOriginalName(),
+    'mime_type'       => $file->getMimeType(),
+    'size'            => $file->getSize(),
+    'path'            => $path,
+    'type'            => 'approval',
+    'uploaded_by'     => auth()->id(),
+]);
+
+        }
+    });
+
+    return back()->with('success', 'Maintenance request approved successfully.');
+}
     
     /**
      * Reject a maintenance request

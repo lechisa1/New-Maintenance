@@ -16,7 +16,9 @@ class MaintenanceRequestFile extends Model
         'original_name',
         'mime_type',
         'path',
-        'size'
+        'size',
+            'type',
+    'uploaded_by',
     ];
 
     /**

@@ -18,6 +18,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\MyRequestController;
+use App\Http\Controllers\WorkLogController;
 
 
 
@@ -166,6 +167,11 @@ Route::get('/base-data', [BaseDataController::class, 'index'])->name('base-data.
     Route::put('maintenance-requests/{maintenanceRequest}/assign', [MaintenanceRequestController::class, 'assign'])
     ->name('maintenance-requests.assign');
     Route::get('/my-requests', [MyRequestController::class, 'index'])->name('my.requests');
+
+// Work Logs routes
+Route::post('/work-logs', [WorkLogController::class, 'store'])->name('work-logs.store');
+Route::delete('/work-logs/{workLog}', [WorkLogController::class, 'destroy'])->name('work-logs.destroy');
+Route::get('/work-logs/request/{maintenanceRequest}', [WorkLogController::class, 'getForRequest'])->name('work-logs.by-request');
     
 });
 

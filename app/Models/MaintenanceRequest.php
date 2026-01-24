@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use App\Notifications\MaintenanceRequestCreated;
 use App\Notifications\MaintenanceRequestApproval;
 use App\Notifications\MaintenanceRequestForwardedToIctDirector;
+use App\Models\User;
 
 class MaintenanceRequest extends Model
 {
@@ -23,7 +24,7 @@ class MaintenanceRequest extends Model
     protected $fillable = [
         'user_id',
         'item_id',
-    
+    'is_approved',
         'description',
       'issue_type_id',
         'priority',
@@ -41,6 +42,7 @@ class MaintenanceRequest extends Model
         'approved_by',
         'forwarded_to_ict_director_at',
          'rejection_reason',
+         'approval_notes',
     ];
 
     protected $casts = [
@@ -51,6 +53,7 @@ class MaintenanceRequest extends Model
         'rejected_at' => 'datetime',
         'approved_at' => 'datetime',
         'forwarded_to_ict_director_at' => 'datetime',
+         'is_approved' => 'boolean',
     ];
 
     // Constants for priority
@@ -62,6 +65,7 @@ class MaintenanceRequest extends Model
     // Constants for status
     const STATUS_PENDING = 'pending';
     const STATUS_ASSIGNED = 'assigned';
+    const STATUS_APPROVED = 'approved';
     const STATUS_IN_PROGRESS = 'in_progress';
     const STATUS_COMPLETED = 'completed';
     const STATUS_REJECTED = 'rejected';
@@ -130,6 +134,7 @@ class MaintenanceRequest extends Model
             self::STATUS_WAITING_APPROVAL => 'Waiting Approval',
             self::STATUS_REJECTED => 'Rejected',
             self::STATUS_NOT_FIXED => 'Not Fixed',
+            self::STATUS_APPROVED => 'Approved',
         ];
     }
 public function approver(): BelongsTo
@@ -143,14 +148,18 @@ public function needsApproval(): bool
 // Helper to notify ICT directors
 public function notifyIctDirectors()
 {
-    $ictDirectors = $this->getGeneralIctDirectors();
-    foreach ($ictDirectors as $director) {
-        $director->notify(new \App\Notifications\MaintenanceRequestForwardedToIctDirector($this));
+       if ($this->forwarded_to_ict_director_at) {
+        return; // already notified
+    }
+    foreach ($this->getGeneralIctDirectors() as $director) {
+        $director->notify(
+            new MaintenanceRequestForwardedToIctDirector($this)
+        );
     }
 
     // Update request status as assigned directly to ICT
     $this->update([
-        'status' => self::STATUS_ASSIGNED,
+        
         'approved_at' => now(),
         'forwarded_to_ict_director_at' => now(),
     ]);
@@ -195,15 +204,24 @@ public function getNextApprover(): ?User
     // Otherwise, no approver
     return null;
 }
+// public function isDivisionChairman(): bool
+// {
+//     return (string) $this->division?->division_chairman === (string) $this->id;
+// }
+// public function isClusterChairman(): bool
+// {
+//     return (string) $this->cluster?->cluster_chairman === (string) $this->id;
+// }
 public function isDivisionChairman(): bool
 {
-    return (string) $this->division?->division_chairman === (string) $this->id;
-}
-public function isClusterChairman(): bool
-{
-    return (string) $this->cluster?->cluster_chairman === (string) $this->id;
+    return Division::where('division_chairman', $this->id)->exists();
 }
 
+
+public function isClusterChairman(): bool
+{
+    return Cluster::where('cluster_chairman', $this->id)->exists();
+}
 public function getRequiredApprover(): ?User
 {
     $user = $this->user;
@@ -263,13 +281,10 @@ public function issueType(): BelongsTo
             default => 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
         };
     }
-    public function getGeneralIctDirectors()
-    {
-        // Get users with 'ict-director' or 'general-director' roles
-        return User::whereHas('roles', function ($q) {
-            $q->whereIn('name', ['ict-director', 'general-director', 'director']);
-        })->get();
-    }
+public function getGeneralIctDirectors()
+{
+    return User::permission('maintenance_requests.assign')->get();
+}
     /**
      * Get status badge class
      */
@@ -454,6 +469,10 @@ public function getIssueTypeText(): string
     {
         return $this->status === self::STATUS_ASSIGNED || $this->status === self::STATUS_IN_PROGRESS;
     }
+    public function approvedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
 
     /**
      * Check if request is completed
@@ -474,27 +493,74 @@ public function getIssueTypeText(): string
             'rejection_reason' => $reason,
         ]);
     }
-        public function approve(User $approver): bool
-    {
-        return $this->update([
-            'status' => self::STATUS_ASSIGNED,
-            'approved_at' => now(),
-            'approved_by' => $approver->id,
-            'forwarded_to_ict_director_at' => now(),
-        ]);
-    }
+// In your MaintenanceRequest model, update the approve method:
+// public function approve(User $approver, array $data = [], $files = null): bool
+// {
+//     return \DB::transaction(function () use ($approver, $data, $files) {
+//         $updateData = [
+//             'status' => self::STATUS_ASSIGNED,
+//             'approved_at' => now(),
+//             'approved_by' => $approver->id,
+//             'forwarded_to_ict_director_at' => now(),
+//         ];
+        
+//         if (!empty($data['approval_notes'])) {
+//             $updateData['approval_notes'] = $data['approval_notes'];
+//         }
+        
+//         $updated = $this->update($updateData);
+        
+//         // Handle file uploads - use passed files instead of request()
+//         if ($updated && $files && count($files) > 0) {
+//             foreach ($files as $file) {
+//                 $this->uploadAttachment($file, 'approval');
+//             }
+//         }
+        
+//         return $updated;
+//     });
+// }
+
+/**
+ * Upload attachment for the maintenance request
+ */
+public function uploadAttachment($file, $type = 'general'): MaintenanceRequestFile
+{
+    $originalName = $file->getClientOriginalName();
+    $extension = $file->getClientOriginalExtension();
+    $mimeType = $file->getMimeType();
+    $size = $file->getSize();
+    
+    // Generate unique filename
+    $filename = Str::uuid() . '.' . $extension;
+    
+    // Store the file
+    $path = $file->storeAs('maintenance-request-attachments', $filename, 'public');
+    
+    // Create database record
+    return MaintenanceRequestFile::create([
+        'maintenance_request_id' => $this->id,
+        'file_name' => $filename,
+        'original_name' => $originalName,
+        'mime_type' => $mimeType,
+        'size' => $size,
+        'path' => $path,
+        'type' => $type,
+        'uploaded_by' => auth()->id(),
+    ]);
+}
         public function handleStatusChangeNotifications()
     {
         // Check if status changed to approved
-        if ($this->isDirty('status') && $this->status === self::STATUS_ASSIGNED && $this->isApproved()) {
-            $this->user->notify(new MaintenanceRequestApproval($this, 'approved'));
-            
-            // Notify ICT directors
-            $ictDirectors = $this->getGeneralIctDirectors();
-            foreach ($ictDirectors as $director) {
-                $director->notify(new MaintenanceRequestForwardedToIctDirector($this));
+            if ($this->isDirty('status') && $this->status === self::STATUS_APPROVED && $this->isApproved()) {
+                $this->user->notify(new MaintenanceRequestApproval($this, 'approved'));
+
+                $ictDirectors = $this->getGeneralIctDirectors();
+                foreach ($ictDirectors as $director) {
+                    $director->notify(new MaintenanceRequestForwardedToIctDirector($this));
+                }
             }
-        }
+
 
         // Check if status changed to rejected
         if ($this->isDirty('status') && $this->status === self::STATUS_REJECTED) {
@@ -581,7 +647,7 @@ public function handleNotifications()
 
     try {
         // 1️⃣ Notify requester that request is created
-        $this->user->notify(new \App\Notifications\MaintenanceRequestCreated($this));
+        // $this->user->notify(new \App\Notifications\MaintenanceRequestCreated($this));
 
         // 2️⃣ Handle approval flow
         if ($this->needsApproval()) {
@@ -612,6 +678,36 @@ public function handleNotifications()
             'request_id' => $this->id,
             'trace' => $e->getTraceAsString()
         ]);
+    }
+}
+// In MaintenanceRequest model
+public function workLogs(): HasMany
+{
+    return $this->hasMany(WorkLog::class, 'request_id');
+}
+
+public function latestWorkLog(): HasOne
+{
+    return $this->hasOne(WorkLog::class, 'request_id')->latest();
+}
+
+public function totalWorkTimeMinutes(): int
+{
+    return $this->workLogs()->sum('time_spent_minutes');
+}
+
+public function getTotalWorkTimeFormatted(): string
+{
+    $totalMinutes = $this->totalWorkTimeMinutes();
+    $hours = floor($totalMinutes / 60);
+    $minutes = $totalMinutes % 60;
+    
+    if ($hours > 0 && $minutes > 0) {
+        return "{$hours}h {$minutes}m";
+    } elseif ($hours > 0) {
+        return "{$hours}h";
+    } else {
+        return "{$minutes}m";
     }
 }
 }

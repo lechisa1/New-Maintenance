@@ -138,14 +138,7 @@ public function store(StoreMaintenanceRequestRequest $request)
             }
         }
         
-        // Update item status if it's a critical/high priority request
-        // if (in_array($request->priority, ['high', 'emergency'])) {
-        //     $item = Item::find($request->item_id);
-        //     if ($item) {
-        //         $item->update(['status' => Item::STATUS_MAINTENANCE]);
-        //     }
-        // }
-        
+
         DB::commit();
         
         return redirect()->route('maintenance-requests.index')
@@ -191,24 +184,60 @@ public function store(StoreMaintenanceRequestRequest $request)
 
     return view('chairman.requests.index', compact('requests'));
 }
-public function approve(MaintenanceRequest $request)
+public function approve(Request $request, MaintenanceRequest $maintenanceRequest)
 {
-    $approver = $request->getRequiredApprover();
+    dd($request->all(), $maintenanceRequest);
+    // 🔒 Status guard (NOT authorization)
+    if ($maintenanceRequest->status !== MaintenanceRequest::STATUS_WAITING_APPROVAL) {
+        return back()->with('error', 'This request is not awaiting approval.');
+    }
 
-    abort_unless(
-        auth()->id() === optional($approver)->id,
-        403,
-        'You are not authorized to approve this request.'
-    );
 
-    $request->update([
-        'is_approved' => true,
-        'approved_by' => auth()->id(),
-        'approved_at' => now(),
-        'status' => MaintenanceRequest::STATUS_PENDING, // now goes to ICT
+    // ✅ Attachment REQUIRED
+    $validated = $request->validate([
+        'attachments' => 'required|array|min:1',
+        'attachments.*' => 'file|mimes:pdf,jpg,jpeg,png,gif,doc,docx,xls,xlsx|max:5120',
+
+        'approval_notes' => 'nullable|string|max:1000',
     ]);
 
-    return back()->with('success', 'Request approved successfully.');
+    \DB::transaction(function () use ($maintenanceRequest, $validated) {
+
+        // ✅ Update request status
+        $maintenanceRequest->update([
+           'status' => MaintenanceRequest::STATUS_APPROVED,
+           'is_approved' => true,
+            'approved_at' => now(),
+            'approved_by' => auth()->id(),
+            'forwarded_to_ict_director_at' => now(),
+            'approval_notes' => $validated['approval_notes'] ?? null,
+        ]);
+
+        // 📎 Store attachments
+        foreach ($validated['attachments'] as $file) {
+
+            $filename = \Str::uuid() . '.' . $file->getClientOriginalExtension();
+
+            $path = $file->storeAs(
+                "maintenance-requests/{$maintenanceRequest->id}/approval",
+                $filename,
+                'public'
+            );
+
+            MaintenanceRequestFile::create([
+                'maintenance_request_id' => $maintenanceRequest->id,
+                'file_name' => $filename,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'path' => $path,
+                'type' => 'approval',
+                'uploaded_by' => auth()->id(),
+            ]);
+        }
+    });
+
+    return back()->with('success', 'Maintenance request approved successfully.');
 }
 
     /**

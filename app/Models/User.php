@@ -149,13 +149,18 @@ public function getAuthIdentifier()
     }
 public function isDivisionChairman(): bool
 {
-    return (string) $this->division?->division_chairman === (string) $this->id;
+    return Division::where('division_chairman', $this->id)->exists();
+}
+public function isIctDirector(): bool
+{
+    return $this->can('maintenance_requests.assign');
 }
 
 public function isClusterChairman(): bool
 {
-    return (string) $this->cluster?->cluster_chairman === (string) $this->id;
+    return Cluster::where('cluster_chairman', $this->id)->exists();
 }
+
 
 
     /**
@@ -251,4 +256,29 @@ public function isClusterChairman(): bool
         
         return implode(' → ', array_reverse($path));
     }
+    // In User model
+public function workLogs(): HasMany
+{
+    return $this->hasMany(WorkLog::class, 'technician_id');
+}
+
+public function getTotalWorkTimeMinutes(): int
+{
+    return $this->workLogs()->sum('time_spent_minutes');
+}
+
+public function getTotalWorkTimeFormatted(): string
+{
+    $totalMinutes = $this->getTotalWorkTimeMinutes();
+    $hours = floor($totalMinutes / 60);
+    $minutes = $totalMinutes % 60;
+    
+    if ($hours > 0 && $minutes > 0) {
+        return "{$hours}h {$minutes}m";
+    } elseif ($hours > 0) {
+        return "{$hours}h";
+    } else {
+        return "{$minutes}m";
+    }
+}
 }

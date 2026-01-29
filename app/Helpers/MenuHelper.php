@@ -12,9 +12,11 @@ class MenuHelper
             [
                 'icon' => 'dashboard',
                 'name' => 'Dashboard',
-                'subItems' => [
-                    ['name' => 'Ecommerce', 'path' => '/', 'permission' => 'dashboard.view'],
-                ],
+                'path' => '/',
+                'permission' => 'dashboard.view',
+                // 'subItems' => [
+                //     ['name' => 'Ecommerce', 'path' => '/', 'permission' => 'dashboard.view'],
+                // ],
             ],
             [
                 'name' => 'User Management',
@@ -37,7 +39,7 @@ class MenuHelper
                 'icon' => 'base',
                 'name' => 'My Request',
                 'path' => '/my-requests',
-              'permission' => 'maintenance_requests.view',
+              'permission' => 'maintenance_requests.create',
             ],
                         [
                 'icon' => 'pages',
@@ -118,11 +120,12 @@ class MenuHelper
             [
                 'title' => 'Menu',
                 'items' => self::getMainNavItems()
-            ],
-            [
-                'title' => 'Others',
-                'items' => self::getOthersItems()
             ]
+            // ,
+            // [
+            //     'title' => 'Others',
+            //     'items' => self::getOthersItems()
+            // ]
         ];
     }
 

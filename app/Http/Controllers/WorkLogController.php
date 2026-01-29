@@ -75,15 +75,100 @@ class WorkLogController extends Controller
 /**
  * Store a newly created work log (via modal)
  */
+// public function store(Request $request)
+// {
+//     $user = Auth::user();
+//     // dd($request->all());
+    
+//     // Validate the request - ADD 'new_status' field
+//     $validated = $request->validate([
+//         'request_id' => 'required|exists:maintenance_requests,id',
+//         'new_status' => 'required|in:in_progress,completed,not_fixed', // ADD THIS
+//         'work_done' => 'required|string|min:10|max:2000',
+//         'materials_used' => 'nullable|string|max:1000',
+//         'time_spent_minutes' => 'required|integer|min:1|max:480',
+//         'completion_notes' => 'nullable|string|max:1000',
+//         'log_date' => 'required|date',
+//     ]);
+    
+//     // Get the maintenance request
+//     $maintenanceRequest = MaintenanceRequest::findOrFail($validated['request_id']);
+    
+//     // Check if user is assigned to this request
+//     // dd($maintenanceRequest->assigned_to === $user->id);
+//     if ($maintenanceRequest->assigned_to !== $user->id) {
+//         return response()->json([ // RETURN JSON RESPONSE
+//             'success' => false,
+//             'message' => 'You are not assigned to this request.'
+//         ], 403);
+//     }
+    
+//     try {
+//         \DB::beginTransaction();
+        
+//         // Create work log
+//         $workLog = WorkLog::create([
+//             'request_id' => $validated['request_id'],
+//             'technician_id' => $user->id,
+//             'work_done' => $validated['work_done'],
+//             'materials_used' => $validated['materials_used'],
+//             'time_spent_minutes' => $validated['time_spent_minutes'],
+//             'completion_notes' => $validated['completion_notes'],
+//             'log_date' => $validated['log_date'],
+//         ]);
+//         // dd($workLog->toArray());
+//         // Update request status based on selection
+//         $statusUpdateData = [
+//             'status' => $validated['new_status'],
+//         ];
+//         // dd($statusUpdateData);
+//         // Set started_at if this is the first work log
+//         if (!$maintenanceRequest->started_at && $validated['new_status'] !== 'not_fixed') {
+//             $statusUpdateData['started_at'] = now();
+//         }
+        
+//         // Set completed_at if status is completed
+//         // dd($validated['new_status'] === 'completed');
+//         if ($validated['new_status'] === 'completed') {
+//             $statusUpdateData['completed_at'] = now();
+//         }
+        
+//         // Set completed_at if status is not_fixed
+//         if ($validated['new_status'] === 'not_fixed') {
+//             $statusUpdateData['completed_at'] = now(); // Still mark as completed (but not fixed)
+//         }
+        
+//         $maintenanceRequest->update($statusUpdateData);
+        
+//         \DB::commit();
+        
+//         return response()->json([
+//             'success' => true,
+//             'message' => 'Work log created and status updated successfully.',
+
+//         ]);
+        
+//     } catch (\Exception $e) {
+//         \DB::rollBack();
+//         \Log::error('Error creating work log: ' . $e->getMessage(), [
+//             'user_id' => $user->id,
+//             'request_id' => $validated['request_id'],
+//             'error' => $e->getTraceAsString()
+//         ]);
+        
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Failed to create work log: ' . $e->getMessage()
+//         ], 500);
+//     }
+// }
 public function store(Request $request)
 {
     $user = Auth::user();
-    // dd($request->all());
     
-    // Validate the request - ADD 'new_status' field
     $validated = $request->validate([
         'request_id' => 'required|exists:maintenance_requests,id',
-        'new_status' => 'required|in:in_progress,completed,not_fixed', // ADD THIS
+        'new_status' => 'required|in:in_progress,completed,not_fixed',
         'work_done' => 'required|string|min:10|max:2000',
         'materials_used' => 'nullable|string|max:1000',
         'time_spent_minutes' => 'required|integer|min:1|max:480',
@@ -91,13 +176,10 @@ public function store(Request $request)
         'log_date' => 'required|date',
     ]);
     
-    // Get the maintenance request
     $maintenanceRequest = MaintenanceRequest::findOrFail($validated['request_id']);
     
-    // Check if user is assigned to this request
-    // dd($maintenanceRequest->assigned_to === $user->id);
     if ($maintenanceRequest->assigned_to !== $user->id) {
-        return response()->json([ // RETURN JSON RESPONSE
+        return response()->json([
             'success' => false,
             'message' => 'You are not assigned to this request.'
         ], 403);
@@ -106,7 +188,7 @@ public function store(Request $request)
     try {
         \DB::beginTransaction();
         
-        // Create work log
+        // Create work log with accepted status by default
         $workLog = WorkLog::create([
             'request_id' => $validated['request_id'],
             'technician_id' => $user->id,
@@ -115,48 +197,70 @@ public function store(Request $request)
             'time_spent_minutes' => $validated['time_spent_minutes'],
             'completion_notes' => $validated['completion_notes'],
             'log_date' => $validated['log_date'],
+            'status' => WorkLog::STATUS_PENDING, 
         ]);
-        // dd($workLog->toArray());
-        // Update request status based on selection
+        
+        // Store old status for comparison
+        $oldStatus = $maintenanceRequest->status;
+        
+        // Update request status
         $statusUpdateData = [
             'status' => $validated['new_status'],
         ];
-        // dd($statusUpdateData);
+        
         // Set started_at if this is the first work log
         if (!$maintenanceRequest->started_at && $validated['new_status'] !== 'not_fixed') {
             $statusUpdateData['started_at'] = now();
         }
         
-        // Set completed_at if status is completed
-        // dd($validated['new_status'] === 'completed');
-        if ($validated['new_status'] === 'completed') {
+        // Set completed_at if status is completed or not_fixed
+        if (in_array($validated['new_status'], ['completed', 'not_fixed'])) {
             $statusUpdateData['completed_at'] = now();
         }
         
-        // Set completed_at if status is not_fixed
-        if ($validated['new_status'] === 'not_fixed') {
-            $statusUpdateData['completed_at'] = now(); // Still mark as completed (but not fixed)
-        }
-        
+        // Update the request
         $maintenanceRequest->update($statusUpdateData);
+        
+        // Send notifications based on status
+        if ($validated['new_status'] === 'completed') {
+            // Notify requester that work is completed (waiting confirmation)
+            if ($maintenanceRequest->user) {
+                $maintenanceRequest->user->notify(
+                    new \App\Notifications\MaintenanceRequestCompleted(
+                        $maintenanceRequest, 
+                        'completed'
+                    )
+                );
+            }
+            
+            // Change status to waiting_confirmation
+            $maintenanceRequest->update(['status' => MaintenanceRequest::STATUS_WAITING_CONFIRMATION]);
+            
+        } elseif ($validated['new_status'] === 'not_fixed') {
+            // Notify requester that work could not be completed
+            if ($maintenanceRequest->user) {
+                $maintenanceRequest->user->notify(
+                    new \App\Notifications\MaintenanceRequestCompleted(
+                        $maintenanceRequest, 
+                        'not_fixed'
+                    )
+                );
+            }
+            
+            // Notify ICT directors for review
+            $ictDirectors = $maintenanceRequest->getGeneralIctDirectors();
+            foreach ($ictDirectors as $director) {
+                $director->notify(
+                    new \App\Notifications\MaintenanceRequestEscalated($maintenanceRequest)
+                );
+            }
+        }
         
         \DB::commit();
         
         return response()->json([
             'success' => true,
-            'message' => 'Work log created and status updated successfully.',
-            'workLog' => [
-                'id' => $workLog->id,
-                'work_done' => $workLog->work_done,
-                'materials_used' => $workLog->materials_used,
-                'time_spent_formatted' => $workLog->getTimeSpentFormatted(),
-                'log_date_formatted' => $workLog->getLogDateFormatted(),
-                'log_time_formatted' => $workLog->getLogTimeFormatted(),
-                'completion_notes' => $workLog->completion_notes,
-                'technician_name' => $workLog->technician?->full_name ?? 'Unknown Technician',
-            ],
-            'new_status' => $validated['new_status'],
-            'new_status_text' => $maintenanceRequest->getStatusText(),
+            'message' => $this->getSuccessMessage($validated['new_status']),
         ]);
         
     } catch (\Exception $e) {
@@ -172,6 +276,15 @@ public function store(Request $request)
             'message' => 'Failed to create work log: ' . $e->getMessage()
         ], 500);
     }
+}
+
+private function getSuccessMessage(string $status): string
+{
+    return match($status) {
+        'completed' => 'Work log saved. Requester has been notified to confirm completion.',
+        'not_fixed' => 'Work log saved. Issue marked as not fixed. ICT directors have been notified.',
+        default => 'Work log saved successfully.',
+    };
 }
 
     /**
@@ -265,74 +378,38 @@ public function store(Request $request)
  */
 public function forRequest($requestId)
 {
-    // Debug: Check if request exists
-    $maintenanceRequest = MaintenanceRequest::find($requestId);
-    if (!$maintenanceRequest) {
-        return response()->json(['error' => 'Request not found'], 404);
-    }
-    
-    // Get work logs WITH technician relationship loaded
     $workLogs = WorkLog::where('request_id', $requestId)
-        ->with(['technician' => function($query) {
-            // Debug: Log what we're querying
-            \Log::info('Loading technician for work logs', [
-                'select_fields' => ['id', 'full_name']
-            ]);
-            $query->select('id', 'full_name');
-        }])
+        ->with(['technician', 'rejectedBy'])
         ->orderBy('log_date', 'desc')
-        ->get();
-    
-    // Debug: Check what we got
-    \Log::info('Work logs retrieved', [
-        'count' => $workLogs->count(),
-        'first_log_technician_id' => $workLogs->first()?->technician_id,
-        'first_log_technician_loaded' => $workLogs->first()?->relationLoaded('technician'),
-        'first_log_technician' => $workLogs->first()?->technician ? [
-            'id' => $workLogs->first()->technician->id,
-            'full_name' => $workLogs->first()->technician->full_name,
-            'attributes' => $workLogs->first()->technician->getAttributes()
-        ] : null
-    ]);
-    
-    // Format the response
-    $formattedLogs = $workLogs->map(function ($log) {
-        // Debug each log
-        \Log::info('Processing work log', [
-            'log_id' => $log->id,
-            'technician_id' => $log->technician_id,
-            'technician_exists' => !!$log->technician,
-            'technician_full_name' => $log->technician?->full_name,
-            'technician_attributes' => $log->technician?->getAttributes() ?? 'No technician'
-        ]);
+        ->get()
+        ->map(function ($log) {
+            return [
+                'id' => $log->id,
+                'work_done' => $log->work_done,
+                'materials_used' => $log->materials_used,
+                'time_spent_formatted' => $log->getTimeSpentFormatted(),
+                'log_date_formatted' => $log->getLogDateFormatted(),
+                'log_time_formatted' => $log->getLogTimeFormatted(),
+                'completion_notes' => $log->completion_notes,
+                'technician_name' => $log->technician?->full_name ?? 'Unknown Technician',
+                'is_rejected' => $log->isRejected(),
+                'rejection_reason' => $log->rejection_reason,
+                'rejection_notes' => $log->rejection_notes,
+                'rejected_at_formatted' => $log->rejected_at ? $log->rejected_at->format('M d, Y h:i A') : null,
+                'rejected_by_name' => $log->rejectedBy?->full_name,
+                'can_reject' => auth()->user() && 
+                               $log->maintenanceRequest->user_id == auth()->id() && 
+                               !$log->isRejected(),
+                'can_accept' => auth()->user() && 
+                                $log->maintenanceRequest->user_id == auth()->id() && 
+                                $log->isRejected(),
+                'can_delete' => auth()->id() == $log->technician_id || 
+                                auth()->user()->isSuperAdmin() || 
+                                auth()->user()->isAdmin(),
+            ];
+        });
         
-        // Get technician name with fallback
-        $technicianName = 'Unknown Technician';
-        if ($log->technician) {
-            $technicianName = $log->technician->full_name ?? 'Technician #' . $log->technician_id;
-        }
-        
-        return [
-            'id' => $log->id,
-            'work_done' => $log->work_done,
-            'materials_used' => $log->materials_used,
-            'time_spent_formatted' => $log->getTimeSpentFormatted(),
-            'log_date_formatted' => $log->getLogDateFormatted(),
-            'log_time_formatted' => $log->getLogTimeFormatted(),
-            'completion_notes' => $log->completion_notes,
-            'technician_name' => $technicianName, // Simple string, not object
-            'technician_id' => $log->technician_id,
-            'can_delete' => auth()->id() == $log->technician_id || auth()->user()->isSuperAdmin() || auth()->user()->isAdmin(),
-        ];
-    });
-    
-    // Debug the final output
-    \Log::info('Formatted logs output', [
-        'formatted_count' => $formattedLogs->count(),
-        'sample_output' => $formattedLogs->first()
-    ]);
-        
-    return response()->json($formattedLogs);
+    return response()->json($workLogs);
 }
     
     /**
@@ -362,4 +439,192 @@ public function forRequest($requestId)
         
         return response()->json($summary);
     }
+    // Add these methods to WorkLogController:
+
+/**
+ * Reject a specific work log
+ */
+public function rejectWorkLog(Request $request, WorkLog $workLog)
+{
+    $user = Auth::user();
+    $maintenanceRequest = $workLog->maintenanceRequest;
+    
+    // Authorization - only requester can reject work logs
+    if ($maintenanceRequest->user_id !== $user->id) {
+        return response()->json([
+            'success' => false,
+            'message' => 'You are not authorized to reject this work log.'
+        ], 403);
+    }
+    
+    // Check if work log is already rejected
+    if ($workLog->isRejected()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'This work log is already rejected.'
+        ], 400);
+    }
+    
+    // Validate rejection reason
+    $validated = $request->validate([
+        'rejection_reason' => 'required|string|min:10|max:1000',
+        'rejection_notes' => 'nullable|string|max:1000',
+    ]);
+    
+    try {
+        \DB::beginTransaction();
+        
+        // Reject the work log
+        $workLog->update([
+            'status' => WorkLog::STATUS_REJECTED,
+            'rejected_at' => now(),
+            'rejected_by' => $user->id,
+            'rejection_reason' => $validated['rejection_reason'],
+            'rejection_notes' => $validated['rejection_notes'] ?? null,
+        ]);
+        
+        // If this was the latest work log and request is waiting confirmation,
+        // reset request status back to in_progress
+        if ($maintenanceRequest->status === MaintenanceRequest::STATUS_WAITING_CONFIRMATION) {
+            $latestWorkLog = $maintenanceRequest->workLogs()
+                ->whereNull('rejected_at')
+                ->latest('log_date')
+                ->first();
+            
+            // If no accepted work logs remain, set status to in_progress
+            if (!$latestWorkLog) {
+                $maintenanceRequest->update([
+                    'status' => MaintenanceRequest::STATUS_IN_PROGRESS,
+                ]);
+            }
+        }
+        
+        $maintenanceRequest->notifyWorkLogRejected($workLog, $validated['rejection_reason']);
+        
+        \DB::commit();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Work log rejected successfully.',
+            'work_log_id' => $workLog->id,
+        ]);
+        
+    } catch (\Exception $e) {
+        \DB::rollBack();
+        \Log::error('Error rejecting work log: ' . $e->getMessage(), [
+            'work_log_id' => $workLog->id,
+            'user_id' => $user->id,
+            'error' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to reject work log: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Accept a previously rejected work log
+ */
+
+public function acceptWorkLog(WorkLog $workLog)
+{
+    $user = Auth::user();
+    $maintenanceRequest = $workLog->maintenanceRequest;
+
+    // Authorization - only requester can accept work logs
+    if ($maintenanceRequest->user_id !== $user->id) {
+        return response()->json([
+            'success' => false,
+            'message' => 'You are not authorized to accept this work log.'
+        ], 403);
+    }
+
+    try {
+        \DB::beginTransaction();
+
+        // Accept the work log
+        $workLog->update([
+            'status' => WorkLog::STATUS_ACCEPTED,
+            'rejected_at' => null,
+            'rejected_by' => null,
+            'rejection_reason' => null,
+            'rejection_notes' => null,
+        ]);
+
+        // Update maintenance request status to 'confirmed'
+        $maintenanceRequest->update([
+            'status' => MaintenanceRequest::STATUS_CONFIRMED,
+            'completed_at' => now(), // Ensure completed_at is set
+        ]);
+
+        // Send notifications
+        $this->sendConfirmationNotifications($maintenanceRequest);
+
+        \DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Work log accepted successfully. Notifications have been sent.',
+            'work_log_id' => $workLog->id,
+        ]);
+
+    } catch (\Exception $e) {
+        \DB::rollBack();
+        \Log::error('Error accepting work log: ' . $e->getMessage(), [
+            'work_log_id' => $workLog->id,
+            'user_id' => $user->id,
+            'error' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to accept work log: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+private function sendConfirmationNotifications(MaintenanceRequest $maintenanceRequest)
+{
+    try {
+        // 1. Notify the technician
+        if ($maintenanceRequest->assignedTechnician) {
+            $maintenanceRequest->assignedTechnician->notify(
+                new \App\Notifications\MaintenanceRequestConfirmed($maintenanceRequest)
+            );
+            \Log::info('Confirmation notification sent to technician', [
+                'technician_id' => $maintenanceRequest->assignedTechnician->id,
+                'request_id' => $maintenanceRequest->id
+            ]);
+        }
+
+        // 2. Notify ICT directors
+        $ictDirectors = $maintenanceRequest->getGeneralIctDirectors();
+        foreach ($ictDirectors as $director) {
+            // Skip if director is also the technician
+            if ($maintenanceRequest->assignedTechnician && 
+                $director->id === $maintenanceRequest->assignedTechnician->id) {
+                continue;
+            }
+            
+            $director->notify(
+                new \App\Notifications\MaintenanceRequestConfirmedToIct($maintenanceRequest)
+            );
+        }
+        
+        \Log::info('Confirmation notifications sent to ICT directors', [
+            'request_id' => $maintenanceRequest->id,
+            'director_count' => count($ictDirectors)
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Error sending confirmation notifications: ' . $e->getMessage(), [
+            'request_id' => $maintenanceRequest->id,
+            'error' => $e->getTraceAsString()
+        ]);
+        // Don't throw - we don't want to rollback the main transaction
+    }
+}
+
 }

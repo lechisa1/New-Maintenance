@@ -20,7 +20,7 @@ return new class extends Migration
             $table->text('description');
             $table->enum('issue_type', ['hardware', 'software', 'network', 'performance', 'setup', 'upgrade', 'other'])->default('other');
             $table->enum('priority', ['low', 'medium', 'high', 'emergency'])->default('medium');
-            $table->enum('status', ['pending', 'assigned', 'in_progress', 'completed', 'rejected','waiting_approval', 'not_fixed','approved'])->default('pending');
+            $table->enum('status', ['pending', 'assigned', 'in_progress', 'completed', 'rejected','waiting_approval', 'not_fixed','approved','confirmed'])->default('pending');
             
             $table->string('ticket_number')->unique()->nullable();
              $table->text('approval_notes')->nullable();

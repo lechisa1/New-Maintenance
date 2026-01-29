@@ -2,196 +2,238 @@
 
 @section('content')
     <x-common.page-breadcrumb pageTitle="Organization Detail" :links="[['label' => 'Organizations', 'url' => route('organizations.index')], ['label' => $organization->name]]" />
+    @if (session('success'))
+        <div id="alert-success"
+            class="mb-6 flex items-center rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400">
+            <i class="bi bi-check-circle-fill mr-3 text-xl"></i>
+            <div class="text-sm font-bold">
+                {{ session('success') }}
+            </div>
+            <button type="button" onclick="document.getElementById('alert-success').remove()"
+                class="ml-auto text-green-600 hover:text-green-800">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    @endif
 
-    <div class="grid grid-cols-1 gap-6">
-        <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">
-                        <i class="bi bi-building me-2 text-blue-500"></i>
-                        {{ $organization->name }}
-                    </h2>
-                    <p class="text-sm text-gray-500">
-                        Total Clusters: {{ $organization->clusters_count }}
-                    </p>
+    @if (session('error') || $errors->any())
+        <div id="alert-error"
+            class="mb-6 flex items-center rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
+            <i class="bi bi-exclamation-triangle-fill mr-3 text-xl"></i>
+            <div class="text-sm font-bold">
+                {{ session('error') ?? 'Please correct the highlighted errors below.' }}
+            </div>
+            <button type="button" onclick="document.getElementById('alert-error').remove()"
+                class="ml-auto text-red-600 hover:text-red-800">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    @endif
+    <div class="space-y-6">
+        {{-- Header Info Card --}}
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10">
+                        <i class="bi bi-building text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white">{{ $organization->name }}</h2>
+                        <p class="text-sm text-gray-500">
+                            Total Clusters: <span
+                                class="font-semibold text-blue-600">{{ $organization->clusters_count }}</span>
+                        </p>
+                    </div>
                 </div>
 
                 <a href="{{ route('organizations.index') }}"
-                    class="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">
+                    class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                     <i class="bi bi-arrow-left me-2"></i> Back
                 </a>
             </div>
         </div>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    <i class="bi bi-diagram-3 me-2"></i>Clusters
-                </h3>
+        {{-- Table Card --}}
+        <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="p-6 border-b border-gray-100 dark:border-gray-800">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-white/90">
+                        <i class="bi bi-diagram-3 me-2 text-blue-500"></i>Clusters
+                    </h3>
 
-                <div class="flex flex-1 items-center justify-end gap-3">
-                    <form action="{{ route('organizations.show', $organization) }}" method="GET"
-                        class="relative w-full max-w-sm">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                            <i class="bi bi-search"></i>
-                        </span>
-                        <input type="text" name="search" value="{{ request('search') }}"
-                            placeholder="Search clusters or chairmen..."
-                            class="h-10 w-full rounded-lg border border-gray-300 pl-10 pr-4 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+                    <div class="flex flex-1 items-center justify-end gap-3">
+                        <form action="{{ route('organizations.show', $organization) }}" method="GET"
+                            class="relative w-full max-w-sm">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" name="search" value="{{ request('search') }}"
+                                placeholder="Search clusters..."
+                                class="h-10 w-full rounded-lg border border-gray-300 pl-10 pr-4 text-sm focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+                        </form>
 
-                        @if (request('search'))
-                            <a href="{{ route('organizations.show', $organization) }}"
-                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-red-500">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </a>
-                        @endif
-                    </form>
-
-                    <button onclick="openClusterModal()"
-                        class="inline-flex items-center whitespace-nowrap rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600">
-                        <i class="bi bi-plus-lg me-2"></i> Add Cluster
-                    </button>
+                        <button onclick="openClusterModal()"
+                            class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition">
+                            <i class="bi bi-plus-lg me-2"></i> Add Cluster
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <div class="overflow-x-auto">
-
-                <table class="min-w-full border border-gray-200 rounded-lg dark:border-gray-800">
-                    <thead class="bg-gray-50 dark:bg-gray-800">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50 dark:bg-gray-800/50">
                         <tr>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">#</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">Cluster Name</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">Chairman</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">Divisions</th>
-
-                            <th class="px-4 py-3 text-center text-sm font-semibold">Actions</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500">#</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500">Cluster Name</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500">Chairman</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500">Divisions</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold uppercase text-gray-500">Actions</th>
                         </tr>
                     </thead>
-
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse ($clusters as $index => $cluster)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                <td class="px-4 py-3">{{ $clusters->firstItem() + $index }}</td>
-                                <td class="px-4 py-3 font-medium text-gray-800 dark:text-white">{{ $cluster->name }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                            <tr class="hover:bg-gray-50/50 dark:hover:bg-white/[0.02]">
+                                <td class="px-6 py-4 text-sm text-gray-500">{{ $clusters->firstItem() + $index }}</td>
+                                <td class="px-6 py-4 font-medium text-gray-800 dark:text-white">{{ $cluster->name }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                                     {{ $cluster->chairman->full_name ?? 'Not Assigned' }}
                                 </td>
-                                <td class="px-4 py-3">
-                                    <span class="text-sm font-medium">{{ $cluster->divisions_count }}</span>
+                                <td class="px-6 py-4">
+                                    <span class="text-sm font-bold text-blue-600">{{ $cluster->divisions_count }}</span>
                                     <span class="text-xs text-gray-500">divisions</span>
                                 </td>
-                                <td class="px-4 py-3 text-center">
-                                    <div class="flex justify-center gap-5">
+                                <td class="px-6 py-4">
+                                    <div class="flex justify-center gap-3">
                                         <a href="{{ route('clusters.divisions', $cluster) }}"
-                                            class="text-blue-600 hover:text-blue-800">View Details</a>
-
+                                            class="text-blue-500 hover:text-blue-700" title="View"><i
+                                                class="bi bi-eye"></i></a>
                                         <button
                                             onclick="editCluster('{{ $cluster->id }}', '{{ addslashes($cluster->name) }}', '{{ $cluster->cluster_chairman }}')"
-                                            class="text-yellow-600 hover:text-yellow-800">
-                                            Edit
-                                        </button>
-
-                                        <button onclick="deleteCluster('{{ $cluster->id }}')"
-                                            class="text-red-600 hover:text-red-800">Delete</button>
+                                            class="text-amber-500 hover:text-amber-700"><i
+                                                class="bi bi-pencil"></i></button>
+                                        <button onclick="confirmDelete('{{ $cluster->id }}')"
+                                            class="text-red-500 hover:text-red-700"><i class="bi bi-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-4 py-8 text-center text-gray-500">No clusters found</td>
+                                <td colspan="5" class="px-6 py-10 text-center text-gray-500">No clusters found.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-
-            @if ($clusters->hasPages())
-                <div class="mt-6">{{ $clusters->links('vendor.pagination.dashboard') }}</div>
-            @endif
         </div>
     </div>
 
-    <div id="clusterModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+    {{-- Create/Edit Modal --}}
+    <div id="clusterModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
         <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-            <div class="mb-4 flex items-center justify-between">
-                <h3 id="modalTitle" class="text-lg font-semibold text-gray-800 dark:text-white">Add Cluster</h3>
-                <button onclick="closeClusterModal()" class="text-gray-400 hover:text-gray-600"><i
-                        class="bi bi-x-lg"></i></button>
-            </div>
-
+            <h3 id="modalTitle" class="mb-4 text-lg font-bold text-gray-800 dark:text-white">Add Cluster</h3>
             <form id="clusterForm">
                 @csrf
                 <input type="hidden" name="id" id="clusterId">
                 <input type="hidden" name="organization_id" value="{{ $organization->id }}">
-
-                <div class="mb-4">
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Cluster Name *</label>
-                    <input type="text" name="name" id="clusterName" required
-                        class="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+                <div class="space-y-4">
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Cluster Name
+                            *</label>
+                        <input type="text" name="name" id="clusterName" required
+                            class="w-full rounded-lg border border-gray-300 p-2.5 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Chairman</label>
+                        <select name="cluster_chairman" id="clusterChairman"
+                            class="w-full rounded-lg border border-gray-300 p-2.5 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+                            <option value="">-- Select Chairman --</option>
+                            @foreach ($users as $user)
+                                <option value="{{ $user->id }}">{{ $user->name ?? $user->full_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Cluster Chairman (Optional)
-                    </label>
-                    <select name="cluster_chairman" id="clusterChairman"
-                        class="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
-                        <option value="">-- Select Chairman --</option>
-                        @foreach ($users as $user)
-                            <option value="{{ $user->id }}">{{ $user->name ?? $user->full_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="flex justify-end gap-3 pt-4">
+                <div class="mt-6 flex justify-end gap-3">
                     <button type="button" onclick="closeClusterModal()"
-                        class="rounded-lg border px-4 py-2.5 text-sm font-medium text-gray-700">Cancel</button>
+                        class="px-4 py-2 text-sm font-medium text-gray-600">Cancel</button>
                     <button type="submit" id="submitButton"
-                        class="rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-600">Save
-                        Cluster</button>
+                        class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    {{-- Delete Confirmation Modal --}}
+    <div id="deleteModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/50 p-4">
+        <div class="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl dark:bg-gray-900">
+            <div
+                class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-500/10">
+                <i class="bi bi-exclamation-triangle text-3xl"></i>
+            </div>
+            <h3 class="mb-2 text-xl font-bold text-gray-800 dark:text-white">Delete Cluster?</h3>
+            <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">
+                Are you sure you want to delete this cluster? This action cannot be undone and may affect associated
+                divisions.
+            </p>
+            <div class="flex justify-center gap-3">
+                <button onclick="closeDeleteModal()"
+                    class="w-full rounded-lg border border-gray-300 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
+                    Cancel
+                </button>
+                <button id="confirmDeleteBtn"
+                    class="w-full rounded-lg bg-red-600 py-2 text-sm font-medium text-white hover:bg-red-700 shadow-sm">
+                    Delete Now
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
         let isEditMode = false;
         let currentClusterId = null;
+        let deleteId = null;
 
+        // Modal Controls
         function openClusterModal(id = null, name = '', chairmanId = '') {
             isEditMode = !!id;
             currentClusterId = id;
-
             document.getElementById('clusterId').value = id || '';
             document.getElementById('clusterName').value = name || '';
-
-            // Set the dropdown value correctly
-            const chairmanSelect = document.getElementById('clusterChairman');
-            if (chairmanSelect) {
-                chairmanSelect.value = chairmanId || '';
-            }
-
+            document.getElementById('clusterChairman').value = chairmanId || '';
             document.getElementById('modalTitle').innerText = isEditMode ? 'Edit Cluster' : 'Add Cluster';
-            document.getElementById('submitButton').innerText = isEditMode ? 'Update Cluster' : 'Create Cluster';
-
-            document.getElementById('clusterModal').classList.remove('hidden');
-            document.getElementById('clusterModal').classList.add('flex');
+            document.getElementById('clusterModal').classList.replace('hidden', 'flex');
         }
 
-        // Single Edit Function
+        function closeClusterModal() {
+            document.getElementById('clusterModal').classList.replace('flex', 'hidden');
+            document.getElementById('clusterForm').reset();
+        }
+
         function editCluster(id, name, chairmanId) {
             openClusterModal(id, name, chairmanId);
         }
 
-        function closeClusterModal() {
-            document.getElementById('clusterModal').classList.add('hidden');
-            document.getElementById('clusterModal').classList.remove('flex');
-            document.getElementById('clusterForm').reset();
+        // Delete Logic
+        function confirmDelete(id) {
+            deleteId = id;
+            document.getElementById('deleteModal').classList.replace('hidden', 'flex');
         }
 
-        async function deleteCluster(id) {
-            if (!confirm('Are you sure you want to delete this cluster?')) return;
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.replace('flex', 'hidden');
+            deleteId = null;
+        }
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+            if (!deleteId) return;
+            const btn = document.getElementById('confirmDeleteBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split animate-spin mr-2"></i>Deleting...';
 
             try {
-                const response = await fetch(`/api/clusters/${id}`, {
+                const response = await fetch(`/api/clusters/${deleteId}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -203,12 +245,17 @@
                     window.location.reload();
                 } else {
                     alert('Failed to delete cluster');
+                    btn.disabled = false;
+                    btn.innerText = 'Delete Now';
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error(error);
+                btn.disabled = false;
+                btn.innerText = 'Delete Now';
             }
-        }
+        });
 
+        // Form Submission (Add/Edit)
         document.getElementById('clusterForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitBtn = document.getElementById('submitButton');
@@ -231,17 +278,25 @@
                     body: JSON.stringify(data)
                 });
 
-                if (response.ok) {
-                    window.location.reload();
-                } else {
-                    const error = await response.json();
-                    alert(error.message || 'Error occurred');
+                if (response.ok) window.location.reload();
+                else {
+                    const err = await response.json();
+                    alert(err.message || 'Error occurred');
                     submitBtn.disabled = false;
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error(error);
                 submitBtn.disabled = false;
             }
         });
+        // Auto-hide success alert after 5 seconds
+        const successAlert = document.getElementById('alert-success');
+        if (successAlert) {
+            setTimeout(() => {
+                successAlert.style.transition = 'opacity 0.5s ease';
+                successAlert.style.opacity = '0';
+                setTimeout(() => successAlert.remove(), 500);
+            }, 5000);
+        }
     </script>
 @endsection

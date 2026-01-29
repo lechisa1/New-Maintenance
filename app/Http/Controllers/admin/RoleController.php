@@ -209,7 +209,7 @@ public function update(Request $request, Role $role)
 
         // ✅ Normal form response
         return redirect()
-            ->route('admin.roles.index')
+            ->route('roles.index')
             ->with('success', __('Role updated successfully.'));
 
     } catch (\Throwable $e) {
@@ -239,13 +239,13 @@ public function update(Request $request, Role $role)
      */
     public function destroy(Role $role)
     {
-        $this->authorize('delete', $role);
+        // $this->authorize('delete', $role);
 
-        if (!$role->is_deletable) {
-            return redirect()
-                ->route('admin.roles.index')
-                ->with('error', __('This role cannot be deleted.'));
-        }
+        // if (!$role->is_deletable) {
+        //     return redirect()
+        //         ->route('admin.roles.index')
+        //         ->with('error', __('This role cannot be deleted.'));
+        // }
 
         DB::beginTransaction();
 
@@ -256,7 +256,7 @@ public function update(Request $request, Role $role)
             DB::commit();
 
             return redirect()
-                ->route('admin.roles.index')
+                ->route('roles.index')
                 ->with('success', __('Role deleted successfully.'));
         } catch (\Exception $e) {
             DB::rollBack();
@@ -264,7 +264,7 @@ public function update(Request $request, Role $role)
             logger()->error('Role deletion failed: ' . $e->getMessage());
             
             return redirect()
-                ->route('admin.roles.index')
+                ->route('roles.index')
                 ->with('error', __('Failed to delete role. Please try again.'));
         }
     }
@@ -274,7 +274,7 @@ public function update(Request $request, Role $role)
      */
     public function users(Role $role, Request $request)
     {
-        $this->authorize('view', $role);
+        // $this->authorize('view', $role);
 
         $search = $request->input('search');
         $perPage = $request->input('per_page', 15);
@@ -298,7 +298,7 @@ public function update(Request $request, Role $role)
      */
     public function bulkDestroy(Request $request)
     {
-        $this->authorize('delete', Role::class);
+        // $this->authorize('delete', Role::class);
 
         $request->validate([
             'ids' => ['required', 'array'],
@@ -306,7 +306,7 @@ public function update(Request $request, Role $role)
         ]);
 
         $roles = Role::whereIn('id', $request->ids)
-            ->where('is_system_role', false)
+          
             ->whereDoesntHave('users')
             ->get();
 
@@ -411,7 +411,7 @@ protected function validateRole(Request $request, Role $role = null): array
     }
         public function removeUser(Role $role, $userId)
     {
-        $this->authorize('update', $role);
+        // $this->authorize('update', $role);
 
         try {
             $userModel = config('auth.providers.users.model');

@@ -162,19 +162,6 @@ public function isClusterChairman(): bool
 }
 
 
-
-    /**
-     * Get the user's full name.
-     */
-    // protected function fullName(): Attribute
-    // {
-    //     return Attribute::make(
-    //         get: fn () => $this->full_name,
-    //     );
-    // }
-    /**
-     * Check if user is active
-     */
     public function isActive()
     {
         return !is_null($this->email_verified_at);

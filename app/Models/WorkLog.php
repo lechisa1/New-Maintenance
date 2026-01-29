@@ -21,17 +21,26 @@ class WorkLog extends Model
         'time_spent_minutes',
         'completion_notes',
         'log_date',
+        'status', 
+        'rejected_at',           // Add these
+        'rejected_by',           // Add these
+        'rejection_reason',      // Add these
+        'rejection_notes',    // Add these
     ];
 
     protected $casts = [
         'log_date' => 'datetime',
         'materials_used' => 'array', // If storing as JSON
         'time_spent_minutes' => 'integer',
+        'rejected_at' => 'datetime',
     ];
 
     /**
      * Relationships
      */
+    const STATUS_PENDING  = 'pending';
+    const STATUS_ACCEPTED = 'accepted';
+    const STATUS_REJECTED = 'rejected';
     public function maintenanceRequest(): BelongsTo
     {
         return $this->belongsTo(MaintenanceRequest::class, 'request_id');
@@ -66,7 +75,36 @@ class WorkLog extends Model
     {
         return $this->log_date->format('M d, Y');
     }
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
 
+public function isRejected(): bool
+{
+    return $this->status === self::STATUS_REJECTED;
+}
+
+public function isAccepted(): bool
+{
+    return $this->status === self::STATUS_ACCEPTED;
+}
+
+
+    // Add method to get rejection badge class:
+    public function getRejectionBadgeClass(): string
+    {
+        if ($this->isRejected()) {
+            return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+        }
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+    }
+
+    // Add method to get rejection status text:
+    public function getRejectionStatusText(): string
+    {
+        return $this->isRejected() ? 'Rejected' : 'Accepted';
+    }
     /**
      * Get log time formatted
      */
@@ -98,4 +136,21 @@ class WorkLog extends Model
     {
         return $query->where('log_date', '>=', now()->subDays($days));
     }
+    public function getStatusBadgeText(): string
+{
+    return match ($this->status) {
+        self::STATUS_ACCEPTED => 'Accepted',
+        self::STATUS_REJECTED => 'Rejected',
+        default => 'Pending',
+    };
+}
+public function getStatusBadgeClass(): string
+{
+    return match ($this->status) {
+        self::STATUS_ACCEPTED => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+        self::STATUS_REJECTED => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+        default => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    };
+}
+
 }

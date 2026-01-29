@@ -3,230 +3,176 @@
 @section('content')
     <x-common.page-breadcrumb pageTitle="Role Management" />
 
-    <div class="grid grid-cols-1 gap-6">
-        <!-- Statistics Cards -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <x-common.stat-card title="Total Roles" value="{{ $roles->total() }}" icon="bi bi-shield-lock" variant="primary" />
-            <x-common.stat-card title="System Roles" value="{{ $systemRolesCount ?? 0 }}" icon="bi bi-shield-check"
-                variant="warning" />
-            <x-common.stat-card title="Custom Roles" value="{{ $customRolesCount ?? 0 }}" icon="bi bi-shield-plus"
-                variant="success" />
-            <x-common.stat-card title="Total Users" value="{{ $totalUsers ?? 0 }}" icon="bi bi-people" variant="info" />
-        </div>
+    <div class="space-y-6">
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="mb-4 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    <i class="bi bi-funnel me-2 text-blue-500"></i>Filter Roles
-                </h3>
-                <a href="{{ route('roles.index') }}"
-                    class="text-sm font-medium text-blue-500 hover:text-blue-600 transition">
-                    Reset All
-                </a>
-            </div>
 
-            <form action="{{ route('roles.index') }}" method="GET" id="filterForm">
-                <div class="grid grid-cols-1 gap-5 md:grid-cols-12">
-                    {{-- Search - Takes more space --}}
-                    <div class="md:col-span-6">
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Search</label>
-                        <div class="relative">
-                            <input type="text" name="search" id="searchInput"
-                                class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-11 text-sm text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                                placeholder="Search name or description..." value="{{ request('search') }}">
-                            <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        </div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+            <form action="{{ route('roles.index') }}" method="GET" id="filterForm" class="space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="relative w-full max-w-sm">
+                        <input type="text" name="search" id="searchInput"
+                            class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 pl-11 text-sm text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                            placeholder="Search roles..." value="{{ request('search') }}">
+                        <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     </div>
 
-                    {{-- Status Filter --}}
-                    <div class="md:col-span-3">
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Account
-                            Status</label>
+                    <div class="flex items-center gap-3">
+                        <a href="{{ route('roles.create') }}"
+                            class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">
+                            <i class="bi bi-plus-lg me-2"></i> Create Role
+                        </a>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Status:</label>
                         <select name="status"
-                            class="filter-select h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
+                            class="filter-select h-9 rounded-md border-gray-300 bg-gray-50 py-1 text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                             <option value="">All Statuses</option>
                             <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Active Only</option>
                             <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Inactive Only</option>
                         </select>
                     </div>
 
-                    {{-- Per Page --}}
-                    <div class="md:col-span-3">
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Show</label>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Show:</label>
                         <select name="per_page"
-                            class="filter-select h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
+                            class="filter-select h-9 rounded-md border-gray-300 bg-gray-50 py-1 text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                             @foreach ([10, 25, 50] as $size)
                                 <option value="{{ $size }}"
-                                    {{ request('per_page', 10) == $size ? 'selected' : '' }}>{{ $size }} items
-                                </option>
+                                    {{ request('per_page', 10) == $size ? 'selected' : '' }}>{{ $size }}</option>
                             @endforeach
                         </select>
                     </div>
+
+                    @if (request()->anyFilled(['search', 'status']))
+                        <a href="{{ route('roles.index') }}" class="text-xs font-medium text-red-500 hover:text-red-600">
+                            <i class="bi bi-x-circle me-1"></i> Reset Filters
+                        </a>
+                    @endif
                 </div>
             </form>
         </div>
-        <!-- Roles Table -->
-        <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="mb-6 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    <i class="bi bi-shield-lock me-2"></i>Roles List
-                </h3>
-                <div class="flex space-x-3">
-                    <a href="{{ route('roles.create') }}"
-                        class="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                        <i class="bi bi-plus-lg me-2"></i> Create Role
-                    </a>
-                </div>
-            </div>
 
-            <!-- Roles Table -->
+        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-200 dark:border-gray-800 rounded-lg">
-                    <thead class="bg-gray-50 dark:bg-gray-800">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-50/50 border-b border-gray-100 dark:bg-gray-800/50 dark:border-gray-800">
                         <tr>
-                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-white/90">Id</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-white/90">Role</th>
-
-                            </th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-white/90">
-                                Permissions</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-white/90">Users
-                            </th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-white/90">Status
-                            </th>
-                            </th>
-                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-800 dark:text-white/90">Actions
-                            </th>
+                            <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">#</th>
+                            <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Role Name</th>
+                            <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Permissions</th>
+                            <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Users</th>
+                            <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                            <th class="px-6 py-4 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                         </tr>
                     </thead>
-
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse($roles as $index => $role)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                <!-- Role Name & Info -->
-                                <td class="px-4 py-3">
-                                    <div class="font-medium text-gray-800 dark:text-white">
-                                        {{ $index + 1 }}
-                                    </div>
+                            <tr class="hover:bg-gray-50/50 transition dark:hover:bg-gray-800/40">
+                                <td class="px-6 py-4 text-gray-500">{{ $roles->firstItem() + $index }}</td>
+                                <td class="px-6 py-4">
+                                    <span class="font-semibold text-gray-800 dark:text-white">
+                                        {{ $role->display_name ?? ucwords(str_replace(['-', '_'], ' ', $role->name)) }}
+                                    </span>
                                 </td>
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-3">
-
-                                        <div>
-                                            <div class="flex items-center gap-2">
-                                                <div class="font-medium text-gray-800 dark:text-white">
-                                                    {{ $role->display_name ?? ucwords(str_replace(['-', '_'], ' ', $role->name)) }}
-                                                </div>
-
-                                            </div>
-
-
-                                        </div>
-                                    </div>
+                                <td class="px-6 py-4">
+                                    <span
+                                        class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-400/10 dark:text-blue-400">
+                                        {{ $role->permissions_count ?? 0 }} perms
+                                    </span>
                                 </td>
-
-
-
-                                <!-- Permissions Count -->
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            {{ $role->permissions_count ?? 0 }}
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                    {{ $role->users_count ?? 0 }} users
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if ($role->is_active)
+                                        <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-green-600"></span> Active
                                         </span>
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                                            permissions
+                                    @else
+                                        <span class="inline-flex items-center gap-1 text-gray-400">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-gray-400"></span> Inactive
                                         </span>
-                                    </div>
+                                    @endif
                                 </td>
 
-                                <!-- Users Count -->
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            {{ $role->users_count ?? 0 }}
-                                        </span>
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                                            users
-                                        </span>
-                                    </div>
-                                </td>
-
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-2">
-
-
-                                        @if ($role->is_active)
-                                            <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                                Active
-                                            </span>
-                                        @else
-                                            <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                                                Inactive
-                                            </span>
-                                        @endif
-                                    </div>
-                                </td>
-
-
-
-                                <!-- Actions -->
-                                <td class="px-4 py-3 text-center">
-                                    <div class="flex justify-center gap-5">
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex justify-end items-center gap-2">
                                         <a href="{{ route('roles.show', $role) }}"
-                                            class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium">
-                                            View
+                                            class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition-colors hover:bg-blue-600 hover:text-white dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-600 dark:hover:text-white"
+                                            title="View Details">
+                                            <i class="bi bi-eye text-base"></i>
                                         </a>
 
                                         <a href="{{ route('roles.edit', $role) }}"
-                                            class="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm font-medium ">
-                                            Edit
+                                            class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition-colors hover:bg-amber-600 hover:text-white dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-600 dark:hover:text-white"
+                                            title="Edit Role">
+                                            <i class="bi bi-pencil text-base"></i>
                                         </a>
 
-                                        <form action="{{ route('roles.destroy', $role) }}" method="POST"
-                                            onsubmit="return confirm('Are you sure you want to delete this role?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium ">
-                                                Delete
-                                            </button>
-                                        </form>
+                                        <button type="button"
+                                            onclick="confirmRoleDelete('{{ route('roles.destroy', $role) }}', '{{ $role->display_name ?? $role->name }}')"
+                                            class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition-colors hover:bg-red-600 hover:text-white dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-600 dark:hover:text-white"
+                                            title="Delete Role">
+                                            <i class="bi bi-trash text-base"></i>
+                                        </button>
+
                                     </div>
+
+
                                 </td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="6" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
-                                    <div class="py-8">
-                                        <i class="bi bi-shield-slash text-4xl text-gray-300 dark:text-gray-600"></i>
-                                        <p class="mt-2 text-sm">No roles found</p>
-                                        @if (request()->hasAny(['search', 'guard_name', 'type']))
-                                            <a href="{{ route('roles.index') }}"
-                                                class="mt-3 inline-flex items-center text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400">
-                                                Clear filters to see all roles
-                                            </a>
-                                        @else
-                                            <a href="{{ route('roles.create') }}"
-                                                class="mt-3 inline-flex items-center text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400">
-                                                <i class="bi bi-plus-circle me-1"></i> Create your first role
-                                            </a>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
 
-            <!-- Pagination Links -->
             @if ($roles->hasPages())
-                <div class="mt-6">
+                <div class="border-t border-gray-100 p-6 dark:border-gray-800">
                     {{ $roles->withQueryString()->links('vendor.pagination.dashboard') }}
                 </div>
             @endif
+        </div>
+    </div>
+    <!-- Delete Role Modal -->
+    <div id="deleteRoleModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
+
+            <div class="flex items-center gap-3 mb-4">
+                <div
+                    class="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                    <i class="bi bi-exclamation-triangle text-lg"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                    Delete Role
+                </h3>
+            </div>
+
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Are you sure you want to delete
+                <span id="deleteRoleName" class="font-semibold text-gray-800 dark:text-white"></span>?
+                <br>
+                This action cannot be undone.
+            </p>
+
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeRoleDeleteModal()"
+                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
+                    Cancel
+                </button>
+
+                <form id="deleteRoleForm" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                        class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+                        Delete
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 @endsection
@@ -235,19 +181,7 @@
     <script>
         // Optional: Add some interactivity if needed
         document.addEventListener('DOMContentLoaded', function() {
-            // Add confirmation for deleting system roles
-            const deleteForms = document.querySelectorAll('form[action*="/roles/"]');
-            deleteForms.forEach(form => {
-                form.addEventListener('submit', function(e) {
-                    const roleName = this.closest('tr').querySelector('.font-medium').textContent
-                        .trim();
-                    if (!confirm(
-                            `Are you sure you want to delete the role "${roleName}"? This action cannot be undone.`
-                        )) {
-                        e.preventDefault();
-                    }
-                });
-            });
+
         });
         document.addEventListener('DOMContentLoaded', function() {
             const filterForm = document.getElementById('filterForm');
@@ -271,6 +205,32 @@
                     filterForm.submit();
                 }, doneTypingInterval);
             });
+        });
+    </script>
+    <script>
+        function confirmRoleDelete(actionUrl, roleName) {
+            const modal = document.getElementById('deleteRoleModal');
+            const form = document.getElementById('deleteRoleForm');
+            const nameSpan = document.getElementById('deleteRoleName');
+
+            form.action = actionUrl;
+            nameSpan.textContent = roleName;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRoleDeleteModal() {
+            const modal = document.getElementById('deleteRoleModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Close modal when clicking backdrop
+        document.getElementById('deleteRoleModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRoleDeleteModal();
+            }
         });
     </script>
 @endpush

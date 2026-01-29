@@ -2,7 +2,33 @@
 
 @section('content')
     <x-common.page-breadcrumb pageTitle="Register Equipment" />
+    @if (session('success'))
+        <div id="alert-success"
+            class="mb-6 flex items-center rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400">
+            <i class="bi bi-check-circle-fill mr-3 text-xl"></i>
+            <div class="text-sm font-bold">
+                {{ session('success') }}
+            </div>
+            <button type="button" onclick="document.getElementById('alert-success').remove()"
+                class="ml-auto text-green-600 hover:text-green-800">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    @endif
 
+    @if (session('error') || $errors->any())
+        <div id="alert-error"
+            class="mb-6 flex items-center rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
+            <i class="bi bi-exclamation-triangle-fill mr-3 text-xl"></i>
+            <div class="text-sm font-bold">
+                {{ session('error') ?? 'Please correct the highlighted errors below.' }}
+            </div>
+            <button type="button" onclick="document.getElementById('alert-error').remove()"
+                class="ml-auto text-red-600 hover:text-red-800">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    @endif
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Left Column - Registration Form -->
         <div class="lg:col-span-2">
@@ -14,7 +40,7 @@
 
                 <form method="POST" action="{{ route('items.store') }}">
                     @csrf
-                    
+
                     <div class="space-y-6">
                         <!-- Equipment Name -->
                         <div>
@@ -40,7 +66,7 @@
                             <select name="type" required
                                 class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800 @error('type') border-red-500 dark:border-red-500 @enderror">
                                 <option value="" disabled selected>Select equipment type</option>
-                                @foreach(App\Models\Item::getTypeOptions() as $key => $value)
+                                @foreach (App\Models\Item::getTypeOptions() as $key => $value)
                                     <option value="{{ $key }}" {{ old('type') == $key ? 'selected' : '' }}>
                                         {{ $value }}
                                     </option>
@@ -59,7 +85,7 @@
                             <select name="unit" required
                                 class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800 @error('unit') border-red-500 dark:border-red-500 @enderror">
                                 <option value="" disabled selected>Select unit</option>
-                                @foreach(App\Models\Item::getUnitOptions() as $key => $value)
+                                @foreach (App\Models\Item::getUnitOptions() as $key => $value)
                                     <option value="{{ $key }}" {{ old('unit') == $key ? 'selected' : '' }}>
                                         {{ $value }}
                                     </option>
@@ -79,26 +105,46 @@
                                 Status <span class="text-red-500">*</span>
                             </label>
                             <div class="grid grid-cols-3 gap-3">
-                                @foreach(App\Models\Item::getStatusOptions() as $key => $value)
+                                @foreach (App\Models\Item::getStatusOptions() as $key => $value)
                                     <label class="cursor-pointer">
-                                        <input type="radio" name="status" value="{{ $key }}" 
+                                        <input type="radio" name="status" value="{{ $key }}"
                                             {{ old('status', 'active') == $key ? 'checked' : '' }} required
                                             class="peer sr-only">
                                         @php
                                             $colors = [
-                                                'active' => ['border' => 'border-green-500', 'bg' => 'bg-green-50', 'dot' => 'bg-green-500', 'dark_bg' => 'dark:bg-green-900/20', 'dark_border' => 'dark:border-green-500'],
-                                                'inactive' => ['border' => 'border-gray-500', 'bg' => 'bg-gray-50', 'dot' => 'bg-gray-500', 'dark_bg' => 'dark:bg-gray-800', 'dark_border' => 'dark:border-gray-500'],
-                                                'maintenance' => ['border' => 'border-yellow-500', 'bg' => 'bg-yellow-50', 'dot' => 'bg-yellow-500', 'dark_bg' => 'dark:bg-yellow-900/20', 'dark_border' => 'dark:border-yellow-500'],
+                                                'active' => [
+                                                    'border' => 'border-green-500',
+                                                    'bg' => 'bg-green-50',
+                                                    'dot' => 'bg-green-500',
+                                                    'dark_bg' => 'dark:bg-green-900/20',
+                                                    'dark_border' => 'dark:border-green-500',
+                                                ],
+                                                'inactive' => [
+                                                    'border' => 'border-gray-500',
+                                                    'bg' => 'bg-gray-50',
+                                                    'dot' => 'bg-gray-500',
+                                                    'dark_bg' => 'dark:bg-gray-800',
+                                                    'dark_border' => 'dark:border-gray-500',
+                                                ],
+                                                'maintenance' => [
+                                                    'border' => 'border-yellow-500',
+                                                    'bg' => 'bg-yellow-50',
+                                                    'dot' => 'bg-yellow-500',
+                                                    'dark_bg' => 'dark:bg-yellow-900/20',
+                                                    'dark_border' => 'dark:border-yellow-500',
+                                                ],
                                             ];
                                             $color = $colors[$key] ?? $colors['active'];
                                         @endphp
-                                        <div class="rounded-lg border-2 p-4 text-center transition-all peer-checked:{{ $color['border'] }} peer-checked:{{ $color['bg'] }} dark:border-gray-700 peer-checked:{{ $color['dark_border'] }} peer-checked:{{ $color['dark_bg'] }}">
+                                        <div
+                                            class="rounded-lg border-2 p-4 text-center transition-all peer-checked:{{ $color['border'] }} peer-checked:{{ $color['bg'] }} dark:border-gray-700 peer-checked:{{ $color['dark_border'] }} peer-checked:{{ $color['dark_bg'] }}">
                                             <div class="flex items-center justify-center gap-2">
                                                 <div class="h-3 w-3 rounded-full {{ $color['dot'] }}"></div>
-                                                <div class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $value }}</div>
+                                                <div class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                                    {{ $value }}</div>
                                             </div>
                                             <div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                                                @if($key === 'active')
+                                                @if ($key === 'active')
                                                     Available for maintenance
                                                 @elseif($key === 'inactive')
                                                     Not in use
@@ -118,7 +164,7 @@
                         <!-- Submit Buttons -->
                         <div class="border-t border-gray-200 pt-6 dark:border-gray-700">
                             <div class="flex justify-end gap-3">
-                                <a href="{{ route('items.index') }}" 
+                                <a href="{{ route('items.index') }}"
                                     class="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                                     <i class="bi bi-x-lg me-2"></i>Cancel
                                 </a>
@@ -140,12 +186,12 @@
                 <h3 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                     <i class="bi bi-clock-history me-2"></i>Recently Added
                 </h3>
-                
+
                 <div class="space-y-3">
                     @php
                         $recentItems = App\Models\Item::latest()->take(4)->get();
                     @endphp
-                    
+
                     @forelse($recentItems as $recentItem)
                         <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                             <div class="flex items-center justify-between">
@@ -155,7 +201,8 @@
                                         {{ $recentItem->getTypeText() }} • {{ $recentItem->getUnitText() }}
                                     </div>
                                 </div>
-                                <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $recentItem->getStatusBadgeClass() }}">
+                                <span
+                                    class="rounded-full px-2 py-0.5 text-xs font-medium {{ $recentItem->getStatusBadgeClass() }}">
                                     {{ $recentItem->getStatusText() }}
                                 </span>
                             </div>
@@ -174,7 +221,7 @@
                 <h3 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                     <i class="bi bi-bar-chart me-2"></i>Equipment Summary
                 </h3>
-                
+
                 <div class="space-y-4">
                     <div class="grid grid-cols-2 gap-3">
                         <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
@@ -183,7 +230,7 @@
                                 {{ App\Models\Item::count() }}
                             </div>
                         </div>
-                        
+
                         <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
                             <div class="text-xs text-gray-500 dark:text-gray-400">Active</div>
                             <div class="mt-1 text-lg font-semibold text-green-600 dark:text-green-400">
@@ -191,11 +238,11 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div>
                         <div class="mb-2 text-xs text-gray-500 dark:text-gray-400">Status Distribution</div>
                         <div class="space-y-2">
-                            @foreach(App\Models\Item::getStatusOptions() as $key => $value)
+                            @foreach (App\Models\Item::getStatusOptions() as $key => $value)
                                 @php
                                     $count = App\Models\Item::where('status', $key)->count();
                                     $total = App\Models\Item::count();
@@ -217,7 +264,7 @@
     </div>
 
     <!-- Success Message -->
-    @if(session('success'))
+    @if (session('success'))
         <div class="fixed bottom-4 right-4 z-50">
             <x-ui.alert variant="success" title="Success" :message="session('success')" />
         </div>

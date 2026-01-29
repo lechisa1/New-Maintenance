@@ -2,94 +2,121 @@
 
 @section('content')
     <x-common.page-breadcrumb pageTitle="Organization Management" />
-
-    <div class="grid grid-cols-1 gap-6">
-
-        <!-- Statistics Cards -->
-
-        <div class="mb-4 flex items-center justify-between">
-            <div class="flex gap-2">
-                <input type="text" id="searchInput" name="search" placeholder="Search organizations..."
-                    value="{{ request('search') }}"
-                    class="h-10 rounded-lg border border-gray-300 px-4 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
-
-                <button onclick="applySearch()"
-                    class="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600">
-                    Search
-                </button>
+    @if (session('success'))
+        <div id="alert-success"
+            class="mb-6 flex items-center rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400">
+            <i class="bi bi-check-circle-fill mr-3 text-xl"></i>
+            <div class="text-sm font-bold">
+                {{ session('success') }}
             </div>
-
-            <button onclick="openOrganizationModal()"
-                class="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-600">
-                <i class="bi bi-plus-lg me-2"></i> Add Organization
+            <button type="button" onclick="document.getElementById('alert-success').remove()"
+                class="ml-auto text-green-600 hover:text-green-800">
+                <i class="bi bi-x-lg"></i>
             </button>
         </div>
+    @endif
 
-        <!-- Organizations Table -->
-        <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="mb-6 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    <i class="bi bi-building me-2"></i>Organizations List
-                </h3>
-
-
-
+    @if (session('error') || $errors->any())
+        <div id="alert-error"
+            class="mb-6 flex items-center rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
+            <i class="bi bi-exclamation-triangle-fill mr-3 text-xl"></i>
+            <div class="text-sm font-bold">
+                {{ session('error') ?? 'Please correct the highlighted errors below.' }}
             </div>
+            <button type="button" onclick="document.getElementById('alert-error').remove()"
+                class="ml-auto text-red-600 hover:text-red-800">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    @endif
+    <div class="space-y-6">
+        {{-- Professional Filter Card --}}
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+            <form action="{{ route('organizations.index') }}" method="GET" id="filterForm" class="space-y-4">
 
+                {{-- Top Row: Search and Actions --}}
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="relative w-full max-w-md">
+                        <input type="text" name="search" id="searchInput"
+                            class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 pl-11 text-sm text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                            placeholder="Search organizations..." value="{{ request('search') }}">
+                        <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        @if (request()->filled('search'))
+                            <a href="{{ route('organizations.index') }}"
+                                class="text-xs font-medium text-red-500 hover:text-red-600 transition-colors mr-2">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Search
+                            </a>
+                        @endif
+                        <button type="button" onclick="openOrganizationModal()"
+                            class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">
+                            <i class="bi bi-plus-lg me-2"></i> Add Organization
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {{-- Table Container --}}
+        <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-200 rounded-lg dark:border-gray-800">
-                    <thead class="bg-gray-50 dark:bg-gray-800">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">#</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">Organization Name</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">Clusters</th>
-                            <th class="px-4 py-3 text-center text-sm font-semibold">Actions</th>
+                <table class="min-w-full text-left">
+                    <thead class="bg-gray-50/50 dark:bg-gray-800/50">
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500">#</th>
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500">Organization Name</th>
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500">Clusters</th>
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500 text-right">Actions</th>
                         </tr>
                     </thead>
-
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse ($organizations as $index => $organization)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                <td class="px-4 py-3">
-                                    {{ $index + 1 }}
+                            <tr class="hover:bg-gray-50/50 dark:hover:bg-white/[0.02]">
+                                <td class="px-6 py-4 text-sm text-gray-500">
+                                    {{ ($organizations->currentPage() - 1) * $organizations->perPage() + $index + 1 }}
                                 </td>
-
-                                <td class="px-4 py-3 font-medium text-gray-800 dark:text-white">
-                                    {{ $organization->name }}
+                                <td class="px-6 py-4">
+                                    <span
+                                        class="font-medium text-gray-800 dark:text-gray-200">{{ $organization->name }}</span>
                                 </td>
-
-                                <td class="px-4 py-3">
-                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        {{ $organization->clusters_count }}
-                                    </span>
-                                    <span class="text-xs text-gray-500">clusters</span>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-400/10 dark:text-blue-400">
+                                            {{ $organization->clusters_count }}
+                                        </span>
+                                        <span class="text-sm text-gray-500">Clusters</span>
+                                    </div>
                                 </td>
-
-                                <td class="px-4 py-3 text-center">
-                                    <div class="flex justify-center gap-5">
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex justify-end gap-2">
                                         <a href="{{ route('organizations.show', $organization) }}"
-                                            class="text-blue-600 hover:text-blue-800">
-                                            View Details
+                                            class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition dark:hover:bg-blue-500/10"
+                                            title="View Details">
+                                            <i class="bi bi-eye"></i>
                                         </a>
-
-                                        <button
+                                        <button type="button"
                                             onclick="editOrganization('{{ $organization->id }}', '{{ $organization->name }}')"
-                                            class="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400">
-                                            Edit
+                                            class="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition dark:hover:bg-amber-500/10"
+                                            title="Edit">
+                                            <i class="bi bi-pencil"></i>
                                         </button>
-
-                                        <button onclick="deleteOrganization('{{ $organization->id }}')"
-                                            class="text-red-600 hover:text-red-800 dark:text-red-400">
-                                            Delete
+                                        <button type="button"
+                                            onclick="confirmDelete('{{ $organization->id }}', '{{ $organization->name }}')"
+                                            class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition dark:hover:bg-red-500/10"
+                                            title="Delete">
+                                            <i class="bi bi-trash"></i>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-4 py-8 text-center text-gray-500">
-                                    <i class="bi bi-building-x text-4xl mb-2"></i>
-                                    <p>No organizations found</p>
+                                <td colspan="4" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    <i class="bi bi-building-x text-4xl mb-3 block opacity-20"></i>
+                                    No organizations found matching your search.
                                 </td>
                             </tr>
                         @endforelse
@@ -98,155 +125,190 @@
             </div>
 
             @if ($organizations->hasPages())
-                <div class="mt-6">
-                    {{ $organizations->links('vendor.pagination.dashboard') }}
+                <div class="border-t border-gray-100 p-6 dark:border-gray-800">
+                    {{ $organizations->withQueryString()->links('vendor.pagination.dashboard') }}
                 </div>
             @endif
+        </div>
+    </div>
 
+    {{-- Organization Add/Edit Modal --}}
+    <div id="organizationModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
+            <div class="mb-6 flex items-center justify-between">
+                <h3 id="modalTitle" class="text-lg font-semibold text-gray-800 dark:text-white">Add Organization</h3>
+                <button onclick="closeOrganizationModal()"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <form id="organizationForm">
+                @csrf
+                <div class="mb-6">
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Organization Name
+                    </label>
+                    <input type="text" name="name" id="orgNameInput" required
+                        class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        placeholder="Enter full organization name">
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeOrganizationModal()"
+                        class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 shadow-sm transition">
+                        Save Organization
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Standardized Delete Confirmation Modal --}}
+    <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
+            <div class="flex items-center gap-3 mb-4">
+                <div
+                    class="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                    <i class="bi bi-exclamation-triangle text-lg"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Delete Organization</h3>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Are you sure you want to delete <span id="deleteOrgName"
+                    class="font-semibold text-gray-800 dark:text-white"></span>? This action cannot be undone and may
+                affect
+                related clusters.
+            </p>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeDeleteModal()"
+                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Cancel</button>
+                <button type="button" id="confirmDeleteBtn"
+                    class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Delete
+                    Permanently</button>
+            </div>
         </div>
     </div>
 @endsection
-<!-- Add Organization Modal -->
-<div id="organizationModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
 
-    <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg dark:bg-gray-900">
-        <div class="mb-4 flex items-center justify-between">
-            <h3 id="modalTitle" class="text-lg font-semibold text-gray-800 dark:text-white">
-                Add Organization
-            </h3>
-            <button onclick="closeOrganizationModal()" class="text-gray-400 hover:text-gray-600">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
+@push('scripts')
+    <script>
+        let isEditMode = false;
+        let currentOrgId = null;
 
-        <form id="organizationForm">
-            @csrf
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterForm = document.getElementById('filterForm');
+            const searchInput = document.getElementById('searchInput');
 
-            <div class="mb-4">
-                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Organization Name
-                </label>
-                <input type="text" name="name" required
-                    class="h-11 w-full rounded-lg border border-gray-300 px-4 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
-            </div>
+            // Search auto-submit (Debounced 600ms)
+            let typingTimer;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(() => {
+                    filterForm.submit();
+                }, 600);
+            });
+        });
 
-            <div class="flex justify-end gap-3">
-                <button type="button" onclick="closeOrganizationModal()" class="rounded-lg border px-4 py-2 text-sm">
-                    Cancel
-                </button>
+        function openOrganizationModal(id = null, name = '') {
+            isEditMode = !!id;
+            currentOrgId = id;
+            const modal = document.getElementById('organizationModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const nameInput = document.getElementById('orgNameInput');
 
-                <button type="submit"
-                    class="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600">
-                    Save
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-<script>
-    let isEditMode = false;
-    let currentOrgId = null;
-
-    function openOrganizationModal(id = null, name = '') {
-        isEditMode = !!id;
-        currentOrgId = id;
-
-        const modal = document.getElementById('organizationModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const nameInput = document.querySelector('input[name="name"]');
-
-        // 1. Set the Input Value (This is the "Old Data")
-        nameInput.value = name;
-
-        // 2. Update Title
-        if (modalTitle) {
+            nameInput.value = name;
             modalTitle.innerText = isEditMode ? 'Edit Organization' : 'Add Organization';
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
-        // 3. Show Modal
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-
-    function applySearch() {
-        const searchValue = document.getElementById('searchInput').value.trim();
-        const url = new URL(window.location.href);
-        if (searchValue) {
-            url.searchParams.set('search', searchValue);
-        } else {
-            url.searchParams.delete('search');
+        function closeOrganizationModal() {
+            const modal = document.getElementById('organizationModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('organizationForm').reset();
+            isEditMode = false;
+            currentOrgId = null;
         }
-        window.location.href = url.toString();
-    }
 
-    function closeOrganizationModal() {
-        const modal = document.getElementById('organizationModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        function editOrganization(id, name) {
+            openOrganizationModal(id, name);
+        }
 
-        document.getElementById('organizationForm').reset();
-        isEditMode = false;
-        currentOrgId = null;
-    }
+        // Standardized Delete Modal Logic
+        function confirmDelete(id, name) {
+            currentOrgId = id;
+            const modal = document.getElementById('deleteModal');
+            document.getElementById('deleteOrgName').textContent = name;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
 
-    // EDIT Trigger
-    function editOrganization(id, name) {
-        openOrganizationModal(id, name);
-    }
-
-    // DELETE Logic
-    async function deleteOrganization(id) {
-        if (!confirm('Are you sure you want to delete this organization? This action cannot be undone.')) return;
-
-        try {
-            const response = await fetch(`/api/organizations/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
-                    'Accept': 'application/json'
+            document.getElementById('confirmDeleteBtn').onclick = async () => {
+                try {
+                    const response = await fetch(`/api/organizations/${currentOrgId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        }
+                    });
+                    if (response.ok) window.location.reload();
+                    else alert('Failed to delete organization');
+                } catch (error) {
+                    console.error('Delete error:', error);
                 }
-            });
-
-            if (response.ok) {
-                window.location.reload();
-            } else {
-                alert('Failed to delete organization');
-            }
-        } catch (error) {
-            console.error('Delete error:', error);
+            };
         }
-    }
 
-    // Updated Form Submission (Handles both POST and PUT)
-    document.getElementById('organizationForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData.entries());
-
-        // Determine URL and Method
-        const url = isEditMode ? `/api/organizations/${currentOrgId}` : '/api/organizations';
-        const method = isEditMode ? 'PUT' : 'POST';
-
-        try {
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-
-            if (response.ok) {
-                window.location.reload();
-            } else {
-                const errorData = await response.json();
-                alert('Error: ' + (errorData.message || 'Validation failed'));
-            }
-        } catch (error) {
-            console.error('Error:', error);
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
-    });
-</script>
+
+        // Form Submission
+        document.getElementById('organizationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            const url = isEditMode ? `/api/organizations/${currentOrgId}` : '/api/organizations';
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) window.location.reload();
+                else {
+                    const errorData = await response.json();
+                    alert('Error: ' + (errorData.message || 'Action failed'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+        // Auto-hide success alert after 5 seconds
+        const successAlert = document.getElementById('alert-success');
+        if (successAlert) {
+            setTimeout(() => {
+                successAlert.style.transition = 'opacity 0.5s ease';
+                successAlert.style.opacity = '0';
+                setTimeout(() => successAlert.remove(), 500);
+            }, 5000);
+        }
+    </script>
+@endpush

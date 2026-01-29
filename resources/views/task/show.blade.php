@@ -234,13 +234,13 @@
                 @if ($maintenanceRequest->technician_notes || $maintenanceRequest->resolution_notes)
                     <div class="mt-6">
                         <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
-                            <i class="bi bi-journal-text me-2"></i>Assignment Remark
+                            <i class="bi bi-journal-text me-2"></i>Technician Notes
                         </h4>
 
                         <div class="space-y-4">
                             @if ($maintenanceRequest->technician_notes)
                                 <div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">Remarks</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Work Notes</div>
                                     <div
                                         class="mt-2 rounded-lg border border-gray-200 bg-blue-50 p-4 dark:border-gray-700 dark:bg-blue-900/20">
                                         <p class="whitespace-pre-line text-sm text-gray-800 dark:text-white/90">
@@ -511,14 +511,6 @@
                         @endif
                     @endcan
 
-                    <!-- Submit New Request (only for users with maintenance_requests.create permission) -->
-                    @can('maintenance_requests.create')
-                        <a href="{{ route('maintenance-requests.create') }}"
-                            class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
-                            <i class="bi bi-plus-lg me-3"></i>
-                            Submit New Request
-                        </a>
-                    @endcan
 
                     <!-- View All Requests (only for users with maintenance_requests.view-all permission) -->
                     @can('maintenance_requests.view-all')
@@ -528,35 +520,6 @@
                             View All Requests
                         </a>
                     @endcan
-
-                    <!-- Edit Request (only for requester or users with maintenance_requests.update permission) -->
-                    @if (auth()->id() == $maintenanceRequest->user_id && auth()->user()->can('maintenance_requests.update'))
-                        @if (in_array($maintenanceRequest->status, ['pending', 'waiting_approval']))
-                            <a href="{{ route('maintenance-requests.edit', $maintenanceRequest) }}"
-                                class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
-                                <i class="bi bi-pencil me-3"></i>
-                                Edit Request
-                            </a>
-                        @endif
-                    @endif
-
-                    <!-- Delete Request (only for requester or users with maintenance_requests.delete permission) -->
-                    @if (auth()->id() == $maintenanceRequest->user_id && auth()->user()->can('maintenance_requests.delete'))
-                        @if (in_array($maintenanceRequest->status, ['pending', 'waiting_approval']))
-                            <form action="{{ route('maintenance-requests.destroy', $maintenanceRequest) }}"
-                                method="POST" onsubmit="return confirm('Are you sure you want to delete this request?')"
-                                class="w-full">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                    class="flex w-full items-center rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600 shadow-theme-xs hover:bg-red-100 hover:text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
-                                    <i class="bi bi-trash me-3"></i>
-                                    Delete Request
-                                </button>
-                            </form>
-                        @endif
-                    @endif
-
 
                     <!-- Approve/Reject Request (only for approvers) -->
                     @if ($maintenanceRequest->status === 'waiting_approval')
@@ -654,59 +617,7 @@
                             </div>
                         @endif
                     @endif
-                    @if (auth()->user()->can('maintenance_requests.approve'))
-                        <!-- Reject Button with Modal -->
-                        <div x-data="{ showRejectModal: false }">
-                            <button @click="showRejectModal = true"
-                                class="flex w-full items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 shadow-theme-xs hover:bg-red-100 hover:text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
-                                <i class="bi bi-x-circle me-2"></i>
-                                Reject
-                            </button>
 
-                            <!-- Reject Modal -->
-                            <div x-show="showRejectModal" x-cloak style="display: none;"
-                                class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-                                    <div class="flex justify-between items-center mb-4">
-                                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                            Reject Maintenance Request
-                                        </h3>
-                                        <button @click="showRejectModal = false"
-                                            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
-                                    </div>
-
-                                    <form action="{{ route('approvals.reject', $maintenanceRequest) }}" method="POST"
-                                        id="reject-request-form">
-                                        @csrf
-                                        <div class="space-y-4">
-                                            <div>
-                                                <label
-                                                    class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                    Reason for Rejection <span class="text-red-500">*</span>
-                                                </label>
-                                                <textarea name="rejection_reason" rows="4" required
-                                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800"
-                                                    placeholder="Please provide a reason for rejecting this request..."></textarea>
-                                            </div>
-
-                                            <div class="flex justify-end gap-3">
-                                                <button type="button" @click="showRejectModal = false"
-                                                    class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
-                                                    Cancel
-                                                </button>
-                                                <button type="submit"
-                                                    class="rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                                                    Submit Rejection
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
                     @if ($maintenanceRequest->approved_at)
                         <!-- Approved By Information -->
                         <div class="mt-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20">
@@ -732,204 +643,303 @@
                     <!-- Add Work Log Button (only for assigned technician) -->
                     @if (auth()->user()->id == $maintenanceRequest->assigned_to &&
                             in_array($maintenanceRequest->status, ['assigned', 'in_progress', 'approved', 'pending']))
-                        <div x-data="{
-                            showWorkLogModal: false,
-                            hours: 0,
-                            minutes: 0
-                        }" @keydown.escape.window="showWorkLogModal = false">
-
+                        <div x-data="{ showWorkLogModal: false }">
+                            <!-- ADD THIS BUTTON -->
                             <button @click="showWorkLogModal = true"
-                                class="flex w-full items-center justify-center rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700 shadow-sm transition-all hover:bg-green-100 dark:border-green-800/30 dark:bg-green-500/10 dark:text-green-400">
-                                <i class="bi bi-journal-plus me-2 text-lg"></i>
-                                Start Your Task
+                                class="flex w-full items-center rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700 shadow-theme-xs hover:bg-green-100 hover:text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30">
+                                <i class="bi bi-journal-plus me-3"></i>
+                                Add Work Log
                             </button>
 
-                            <div x-show="showWorkLogModal" x-cloak class="fixed inset-0 z-[999] overflow-y-auto"
-                                aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                            <!-- Work Log Modal -->
+                            <div x-show="showWorkLogModal" x-cloak style="display: none;"
+                                class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 mt-20">
+                                <div
+                                    class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                                            <i class="bi bi-journal-text me-2"></i>Add Work Log
+                                        </h3>
+                                        <button @click="showWorkLogModal = false"
+                                            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
 
-                                <div x-show="showWorkLogModal" x-transition:enter="transition ease-out duration-300"
-                                    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                                    x-transition:leave="transition ease-in duration-200" @click="showWorkLogModal = false"
-                                    class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"></div>
+                                    <form action="{{ route('work-logs.store') }}" method="POST" id="work-log-form">
+                                        @csrf
+                                        <input type="hidden" name="request_id" value="{{ $maintenanceRequest->id }}">
 
-                                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                                    <div x-show="showWorkLogModal" x-transition:enter="transition ease-out duration-300"
-                                        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                                        class="relative w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all dark:bg-gray-900">
-
-                                        <div
-                                            class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800 mt-15">
-                                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                                                <i class="bi bi-file-earmark-medical me-2 text-blue-500"></i>Submit Work
-                                                Progress
-                                            </h3>
-                                            <button @click="showWorkLogModal = false"
-                                                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
-                                        </div>
-
-                                        <form id="work-log-form" action="{{ route('work-logs.store') }}" method="POST"
-                                            class="max-h-[80vh] overflow-y-auto p-6">
-                                            @csrf
-                                            <input type="hidden" name="request_id"
-                                                value="{{ $maintenanceRequest->id }}">
-
-                                            <div class="space-y-6">
-                                                <div>
+                                        <div class="space-y-4">
+                                            <!-- Work Status -->
+                                            <div>
+                                                <label
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Update Request Status *
+                                                </label>
+                                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                    <!-- In Progress -->
                                                     <label
-                                                        class="mb-3 block text-sm font-semibold text-gray-700 dark:text-gray-300">Updated
-                                                        Request Status *</label>
-                                                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                                        @foreach (['in_progress' => ['blue', 'tools', 'In Progress'], 'completed' => ['green', 'check-circle', 'Completed'], 'not_fixed' => ['red', 'x-circle', 'Not Fixed']] as $val => $meta)
-                                                            <label class="relative flex cursor-pointer group">
-                                                                <input type="radio" name="new_status"
-                                                                    value="{{ $val }}" class="peer sr-only"
-                                                                    {{ $maintenanceRequest->status === $val ? 'checked' : '' }}
-                                                                    required>
+                                                        class="relative flex cursor-pointer rounded-lg border border-gray-200 p-4 hover:border-blue-300 dark:border-gray-700">
+                                                        <input type="radio" name="new_status" value="in_progress"
+                                                            required
+                                                            {{ $maintenanceRequest->status === 'in_progress' ? 'checked' : '' }}
+                                                            class="peer sr-only">
+                                                        <div class="flex-1">
+                                                            <div class="flex items-center">
                                                                 <div
-                                                                    class="flex w-full flex-col items-center rounded-xl border border-gray-200 p-3 transition-all peer-checked:border-{{ $meta[0] }}-500 peer-checked:bg-{{ $meta[0] }}-50/50 dark:border-gray-800 dark:peer-checked:bg-{{ $meta[0] }}-500/10">
-                                                                    <i
-                                                                        class="bi bi-{{ $meta[1] }} mb-1 text-{{ $meta[0] }}-500 text-xl"></i>
-                                                                    <span
-                                                                        class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight">{{ $meta[2] }}</span>
+                                                                    class="mr-3 flex h-6 w-6 items-center justify-center rounded-full border border-gray-300 peer-checked:border-blue-500 peer-checked:bg-blue-500 dark:border-gray-600">
+                                                                    <div
+                                                                        class="h-2 w-2 rounded-full bg-white opacity-0 peer-checked:opacity-100">
+                                                                    </div>
                                                                 </div>
-                                                            </label>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
+                                                                <div>
+                                                                    <div
+                                                                        class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                                                        <i class="bi bi-tools me-1"></i> In Progress
+                                                                    </div>
+                                                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                                        Still working on it
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </label>
 
+                                                    <!-- Completed -->
+                                                    <label
+                                                        class="relative flex cursor-pointer rounded-lg border border-gray-200 p-4 hover:border-green-300 dark:border-gray-700">
+                                                        <input type="radio" name="new_status" value="completed"
+                                                            required
+                                                            {{ $maintenanceRequest->status === 'completed' ? 'checked' : '' }}
+                                                            class="peer sr-only">
+                                                        <div class="flex-1">
+                                                            <div class="flex items-center">
+                                                                <div
+                                                                    class="mr-3 flex h-6 w-6 items-center justify-center rounded-full border border-gray-300 peer-checked:border-green-500 peer-checked:bg-green-500 dark:border-gray-600">
+                                                                    <div
+                                                                        class="h-2 w-2 rounded-full bg-white opacity-0 peer-checked:opacity-100">
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <div
+                                                                        class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                                                        <i class="bi bi-check-circle me-1"></i> Completed
+                                                                    </div>
+                                                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                                        Issue is fixed
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+
+                                                    <!-- Not Fixed -->
+                                                    <label
+                                                        class="relative flex cursor-pointer rounded-lg border border-gray-200 p-4 hover:border-red-300 dark:border-gray-700">
+                                                        <input type="radio" name="new_status" value="not_fixed"
+                                                            required
+                                                            {{ $maintenanceRequest->status === 'not_fixed' ? 'checked' : '' }}
+                                                            class="peer sr-only">
+                                                        <div class="flex-1">
+                                                            <div class="flex items-center">
+                                                                <div
+                                                                    class="mr-3 flex h-6 w-6 items-center justify-center rounded-full border border-gray-300 peer-checked:border-red-500 peer-checked:bg-red-500 dark:border-gray-600">
+                                                                    <div
+                                                                        class="h-2 w-2 rounded-full bg-white opacity-0 peer-checked:opacity-100">
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <div
+                                                                        class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                                                        <i class="bi bi-x-circle me-1"></i> Not Fixed
+                                                                    </div>
+                                                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                                        Could not fix
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <!-- Work Summary -->
+                                            <div>
+                                                <label
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Work Done * <span class="text-xs text-gray-500">(Describe the work
+                                                        performed)</span>
+                                                </label>
+                                                <textarea name="work_done" id="work_done" rows="4" required
+                                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800"
+                                                    placeholder="Describe the work you performed in detail..."></textarea>
+                                                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                    Please be specific about what was done, steps taken, and results.
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <!-- Materials Used -->
                                                 <div>
                                                     <label
-                                                        class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Detailed
-                                                        Work Description *</label>
-                                                    <textarea name="work_done" rows="3" required
-                                                        class="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-gray-800 dark:bg-gray-800/50 dark:text-white"
-                                                        placeholder="Provide a professional summary of tasks completed..."></textarea>
+                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        Materials Used (Optional)
+                                                    </label>
+                                                    <textarea name="materials_used" id="materials_used" rows="3"
+                                                        class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800"
+                                                        placeholder="List any materials, parts, or tools used..."></textarea>
                                                 </div>
 
-                                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                                    <div>
-                                                        <label
-                                                            class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Materials
-                                                            Used</label>
-                                                        <textarea name="materials_used" rows="2"
-                                                            class="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm dark:border-gray-800 dark:bg-gray-800/50 dark:text-white"
-                                                            placeholder="Parts or tools used..."></textarea>
-                                                    </div>
-                                                    <div>
-                                                        <label
-                                                            class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Additional
-                                                            Notes</label>
-                                                        <textarea name="completion_notes" rows="2"
-                                                            class="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm dark:border-gray-800 dark:bg-gray-800/50 dark:text-white"
-                                                            placeholder="Challenges or observations..."></textarea>
-                                                    </div>
+                                                <!-- Completion Notes -->
+                                                <div>
+                                                    <label
+                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        Additional Notes (Optional)
+                                                    </label>
+                                                    <textarea name="completion_notes" id="completion_notes" rows="3"
+                                                        class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800"
+                                                        placeholder="Any additional observations, challenges, or recommendations..."></textarea>
                                                 </div>
+                                            </div>
 
-                                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                                    <div
-                                                        class="rounded-xl border border-gray-100 bg-gray-50/30 p-4 dark:border-gray-800 dark:bg-gray-800/30">
-                                                        <label
-                                                            class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Time
-                                                            Spent</label>
-                                                        <div class="flex items-center gap-2">
-                                                            <input type="number" min="0" x-model.number="hours"
-                                                                class="w-20 rounded-lg border-gray-200 text-center dark:bg-gray-900 dark:text-white"
-                                                                placeholder="Hrs">
-                                                            <span class="font-bold">:</span>
-                                                            <select x-model.number="minutes"
-                                                                class="flex-1 rounded-lg border-gray-200 dark:bg-gray-900 dark:text-white">
-                                                                <option value="0">00 mins</option>
-                                                                <option value="15">15 mins</option>
-                                                                <option value="30">30 mins</option>
-                                                                <option value="45">45 mins</option>
-                                                            </select>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <!-- Time Spent -->
+                                                <div>
+                                                    <label
+                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        Time Spent (minutes) *
+                                                    </label>
+                                                    <div class="relative">
+                                                        <input type="number" name="time_spent_minutes"
+                                                            id="time_spent_minutes" required min="1"
+                                                            max="480" step="15"
+                                                            class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800"
+                                                            placeholder="e.g., 60 for 1 hour">
+                                                        <div
+                                                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                                            minutes
                                                         </div>
-                                                        <input type="hidden" name="time_spent_minutes"
-                                                            :value="(hours * 60) + minutes">
                                                     </div>
+                                                    <div class="mt-1 flex flex-wrap gap-1">
+                                                        <span class="text-xs text-gray-500 dark:text-gray-400">Quick
+                                                            select:</span>
+                                                        <button type="button"
+                                                            onclick="document.getElementById('time_spent_minutes').value=30"
+                                                            class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">30m</button>
+                                                        <button type="button"
+                                                            onclick="document.getElementById('time_spent_minutes').value=60"
+                                                            class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">1h</button>
+                                                        <button type="button"
+                                                            onclick="document.getElementById('time_spent_minutes').value=120"
+                                                            class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">2h</button>
+                                                        <button type="button"
+                                                            onclick="document.getElementById('time_spent_minutes').value=240"
+                                                            class="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">4h</button>
+                                                    </div>
+                                                </div>
 
-                                                    <div
-                                                        class="rounded-xl border border-gray-100 bg-gray-50/30 p-4 dark:border-gray-800 dark:bg-gray-800/30">
-                                                        <label
-                                                            class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Completion
-                                                            Date</label>
-                                                        <input type="date" name="log_date" required
-                                                            value="{{ date('Y-m-d') }}"
-                                                            class="w-full rounded-lg border-gray-200 py-2 dark:bg-gray-900 dark:text-white">
+                                                <!-- Work Date -->
+                                                <div>
+                                                    <label
+                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        Date of Work *
+                                                    </label>
+                                                    <input type="date" name="log_date" id="log_date" required
+                                                        class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800"
+                                                        value="{{ date('Y-m-d') }}">
+                                                </div>
+                                            </div>
+
+                                            <!-- Status Explanation -->
+                                            <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                                <div class="flex items-start">
+                                                    <i
+                                                        class="bi bi-info-circle text-blue-600 dark:text-blue-400 mt-0.5 mr-2"></i>
+                                                    <div class="text-sm">
+                                                        <p class="font-medium text-blue-800 dark:text-blue-300 mb-1">Status
+                                                            Explanation</p>
+                                                        <ul
+                                                            class="list-disc list-inside text-blue-700 dark:text-blue-400 space-y-1">
+                                                            <li><strong>In Progress:</strong> Still working on the issue
+                                                            </li>
+                                                            <li><strong>Completed:</strong> Issue is fixed and working</li>
+                                                            <li><strong>Not Fixed:</strong> Tried but unable to fix</li>
+                                                        </ul>
                                                     </div>
                                                 </div>
                                             </div>
 
+                                            <!-- Form Actions -->
                                             <div
-                                                class="mt-8 flex items-center justify-end gap-3 border-t border-gray-100 pt-6 dark:border-gray-800">
+                                                class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                                                 <button type="button" @click="showWorkLogModal = false"
-                                                    class="text-sm font-medium text-gray-500 hover:text-gray-700">
+                                                    class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                                                     Cancel
                                                 </button>
                                                 <button type="submit"
-                                                    class="flex items-center rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-700 active:scale-95">
-                                                    <i class="bi bi-cloud-arrow-up me-2"></i> Save Progress
+                                                    class="rounded-lg bg-green-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                                                    <i class="bi bi-save me-2"></i> Save Work Log & Update Status
                                                 </button>
                                             </div>
-                                        </form>
-                                    </div>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
                     @endif
                     <!-- Rejection Modal (add this near other modals) -->
-                    <div x-data="{ showRejectWorkLogModal: false, selectedWorkLogId: null, rejectionReason: '' }">
-                        <!-- Modal -->
-                        <div x-show="showRejectWorkLogModal" x-cloak style="display: none;"
-                            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-                                <div class="flex justify-between items-center mb-4">
-                                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                        <i class="bi bi-x-circle me-2 text-red-500"></i>Reject Work Log
-                                    </h3>
-                                    <button @click="showRejectWorkLogModal = false"
-                                        class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                                        <i class="bi bi-x-lg"></i>
-                                    </button>
-                                </div>
-
-                                <div class="space-y-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Reason for Rejection <span class="text-red-500">*</span>
-                                        </label>
-                                        <textarea x-model="rejectionReason" rows="4" required
-                                            class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800"
-                                            placeholder="Please explain why you're rejecting this work log..."></textarea>
+                    @if (auth()->user()->can('maintenance_requests.approve'))
+                        <div x-data="{ showRejectWorkLogModal: false, selectedWorkLogId: null, rejectionReason: '' }">
+                            <!-- Modal -->
+                            <div x-show="showRejectWorkLogModal" x-cloak style="display: none;"
+                                class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                                            <i class="bi bi-x-circle me-2 text-red-500"></i>Reject Work Log
+                                        </h3>
+                                        <button @click="showRejectWorkLogModal = false"
+                                            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
                                     </div>
 
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Additional Notes (Optional)
-                                        </label>
-                                        <textarea x-model="rejectionNotes" rows="2"
-                                            class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800"
-                                            placeholder="Any additional feedback for the technician..."></textarea>
-                                    </div>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Reason for Rejection <span class="text-red-500">*</span>
+                                            </label>
+                                            <textarea x-model="rejectionReason" rows="4" required
+                                                class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800"
+                                                placeholder="Please explain why you're rejecting this work log..."></textarea>
+                                        </div>
 
-                                    <div class="flex justify-end gap-3">
-                                        <button
-                                            @click="showRejectWorkLogModal = false; rejectionReason = ''; rejectionNotes = ''"
-                                            class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
-                                            Cancel
-                                        </button>
-                                        <button @click="submitWorkLogRejection()"
-                                            class="rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                                            Reject Work Log
-                                        </button>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Additional Notes (Optional)
+                                            </label>
+                                            <textarea x-model="rejectionNotes" rows="2"
+                                                class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800"
+                                                placeholder="Any additional feedback for the technician..."></textarea>
+                                        </div>
+
+                                        <div class="flex justify-end gap-3">
+                                            <button
+                                                @click="showRejectWorkLogModal = false; rejectionReason = ''; rejectionNotes = ''"
+                                                class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+                                                Cancel
+                                            </button>
+                                            <button @click="submitWorkLogRejection()"
+                                                class="rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                                                Reject Work Log
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    @endif
                     <!-- Work Logs Section -->
                     @if ($maintenanceRequest->workLogs->count() > 0)
                         @php
@@ -944,7 +954,7 @@
                                 class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
                                 <div class="flex justify-between items-center mb-4">
                                     <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90">
-                                        <i class="bi bi-journal-text me-2"></i>Technician Activities
+                                        <i class="bi bi-journal-text me-2"></i>Work Logs
                                         <span class="text-xs text-gray-500 ml-2">
                                             ({{ $maintenanceRequest->workLogs->count() }} entries)
                                         </span>
@@ -955,6 +965,8 @@
                                     @foreach ($maintenanceRequest->workLogs as $log)
                                         <div
                                             class="rounded-lg border p-4 {{ $log->is_rejected ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:bg-gray-800' }}">
+
+                                            <!-- Work Log Header -->
                                             <div class="flex justify-between items-start mb-2">
                                                 <div>
                                                     <div class="font-medium text-gray-800 dark:text-white/90">
@@ -963,152 +975,47 @@
                                                     <div class="text-sm text-gray-500 dark:text-gray-400">
                                                         {{ $log->created_at->format('M d, Y') }} at
                                                         {{ $log->created_at->format('h:i A') }}
-                                                        @if ($log->status === 'rejected')
+
+                                                        @if ($log->is_rejected)
                                                             <span
                                                                 class="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
                                                                 <i class="bi bi-x-circle me-1"></i>Rejected
                                                             </span>
                                                         @endif
-                                                        @if ($log->status === 'accepted')
-                                                            <span
-                                                                class="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                                <i class="bi bi-check-circle me-1"></i>Confirmed
-                                                            </span>
-                                                        @endif
-
                                                     </div>
                                                 </div>
+                                                <div class="flex items-center gap-2">
+                                                    <span
+                                                        class="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                                        {{ $log->time_spent_minutes }} min
+                                                    </span>
 
-                                                <!-- Action Buttons  waiting_confirmation-->
-                                                <div class="flex gap-2">
-                                                    <!-- Reject Modal -->
-                                                    @if (auth()->user()->id === $maintenanceRequest->user_id &&
-                                                            in_array($maintenanceRequest->status, ['completed', 'waiting_confirmation']) &&
-                                                            $log->status === 'pending')
-                                                        <div x-data="{ showRejectModal: false, reason: '' }">
-                                                            <button @click="showRejectModal = true"
-                                                                class="flex items-center gap-1 text-red-500 hover:text-red-700 text-xs">
-                                                                <i class="bi bi-x-circle"></i> Reject
+                                                    <!-- Action Buttons - Using Blade conditions -->
+                                                    <div class="flex gap-1">
+                                                        @if (auth()->user()->id === $maintenanceRequest->user_id && $maintenanceRequest->status === 'completed')
+                                                            <button onclick="rejectWorkLog({{ $log->id }})"
+                                                                class="text-red-500 hover:text-red-700"
+                                                                title="Reject this work log">
+                                                                <i class="bi bi-x-circle text-xs"></i>Reject
                                                             </button>
+                                                        @endif
 
-                                                            <div x-show="showRejectModal" x-cloak style="display: none;"
-                                                                class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                                                                <div
-                                                                    class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-                                                                    <div class="flex justify-between items-center mb-4">
-                                                                        <h3
-                                                                            class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                                                            Reject Work Log
-                                                                        </h3>
-                                                                        <button @click="showRejectModal = false"
-                                                                            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                                                                            <i class="bi bi-x-lg"></i>
-                                                                        </button>
-                                                                    </div>
-
-                                                                    <form
-                                                                        @submit.prevent="
-                                                                            if(reason.length < 10) { alert('Rejection reason must be at least 10 characters.'); return; }
-                                                                            fetch('/work-logs/{{ $log->id }}/reject', {
-                                                                                method: 'POST',
-                                                                                headers: {
-                                                                                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                                                                                    'Content-Type': 'application/json',
-                                                                                    'Accept': 'application/json'
-                                                                                },
-                                                                                body: JSON.stringify({ rejection_reason: reason })
-                                                                            })
-                                                                            .then(res => res.json())
-                                                                            .then(result => { if(result.success) location.reload(); else alert(result.message); });
-                                                                        ">
-
-                                                                        <div class="space-y-4">
-                                                                            <div>
-                                                                                <label
-                                                                                    class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                                                    Reason for Rejection <span
-                                                                                        class="text-red-500">*</span>
-                                                                                </label>
-                                                                                <textarea x-model="reason" rows="4" required
-                                                                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                                                                                    placeholder="Please provide a reason for rejecting this work log..."></textarea>
-                                                                            </div>
-
-                                                                            <div class="flex justify-end gap-3">
-                                                                                <button type="button"
-                                                                                    @click="showRejectModal = false"
-                                                                                    class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                                                                                    Cancel
-                                                                                </button>
-                                                                                <button type="submit"
-                                                                                    class="rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-600">
-                                                                                    Submit Rejection
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    </form>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    @endif
-
-                                                    <!-- Confirm Modal -->
-                                                    @if (auth()->user()->id === $maintenanceRequest->user_id &&
-                                                            in_array($maintenanceRequest->status, ['completed', 'waiting_confirmation']) &&
-                                                            $log->status === 'pending')
-                                                        <div x-data="{ showConfirmModal: false }">
-                                                            <button @click="showConfirmModal = true"
-                                                                class="flex items-center gap-1 text-green-500 hover:text-green-700 text-xs">
-                                                                <i class="bi bi-check-circle"></i> Confirm
+                                                        @if (auth()->user()->id === $maintenanceRequest->user_id && $maintenanceRequest->status === 'completed')
+                                                            <button onclick="acceptWorkLog({{ $log->id }})"
+                                                                class="text-green-500 hover:text-green-700"
+                                                                title="Accept this work log">
+                                                                <i class="bi bi-check-circle text-xs"></i>Confirm
                                                             </button>
+                                                        @endif
 
-                                                            <div x-show="showConfirmModal" x-cloak style="display: none;"
-                                                                class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                                                                <div
-                                                                    class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-                                                                    <div class="flex justify-between items-center mb-4">
-                                                                        <h3
-                                                                            class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                                                            Confirm Work Log
-                                                                        </h3>
-                                                                        <button @click="showConfirmModal = false"
-                                                                            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                                                                            <i class="bi bi-x-lg"></i>
-                                                                        </button>
-                                                                    </div>
-
-                                                                    <div
-                                                                        class="text-sm text-gray-700 dark:text-gray-300 mb-4">
-                                                                        Are you sure you want to confirm this work log?
-                                                                    </div>
-
-                                                                    <div class="flex justify-end gap-3">
-                                                                        <button type="button"
-                                                                            @click="showConfirmModal = false"
-                                                                            class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                                                                            Cancel
-                                                                        </button>
-                                                                        <button
-                                                                            @click="
-                                                                                fetch('/work-logs/{{ $log->id }}/accept', {
-                                                                                    method: 'POST',
-                                                                                    headers: {
-                                                                                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                                                                                        'Content-Type': 'application/json',
-                                                                                        'Accept': 'application/json'
-                                                                                    }
-                                                                                })
-                                                                                .then(res => res.json())
-                                                                                .then(result => { if(result.success) location.reload(); else alert(result.message); });
-                                                                            "
-                                                                            class="rounded-lg bg-green-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-600">
-                                                                            Confirm
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    @endif
+                                                        @if (auth()->user()->id === $maintenanceRequest->assigned_to && $maintenanceRequest->status === 'rejected')
+                                                            <button onclick="deleteWorkLog({{ $log->id }})"
+                                                                class="text-gray-500 hover:text-gray-700"
+                                                                title="Delete this work log">
+                                                                <i class="bi bi-trash text-xs"></i>Delete
+                                                            </button>
+                                                        @endif
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -1121,9 +1028,51 @@
                                                     {{ $log->work_done }}
                                                 </p>
                                             </div>
+
+                                            <!-- Materials Used -->
+                                            @if ($log->materials_used && auth()->user()->can('maintenance_requests.assign'))
+                                                <div class="mt-3">
+                                                    <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                        Materials Used:</div>
+                                                    <p class="mt-1 text-sm text-gray-800 dark:text-white/90">
+                                                        {{ $log->materials_used }}
+                                                    </p>
+                                                </div>
+                                            @endif
+
+                                            <!-- Completion Notes -->
+                                            @if ($log->completion_notes && auth()->user()->can('maintenance_requests.assign'))
+                                                <div class="mt-3">
+                                                    <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                        Notes:</div>
+                                                    <p class="mt-1 text-sm text-gray-800 dark:text-white/90">
+                                                        {{ $log->completion_notes }}
+                                                    </p>
+                                                </div>
+                                            @endif
+
+                                            <!-- Rejection Details (if rejected) -->
+                                            @if ($log->is_rejected)
+                                                <div class="mt-3 p-3 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                                                    <div class="text-sm font-medium text-red-700 dark:text-red-300 mb-1">
+                                                        <i class="bi bi-x-circle me-1"></i>Rejected by
+                                                        {{ $log->rejectedBy?->full_name ?? 'Requester' }}
+                                                        <span class="text-xs font-normal">
+                                                            on {{ $log->rejected_at?->format('M d, Y h:i A') ?? '' }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="text-sm text-red-600 dark:text-red-400">
+                                                        {{ $log->rejection_reason }}
+                                                    </div>
+                                                    @if ($log->rejection_notes)
+                                                        <div class="text-sm text-red-600 dark:text-red-400 mt-1">
+                                                            Additional notes: {{ $log->rejection_notes }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @endif
                                         </div>
                                     @endforeach
-
 
                                     <!-- Total Work Time -->
                                     @if ($maintenanceRequest->workLogs->count() > 0)
@@ -1298,38 +1247,18 @@
                 }
                 // Add these functions to your JavaScript:
 
-                window.rejectWorkLog = async function(workLogId) {
-                    const reason = prompt('Why are you rejecting this work log? (min 10 chars)');
-                    if (!reason || reason.length < 10) {
-                        alert('Rejection reason must be at least 10 characters.');
-                        return;
-                    }
-
-                    const response = await fetch(`/work-logs/${workLogId}/reject`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            rejection_reason: reason
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        alert('✅ Work log rejected');
-                        location.reload();
-                    } else {
-                        alert('❌ ' + result.message);
+                // Make sure these functions are available globally
+                window.rejectWorkLog = function(workLogId) {
+                    // Store the work log ID and show modal
+                    const modalElement = document.querySelector('[x-data*="showRejectWorkLogModal"]');
+                    if (modalElement && modalElement.__x) {
+                        modalElement.__x.$data.selectedWorkLogId = workLogId;
+                        modalElement.__x.$data.showRejectWorkLogModal = true;
                     }
                 };
 
-
                 window.acceptWorkLog = async function(workLogId) {
-                    if (!confirm('Are you sure you want to accept and confirm this work log?')) {
+                    if (!confirm('Are you sure you want to accept this work log?')) {
                         return;
                     }
 
@@ -1346,22 +1275,8 @@
                         const result = await response.json();
 
                         if (result.success) {
-                            // Show success message
-                            const toast = document.createElement('div');
-                            toast.className =
-                                'fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg bg-green-500 text-white';
-                            toast.innerHTML = `
-                <div class="flex items-center">
-                    <i class="bi bi-check-circle-fill mr-2"></i>
-                    <span>✅ Work accepted! Technician and ICT directors have been notified.</span>
-                </div>
-            `;
-                            document.body.appendChild(toast);
-
-                            // Reload page after 1.5 seconds
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 1500);
+                            alert('✅ Work log accepted successfully.');
+                            window.location.reload();
                         } else {
                             alert('❌ ' + result.message);
                         }
@@ -1370,6 +1285,7 @@
                         alert('❌ An error occurred. Please try again.');
                     }
                 };
+
                 window.deleteWorkLog = async function(workLogId) {
                     if (!confirm('Are you sure you want to delete this work log?')) {
                         return;
@@ -1506,7 +1422,7 @@
                                     setTimeout(() => {
                                         toast.remove();
                                         // Reload page to show updated status
-                                        window.history.back();
+                                        window.location.reload();
                                     }, 3000);
                                 } else {
                                     // Show error toast

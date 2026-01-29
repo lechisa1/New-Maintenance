@@ -2,7 +2,33 @@
 
 @section('content')
     <x-common.page-breadcrumb pageTitle="Submit Maintenance Request" />
+    @if (session('success'))
+        <div id="alert-success"
+            class="mb-6 flex items-center rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400">
+            <i class="bi bi-check-circle-fill mr-3 text-xl"></i>
+            <div class="text-sm font-bold">
+                {{ session('success') }}
+            </div>
+            <button type="button" onclick="document.getElementById('alert-success').remove()"
+                class="ml-auto text-green-600 hover:text-green-800">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    @endif
 
+    @if (session('error') || $errors->any())
+        <div id="alert-error"
+            class="mb-6 flex items-center rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
+            <i class="bi bi-exclamation-triangle-fill mr-3 text-xl"></i>
+            <div class="text-sm font-bold">
+                {{ session('error') ?? 'Please correct the highlighted errors below.' }}
+            </div>
+            <button type="button" onclick="document.getElementById('alert-error').remove()"
+                class="ml-auto text-red-600 hover:text-red-800">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    @endif
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Maintenance Request Form -->
         <div class="lg:col-span-2">
@@ -30,8 +56,9 @@
                                     <select name="item_id" required
                                         class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800 @error('item_id') border-red-500 dark:border-red-500 @enderror">
                                         <option value="" disabled selected>Select equipment</option>
-                                        @foreach($items as $item)
-                                            <option value="{{ $item->id }}" {{ old('item_id') == $item->id ? 'selected' : '' }}>
+                                        @foreach ($items as $item)
+                                            <option value="{{ $item->id }}"
+                                                {{ old('item_id') == $item->id ? 'selected' : '' }}>
                                                 {{ $item->name }} ({{ $item->getTypeText() }})
                                             </option>
                                         @endforeach
@@ -49,8 +76,9 @@
                                     <select name="issue_type_id" required
                                         class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800 @error('issue_type') border-red-500 dark:border-red-500 @enderror">
                                         <option value="" disabled selected>Select issue type</option>
-                                        @foreach($issueTypes as $issueType)
-                                            <option value="{{ $issueType->id }}" {{ old('issue_type_id') == $issueType->id ? 'selected' : '' }}>
+                                        @foreach ($issueTypes as $issueType)
+                                            <option value="{{ $issueType->id }}"
+                                                {{ old('issue_type_id') == $issueType->id ? 'selected' : '' }}>
                                                 {{ $issueType->name }}
                                             </option>
                                         @endforeach
@@ -68,24 +96,49 @@
                                 <i class="bi bi-flag me-1"></i>Priority Level
                             </h4>
                             <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                                @foreach(App\Models\MaintenanceRequest::getPriorityOptions() as $key => $value)
+                                @foreach (App\Models\MaintenanceRequest::getPriorityOptions() as $key => $value)
                                     <label class="cursor-pointer">
-                                        <input type="radio" name="priority" value="{{ $key }}" 
+                                        <input type="radio" name="priority" value="{{ $key }}"
                                             {{ old('priority', 'medium') == $key ? 'checked' : '' }} required
                                             class="peer sr-only">
                                         @php
                                             $colors = [
-                                                'low' => ['border' => 'border-green-500', 'bg' => 'bg-green-100', 'text' => 'text-green-800', 'dark_bg' => 'dark:bg-green-900', 'dark_text' => 'dark:text-green-200'],
-                                                'medium' => ['border' => 'border-yellow-500', 'bg' => 'bg-yellow-100', 'text' => 'text-yellow-800', 'dark_bg' => 'dark:bg-yellow-900', 'dark_text' => 'dark:text-yellow-200'],
-                                                'high' => ['border' => 'border-orange-500', 'bg' => 'bg-orange-100', 'text' => 'text-orange-800', 'dark_bg' => 'dark:bg-orange-900', 'dark_text' => 'dark:text-orange-200'],
-                                                'emergency' => ['border' => 'border-red-500', 'bg' => 'bg-red-100', 'text' => 'text-red-800', 'dark_bg' => 'dark:bg-red-900', 'dark_text' => 'dark:text-red-200'],
+                                                'low' => [
+                                                    'border' => 'border-green-500',
+                                                    'bg' => 'bg-green-100',
+                                                    'text' => 'text-green-800',
+                                                    'dark_bg' => 'dark:bg-green-900',
+                                                    'dark_text' => 'dark:text-green-200',
+                                                ],
+                                                'medium' => [
+                                                    'border' => 'border-yellow-500',
+                                                    'bg' => 'bg-yellow-100',
+                                                    'text' => 'text-yellow-800',
+                                                    'dark_bg' => 'dark:bg-yellow-900',
+                                                    'dark_text' => 'dark:text-yellow-200',
+                                                ],
+                                                'high' => [
+                                                    'border' => 'border-orange-500',
+                                                    'bg' => 'bg-orange-100',
+                                                    'text' => 'text-orange-800',
+                                                    'dark_bg' => 'dark:bg-orange-900',
+                                                    'dark_text' => 'dark:text-orange-200',
+                                                ],
+                                                'emergency' => [
+                                                    'border' => 'border-red-500',
+                                                    'bg' => 'bg-red-100',
+                                                    'text' => 'text-red-800',
+                                                    'dark_bg' => 'dark:bg-red-900',
+                                                    'dark_text' => 'dark:text-red-200',
+                                                ],
                                             ];
                                             $color = $colors[$key] ?? $colors['medium'];
                                         @endphp
-                                        <div class="rounded-lg border-2 p-4 text-center transition-all peer-checked:{{ $color['border'] }} {{ $color['bg'] }} {{ $color['text'] }} dark:border-gray-700 peer-checked:dark:{{ $color['border'] }} {{ $color['dark_bg'] }} {{ $color['dark_text'] }}">
+                                        <div
+                                            class="rounded-lg border-2 p-4 text-center transition-all peer-checked:{{ $color['border'] }} {{ $color['bg'] }} {{ $color['text'] }} dark:border-gray-700 peer-checked:dark:{{ $color['border'] }} {{ $color['dark_bg'] }} {{ $color['dark_text'] }}">
                                             <div class="text-sm font-medium">{{ $value }}</div>
                                             <div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                                                @if($key === 'low')
+                                                @if ($key === 'low')
                                                     Non-urgent, can wait
                                                 @elseif($key === 'medium')
                                                     Normal priority
@@ -134,19 +187,18 @@
                                 <div class="text-center">
                                     <i class="bi bi-cloud-arrow-up text-3xl text-gray-400"></i>
                                     <div class="mt-2">
-                                        <label for="file-upload" class="cursor-pointer font-medium text-blue-600 hover:text-blue-500">
+                                        <label for="file-upload"
+                                            class="cursor-pointer font-medium text-blue-600 hover:text-blue-500">
                                             Click to upload files
                                         </label>
-                                        <input id="file-upload" type="file" multiple 
-                                               name="files[]"
-                                               class="sr-only"
-                                               accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt,.xls,.xlsx">
+                                        <input id="file-upload" type="file" multiple name="files[]" class="sr-only"
+                                            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt,.xls,.xlsx">
                                     </div>
                                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                         Maximum file size: 10MB. Allowed: JPG, PNG, PDF, DOC, DOCX, TXT, XLS, XLSX
                                     </p>
                                 </div>
-                                
+
                                 <!-- File List -->
                                 <div id="file-list" class="mt-4 space-y-2 hidden">
                                     <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -184,20 +236,22 @@
                 <h3 class="mb-6 text-lg font-semibold text-gray-800 dark:text-white/90">
                     <i class="bi bi-clock-history me-2"></i>My Recent Requests
                 </h3>
-                
+
                 <div class="space-y-4">
                     @forelse($userRecentRequests as $request)
                         <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
                             <div class="flex items-start justify-between">
                                 <div>
-                                    <div class="font-medium text-gray-800 dark:text-white/90">{{ $request->ticket_number }}</div>
+                                    <div class="font-medium text-gray-800 dark:text-white/90">{{ $request->ticket_number }}
+                                    </div>
                                     <div class="text-sm text-gray-600 dark:text-gray-400">
                                         {{ $request->item?->name ?? 'N/A' }}
                                     </div>
                                 </div>
                                 <div class="text-right">
                                     <div class="mb-1">
-                                        <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $request->getPriorityBadgeClass() }}">
+                                        <span
+                                            class="rounded-full px-2 py-0.5 text-xs font-medium {{ $request->getPriorityBadgeClass() }}">
                                             {{ strtoupper($request->priority) }}
                                         </span>
                                     </div>
@@ -207,11 +261,12 @@
                                 </div>
                             </div>
                             <div class="mt-3 flex items-center justify-between">
-                                <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $request->getStatusBadgeClass() }}">
+                                <span
+                                    class="rounded-full px-2 py-0.5 text-xs font-medium {{ $request->getStatusBadgeClass() }}">
                                     {{ $request->getStatusText() }}
                                 </span>
-                                <a href="{{ route('maintenance-requests.show', $request) }}" 
-                                   class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                <a href="{{ route('maintenance-requests.show', $request) }}"
+                                    class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                                     View Details
                                 </a>
                             </div>
@@ -225,7 +280,7 @@
                         </div>
                     @endforelse
                 </div>
-                
+
                 <!-- Stats -->
                 <div class="mt-6 grid grid-cols-2 gap-3">
                     <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -239,9 +294,10 @@
                         <div class="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">2.5h</div>
                     </div>
                 </div>
-                
+
                 <!-- Quick Tips -->
-                <div class="mt-6 rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                <div
+                    class="mt-6 rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
                     <h4 class="text-sm font-medium text-blue-800 dark:text-blue-200">
                         <i class="bi bi-lightbulb me-1"></i>Quick Tips
                     </h4>
@@ -263,8 +319,8 @@
             <div>
                 <h4 class="text-sm font-medium text-blue-800 dark:text-blue-200">Maintenance Request Form</h4>
                 <p class="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                    Use this form to request maintenance for registered equipment. 
-                    All requests will receive a unique ticket number for tracking. 
+                    Use this form to request maintenance for registered equipment.
+                    All requests will receive a unique ticket number for tracking.
                     Our team will respond based on the priority level selected.
                 </p>
             </div>
@@ -272,28 +328,30 @@
     </div>
 
     @push('scripts')
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const fileInput = document.getElementById('file-upload');
-        const fileList = document.getElementById('file-list');
-        const fileCount = document.getElementById('file-count');
-        
-        fileInput.addEventListener('change', function(event) {
-            const files = Array.from(event.target.files);
-            
-            // Clear previous list
-            fileList.innerHTML = '<h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">Attached Files (<span id="file-count">0</span>)</h5>';
-            fileList.classList.remove('hidden');
-            
-            // Update file count
-            fileCount.textContent = files.length;
-            
-            // Create file list items
-            files.forEach((file, index) => {
-                const fileSizeMB = file.size / (1024 * 1024);
-                const fileElement = document.createElement('div');
-                fileElement.className = 'flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700';
-                fileElement.innerHTML = `
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const fileInput = document.getElementById('file-upload');
+                const fileList = document.getElementById('file-list');
+                const fileCount = document.getElementById('file-count');
+
+                fileInput.addEventListener('change', function(event) {
+                    const files = Array.from(event.target.files);
+
+                    // Clear previous list
+                    fileList.innerHTML =
+                        '<h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">Attached Files (<span id="file-count">0</span>)</h5>';
+                    fileList.classList.remove('hidden');
+
+                    // Update file count
+                    fileCount.textContent = files.length;
+
+                    // Create file list items
+                    files.forEach((file, index) => {
+                        const fileSizeMB = file.size / (1024 * 1024);
+                        const fileElement = document.createElement('div');
+                        fileElement.className =
+                            'flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700';
+                        fileElement.innerHTML = `
                     <div class="flex items-center">
                         <i class="${getFileIcon(file.type)} text-lg text-gray-500"></i>
                         <div class="ml-3">
@@ -305,40 +363,40 @@
                         <i class="bi bi-x-lg"></i>
                     </button>
                 `;
-                fileList.appendChild(fileElement);
-            });
-            
-            // Add remove functionality
-            document.querySelectorAll('.remove-file').forEach(button => {
-                button.addEventListener('click', function() {
-                    const index = this.getAttribute('data-index');
-                    const dt = new DataTransfer();
-                    const filesArray = Array.from(fileInput.files);
-                    
-                    filesArray.splice(index, 1);
-                    filesArray.forEach(file => dt.items.add(file));
-                    fileInput.files = dt.files;
-                    
-                    // Trigger change event to update list
-                    fileInput.dispatchEvent(new Event('change'));
+                        fileList.appendChild(fileElement);
+                    });
+
+                    // Add remove functionality
+                    document.querySelectorAll('.remove-file').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const index = this.getAttribute('data-index');
+                            const dt = new DataTransfer();
+                            const filesArray = Array.from(fileInput.files);
+
+                            filesArray.splice(index, 1);
+                            filesArray.forEach(file => dt.items.add(file));
+                            fileInput.files = dt.files;
+
+                            // Trigger change event to update list
+                            fileInput.dispatchEvent(new Event('change'));
+                        });
+                    });
                 });
+
+                function formatFileSize(size) {
+                    if (size < 1) return (size * 1024).toFixed(0) + ' KB';
+                    return size.toFixed(2) + ' MB';
+                }
+
+                function getFileIcon(fileType) {
+                    if (fileType.includes('image')) return 'bi bi-file-image';
+                    if (fileType.includes('pdf')) return 'bi bi-file-pdf';
+                    if (fileType.includes('word') || fileType.includes('document')) return 'bi bi-file-word';
+                    if (fileType.includes('text')) return 'bi bi-file-text';
+                    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'bi bi-file-excel';
+                    return 'bi bi-file';
+                }
             });
-        });
-        
-        function formatFileSize(size) {
-            if (size < 1) return (size * 1024).toFixed(0) + ' KB';
-            return size.toFixed(2) + ' MB';
-        }
-        
-        function getFileIcon(fileType) {
-            if (fileType.includes('image')) return 'bi bi-file-image';
-            if (fileType.includes('pdf')) return 'bi bi-file-pdf';
-            if (fileType.includes('word') || fileType.includes('document')) return 'bi bi-file-word';
-            if (fileType.includes('text')) return 'bi bi-file-text';
-            if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'bi bi-file-excel';
-            return 'bi bi-file';
-        }
-    });
-    </script>
+        </script>
     @endpush
 @endsection

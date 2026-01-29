@@ -66,11 +66,13 @@ class MaintenanceRequest extends Model
     const STATUS_PENDING = 'pending';
     const STATUS_ASSIGNED = 'assigned';
     const STATUS_APPROVED = 'approved';
+    const STATUS_WAITING_CONFIRMATION = 'waiting_confirmation';
     const STATUS_IN_PROGRESS = 'in_progress';
     const STATUS_COMPLETED = 'completed';
     const STATUS_REJECTED = 'rejected';
     const STATUS_NOT_FIXED = 'not_fixed';
     const STATUS_WAITING_APPROVAL = 'waiting_approval';
+    const STATUS_CONFIRMED='confirmed';
  
 
     protected static function boot()
@@ -130,11 +132,13 @@ class MaintenanceRequest extends Model
             self::STATUS_PENDING => 'Pending',
             self::STATUS_ASSIGNED => 'Assigned',
             self::STATUS_IN_PROGRESS => 'In Progress',
+            self::STATUS_WAITING_CONFIRMATION => 'waiting_confirmation',
             self::STATUS_COMPLETED => 'Completed',
             self::STATUS_WAITING_APPROVAL => 'Waiting Approval',
             self::STATUS_REJECTED => 'Rejected',
             self::STATUS_NOT_FIXED => 'Not Fixed',
             self::STATUS_APPROVED => 'Approved',
+            self::STATUS_CONFIRMED=>'Confirmed'
         ];
     }
 public function approver(): BelongsTo
@@ -168,24 +172,7 @@ public function isApproved(): bool
 {
     return $this->is_approved === true;
 }
-    // public function getNextApprover()
-    // {
-    //     $user = $this->user;
-        
-    //     if (!$user) return null;
-        
-    //     // First, check division chairman
-    //     if ($user->division && $user->division->chairman) {
-    //         return $user->division->chairman;
-    //     }
-        
-    //     // If no division chairman, check cluster chairman
-    //     if ($user->cluster && $user->cluster->chairman) {
-    //         return $user->cluster->chairman;
-    //     }
-        
-    //     return null;
-    // }
+  
 public function getNextApprover(): ?User
 {
     $user = $this->user;
@@ -204,14 +191,7 @@ public function getNextApprover(): ?User
     // Otherwise, no approver
     return null;
 }
-// public function isDivisionChairman(): bool
-// {
-//     return (string) $this->division?->division_chairman === (string) $this->id;
-// }
-// public function isClusterChairman(): bool
-// {
-//     return (string) $this->cluster?->cluster_chairman === (string) $this->id;
-// }
+
 public function isDivisionChairman(): bool
 {
     return Division::where('division_chairman', $this->id)->exists();
@@ -248,21 +228,7 @@ public function scopeVisibleToIct($query)
     });
 }
 
-    /**
-     * Get issue type options
-     */
-    // public static function getIssueTypeOptions(): array
-    // {
-    //     return [
-    //         self::ISSUE_HARDWARE => 'Hardware Issue',
-    //         self::ISSUE_SOFTWARE => 'Software Issue',
-    //         self::ISSUE_NETWORK => 'Network/Connectivity',
-    //         self::ISSUE_PERFORMANCE => 'Performance Problem',
-    //         self::ISSUE_SETUP => 'New Setup/Installation',
-    //         self::ISSUE_UPGRADE => 'Upgrade Request',
-    //         self::ISSUE_OTHER => 'Other',
-    //     ];
-    // }
+
 public function issueType(): BelongsTo
 {
     return $this->belongsTo(IssueType::class);
@@ -493,37 +459,110 @@ public function getIssueTypeText(): string
             'rejection_reason' => $reason,
         ]);
     }
-// In your MaintenanceRequest model, update the approve method:
-// public function approve(User $approver, array $data = [], $files = null): bool
-// {
-//     return \DB::transaction(function () use ($approver, $data, $files) {
-//         $updateData = [
-//             'status' => self::STATUS_ASSIGNED,
-//             'approved_at' => now(),
-//             'approved_by' => $approver->id,
-//             'forwarded_to_ict_director_at' => now(),
-//         ];
+// In MaintenanceRequest model
+public function notifyCompletion(string $status)
+{
+    if (!$this->user) {
+        \Log::warning('Cannot notify requester: user not found', ['request_id' => $this->id]);
+        return;
+    }
+    
+    try {
+        $this->user->notify(
+            new \App\Notifications\MaintenanceRequestCompleted($this, $status)
+        );
         
-//         if (!empty($data['approval_notes'])) {
-//             $updateData['approval_notes'] = $data['approval_notes'];
-//         }
-        
-//         $updated = $this->update($updateData);
-        
-//         // Handle file uploads - use passed files instead of request()
-//         if ($updated && $files && count($files) > 0) {
-//             foreach ($files as $file) {
-//                 $this->uploadAttachment($file, 'approval');
-//             }
-//         }
-        
-//         return $updated;
-//     });
-// }
+    } catch (\Exception $e) {
+        \Log::error('Failed to send completion notification: ' . $e->getMessage(), [
+            'request_id' => $this->id,
+            'error' => $e->getTraceAsString()
+        ]);
+    }
+}
 
-/**
- * Upload attachment for the maintenance request
- */
+public function notifyEscalation()
+{
+    try {
+        $ictDirectors = $this->getGeneralIctDirectors();
+        foreach ($ictDirectors as $director) {
+            $director->notify(
+                new \App\Notifications\MaintenanceRequestEscalated($this)
+            );
+        }
+        
+        \Log::info('Escalation notification sent to ICT directors', [
+            'request_id' => $this->id,
+            'director_count' => count($ictDirectors)
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to send escalation notification: ' . $e->getMessage(), [
+            'request_id' => $this->id,
+            'error' => $e->getTraceAsString()
+        ]);
+    }
+}
+// In MaintenanceRequest model
+public function notifyConfirmation()
+{
+    try {
+        // Notify technician
+        if ($this->assignedTechnician) {
+            $this->assignedTechnician->notify(
+                new \App\Notifications\MaintenanceRequestConfirmed($this)
+            );
+        }
+
+        // Notify ICT directors (excluding the technician if they're also a director)
+        $ictDirectors = $this->getGeneralIctDirectors();
+        foreach ($ictDirectors as $director) {
+            if ($this->assignedTechnician && $director->id === $this->assignedTechnician->id) {
+                continue;
+            }
+            
+            $director->notify(
+                new \App\Notifications\MaintenanceRequestConfirmedToIct($this)
+            );
+        }
+
+        \Log::info('Confirmation notifications sent', [
+            'request_id' => $this->id,
+            'technician_notified' => (bool) $this->assignedTechnician,
+            'directors_notified' => count($ictDirectors)
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Failed to send confirmation notifications: ' . $e->getMessage(), [
+            'request_id' => $this->id,
+            'error' => $e->getTraceAsString()
+        ]);
+    }
+}
+// In MaintenanceRequest model
+public function notifyWorkLogRejected(WorkLog $workLog, string $rejectionReason)
+{
+    try {
+        // Notify technician
+        if ($workLog->technician) {
+            $workLog->technician->notify(
+                new \App\Notifications\WorkLogRejected($this, $workLog, $rejectionReason)
+            );
+            
+            \Log::info('Work log rejection notification sent', [
+                'request_id' => $this->id,
+                'work_log_id' => $workLog->id,
+                'technician_id' => $workLog->technician->id
+            ]);
+        }
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to send work log rejection notification: ' . $e->getMessage(), [
+            'request_id' => $this->id,
+            'work_log_id' => $workLog->id,
+            'error' => $e->getTraceAsString()
+        ]);
+    }
+}
 public function uploadAttachment($file, $type = 'general'): MaintenanceRequestFile
 {
     $originalName = $file->getClientOriginalName();
@@ -567,71 +606,7 @@ public function uploadAttachment($file, $type = 'general'): MaintenanceRequestFi
             $this->user->notify(new MaintenanceRequestApproval($this, 'rejected'));
         }
     }
-  // In MaintenanceRequest model
-// public function handleNotifications()
-// {
-//     \Log::info('handleNotifications called', [
-//         'request_id' => $this->id,
-//         'user_id' => $this->user_id,
-//         'needs_approval' => $this->needsApproval()
-//     ]);
-    
-//     // Check if user exists
-//     if (!$this->user) {
-//         \Log::error('User not found for maintenance request', ['request_id' => $this->id]);
-//         return;
-//     }
-    
-//     try {
-//         // Notify requester
-//         \Log::info('Notifying requester', ['user_id' => $this->user_id]);
-//         $this->user->notify(new \App\Notifications\MaintenanceRequestCreated($this));
-        
-//         if ($this->needsApproval()) {
-//             \Log::info('Request needs approval', ['request_id' => $this->id]);
-//             // Set status to waiting approval
-//             $this->update(['status' => self::STATUS_WAITING_APPROVAL]);
-            
-//             // Find and notify the appropriate approver
-//             $approver = $this->getNextApprover();
-            
-//             if ($approver) {
-//                 \Log::info('Found approver', ['approver_id' => $approver->id]);
-//                 $approver->notify(new \App\Notifications\MaintenanceRequestApproval($this, 'approval_needed'));
-//             } else {
-//                 \Log::warning('No approver found, notifying ICT directors directly');
-//                 // If no approver found, notify ICT directors directly
-//                 $ictDirectors = $this->getGeneralIctDirectors();
-//                 foreach ($ictDirectors as $director) {
-//                     $director->notify(new \App\Notifications\MaintenanceRequestForwardedToIctDirector($this));
-//                 }
-//                 $this->update([
-//                     'status' => self::STATUS_ASSIGNED,
-//                     'forwarded_to_ict_director_at' => now(),
-//                 ]);
-//             }
-//         } else {
-//             \Log::info('Request does not need approval, notifying ICT directors directly');
-//             // No approval needed, notify ICT directors directly
-//             $ictDirectors = $this->getGeneralIctDirectors();
-//             foreach ($ictDirectors as $director) {
-//                 $director->notify(new \App\Notifications\MaintenanceRequestForwardedToIctDirector($this));
-//             }
-//             $this->update([
-//                 'approved_at' => now(),
-//                 'forwarded_to_ict_director_at' => now(),
-//             ]);
-//         }
-        
-//         \Log::info('Notifications handled successfully', ['request_id' => $this->id]);
-        
-//     } catch (\Exception $e) {
-//         \Log::error('Error in handleNotifications: ' . $e->getMessage(), [
-//             'request_id' => $this->id,
-//             'trace' => $e->getTraceAsString()
-//         ]);
-//     }
-// }
+
 public function handleNotifications()
 {
     \Log::info('handleNotifications called', [

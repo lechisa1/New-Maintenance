@@ -39,10 +39,11 @@ Route::middleware('guest')->group(function () {
 */
 Route::middleware(['web','auth'])->group(function () {
     // Dashboard
-    Route::get('/dashboard', function () {
-        return view('pages.dashboard.ecommerce', ['title' => 'E-commerce Dashboard']);
-    })->name('dashboard');
-    
+    // Route::get('/dashboard', function () {
+    //     return view('pages.dashboard.ecommerce', ['title' => 'E-commerce Dashboard']);
+    // })->name('dashboard');
+        Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/admin-dashboard', [DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
     // Logout
     Route::post('logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('logout', [LoginController::class, 'showLogoutForm'])->name('logout.confirm');
@@ -100,8 +101,9 @@ Route::middleware(['web','auth'])->group(function () {
             Route::post('/', [ClusterController::class, 'store']);
             Route::put('/{cluster}', [ClusterController::class, 'update']);
             Route::delete('/{cluster}', [ClusterController::class, 'destroy']);
+            
         });
-        
+
         Route::prefix('divisions')->group(function () {
             Route::post('/', [DivisionController::class, 'store']);
             Route::put('/{division}', [DivisionController::class, 'update']);
@@ -117,14 +119,14 @@ Route::middleware(['web','auth'])->group(function () {
     Route::get('/divisions/{division}', [DivisionController::class, 'show'])
     ->name('divisions.show');
     // Maintenance Requests
-    Route::resource('maintenance-requests', MaintenanceRequestController::class);
+
     Route::get('/maintenance-requests/export', [MaintenanceRequestController::class, 'export'])->name('maintenance-requests.export');
     Route::get('/maintenance-requests/statistics', [MaintenanceRequestController::class, 'statistics'])->name('maintenance-requests.statistics');
     // Route::post('/maintenance-requests/{maintenanceRequest}/assign', [MaintenanceRequestController::class, 'assign'])->name('maintenance-requests.assign');
     Route::post('/maintenance-requests/{maintenanceRequest}/update-status', [MaintenanceRequestController::class, 'updateStatus'])->name('maintenance-requests.update-status');
     Route::get('/maintenance-requests/{maintenanceRequest}/download-file/{file}', [MaintenanceRequestController::class, 'downloadFile'])->name('maintenance-requests.download-file');
     Route::delete('/maintenance-requests/{maintenanceRequest}/delete-file/{file}', [MaintenanceRequestController::class, 'deleteFile'])->name('maintenance-requests.delete-file');
-    
+     Route::resource('maintenance-requests', MaintenanceRequestController::class);
     // Items (Equipment)
     Route::resource('items', ItemController::class);
     Route::get('/items/trashed', [ItemController::class, 'trashed'])->name('items.trashed');
@@ -173,6 +175,11 @@ Route::post('/work-logs', [WorkLogController::class, 'store'])->name('work-logs.
 Route::delete('/work-logs/{workLog}', [WorkLogController::class, 'destroy'])->name('work-logs.destroy');
 Route::get('/work-logs/request/{maintenanceRequest}', [WorkLogController::class, 'getForRequest'])->name('work-logs.by-request');
     
+Route::post('/work-logs/{workLog}/reject', [WorkLogController::class, 'rejectWorkLog'])
+    ->name('work-logs.reject');
+    
+Route::post('/work-logs/{workLog}/accept', [WorkLogController::class, 'acceptWorkLog'])
+    ->name('work-logs.accept');
 });
 
 // Default route - redirect to login if not authenticated, dashboard if authenticated

@@ -50,15 +50,10 @@ class MaintenanceRequestController extends Controller
             $query->where('issue_type', $request->issue_type);
         }
         
-        // Filter by user role
-        // if ($request->user()->hasRole('user')) {
-        //     $query->where('user_id', $request->user()->id);
-        // } elseif ($request->user()->hasRole('technician')) {
-        //     $query->where('assigned_to', $request->user()->id);
-        // }
+
         
         // Get requests with filters
-        $requests = $query->latest()->paginate(15);
+        $requests = $query->latest()->paginate(10);
         
         // Statistics
         $totalRequests = MaintenanceRequest::where('user_id', auth()->id())->count();

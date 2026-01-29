@@ -50,7 +50,7 @@ class Item extends Model
         return [
             self::STATUS_ACTIVE => 'Active',
             self::STATUS_INACTIVE => 'Inactive',
-            self::STATUS_MAINTENANCE => 'Under Maintenance',
+           
         ];
     }
 

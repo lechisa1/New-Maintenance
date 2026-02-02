@@ -35,7 +35,7 @@ return new class extends Migration
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('rejected_at')->nullable();
-            
+            $table->timestamp('forwarded_to_ict_director_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -44,10 +44,17 @@ return new class extends Migration
             $table->id();
             $table->uuid('maintenance_request_id');
             $table->foreign('maintenance_request_id')->references('id')->on('maintenance_requests')->cascadeOnDelete();
+            $table->uuid('uploaded_by')
+          ->nullable();
+              $table->foreign('uploaded_by')
+          ->references('id')
+          ->on('users')
+          ->nullOnDelete();
             $table->string('filename');
             $table->string('original_name');
             $table->string('mime_type');
             $table->string('path');
+             $table->string('type');
             $table->integer('size');
             $table->timestamps();
         });

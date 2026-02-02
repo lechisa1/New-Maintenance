@@ -52,7 +52,7 @@
 
                     <!-- Status -->
                     <td class="px-4 py-3">
-                        @if ($user->email_verified_at)
+                        @if ($user->is_active === 1)
                             <span class="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
                                 Active
                             </span>

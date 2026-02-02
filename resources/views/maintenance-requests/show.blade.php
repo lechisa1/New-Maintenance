@@ -373,12 +373,12 @@
 
                     <!-- Assign to Technician (only for users with maintenance_requests.assign permission) -->
                     @can('maintenance_requests.assign')
-                        @if ($maintenanceRequest->assigned_to === null)
+                        @if ($maintenanceRequest->assigned_to === null || $maintenanceRequest->status === 'not_fixed')
                             <div x-data="{ showAssignModal: false }">
                                 <button @click="showAssignModal = true"
                                     class="flex w-full items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                                     <i class="bi bi-person-plus me-3"></i>
-                                    Assign to Technician
+                                    {{ is_null($maintenanceRequest->assigned_to) ? 'Assign to Technician' : 'Re-Assign Technician' }}
                                 </button>
 
                                 <!-- Simple Modal (not using x-ui.modal) -->
@@ -418,7 +418,7 @@
                                                         @endforeach
                                                     </select>
                                                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                        Only users with 'reports.assign' permission are listed
+                                                        Only users with 'maintenance_requests.resolve' permission are listed
                                                     </p>
                                                 </div>
 
@@ -451,8 +451,8 @@
                     @endcan
 
                     <!-- Update Status (only for users with reports.update-status permission) -->
-                    @can('reports.update-status')
-                        @if (in_array($maintenanceRequest->status, ['assigned', 'in_progress']))
+                    @can('maintenance_requests.view_assigned' && 'maintenance_requests.update')
+                        @if (in_array($maintenanceRequest->status, ['assigned', 'in_progress', 'not_fixed']))
                             <div x-data="{ open: false }">
                                 <button @click="open = true"
                                     class="flex w-full items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
@@ -541,7 +541,7 @@
                     @endif
 
                     <!-- Delete Request (only for requester or users with maintenance_requests.delete permission) -->
-                    @if (auth()->id() == $maintenanceRequest->user_id && auth()->user()->can('maintenance_requests.delete'))
+                    @if (auth()->id() == $maintenanceRequest->user_id)
                         @if (in_array($maintenanceRequest->status, ['pending', 'waiting_approval']))
                             <form action="{{ route('maintenance-requests.destroy', $maintenanceRequest) }}"
                                 method="POST" onsubmit="return confirm('Are you sure you want to delete this request?')"
@@ -654,7 +654,7 @@
                             </div>
                         @endif
                     @endif
-                    @if (auth()->user()->can('maintenance_requests.approve'))
+                    @if (auth()->user()->can('maintenance_requests.approve' && 'maintenance_requests.reject'))
                         <!-- Reject Button with Modal -->
                         <div x-data="{ showRejectModal: false }">
                             <button @click="showRejectModal = true"
@@ -731,7 +731,7 @@
 
                     <!-- Add Work Log Button (only for assigned technician) -->
                     @if (auth()->user()->id == $maintenanceRequest->assigned_to &&
-                            in_array($maintenanceRequest->status, ['assigned', 'in_progress', 'approved', 'pending']))
+                            in_array($maintenanceRequest->status, ['assigned', 'in_progress', 'approved', 'pending', 'not_fixed']))
                         <div x-data="{
                             showWorkLogModal: false,
                             hours: 0,
@@ -998,7 +998,7 @@
                                                                     <div class="flex justify-between items-center mb-4">
                                                                         <h3
                                                                             class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                                                            Reject Work Log
+                                                                            Reject Technician Activities
                                                                         </h3>
                                                                         <button @click="showRejectModal = false"
                                                                             class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
@@ -1069,7 +1069,7 @@
                                                                     <div class="flex justify-between items-center mb-4">
                                                                         <h3
                                                                             class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                                                            Confirm Work Log
+                                                                            Confirm Technician Activity
                                                                         </h3>
                                                                         <button @click="showConfirmModal = false"
                                                                             class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
@@ -1079,7 +1079,7 @@
 
                                                                     <div
                                                                         class="text-sm text-gray-700 dark:text-gray-300 mb-4">
-                                                                        Are you sure you want to confirm this work log?
+                                                                        Are you sure you want to confirm this Activities?
                                                                     </div>
 
                                                                     <div class="flex justify-end gap-3">
@@ -1126,7 +1126,9 @@
 
 
                                     <!-- Total Work Time -->
-                                    @if ($maintenanceRequest->workLogs->count() > 0)
+                                    @if (
+                                        $maintenanceRequest->workLogs->count() > 0 &&
+                                            auth()->user()->can('maintenance_requests.assign' || 'maintenance_requests.resolve'))
                                         <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
                                             <div class="flex justify-between items-center">
                                                 <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1146,7 +1148,9 @@
 
 
                     <!-- Similar Requests (only for users with maintenance_requests.view permission) -->
-                    @if ($similarRequests->count() > 0 && auth()->user()->can('maintenance_requests.assign'))
+                    @if (
+                        $similarRequests->count() > 0 &&
+                            auth()->user()->can('maintenance_requests.assign' || 'maintenance_requests.resolve'))
                         <div
                             class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
                             <h3 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
@@ -1187,42 +1191,44 @@
         @endsection
         @push('scripts')
             <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    // Handle assign technician form submission
-                    const assignForm = document.getElementById('assign-technician-form');
-                    if (assignForm) {
-                        assignForm.addEventListener('submit', function(e) {
-                            e.preventDefault();
+                document.addEventListener('DOMContentLoaded', () => {
+                    const form = document.getElementById('assign-technician-form');
 
-                            const formData = new FormData(this);
+                    if (!form) return;
 
-                            fetch(this.action, {
-                                    method: 'POST',
-                                    headers: {
-                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
-                                            .getAttribute('content'),
-                                        'X-HTTP-Method-Override': 'PUT'
-                                    },
-                                    body: formData
-                                })
-                                .then(response => response.text())
-                                .then(html => {
-                                    // Close the modal
-                                    const modal = document.querySelector('[x-data] [x-model="open"]');
-                                    if (modal) {
-                                        modal.setAttribute('x-data', '{ open: false }');
-                                    }
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
 
-                                    // Reload the page to see changes
-                                    window.location.reload();
-                                })
-                                .catch(error => {
-                                    console.error('Error:', error);
-                                    alert('An error occurred while assigning technician.');
-                                });
-                        });
-                    }
+                        const formData = new FormData(form);
+
+                        try {
+                            const response = await fetch(form.action, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                                        .content,
+                                    'X-HTTP-Method-Override': 'PUT',
+                                    'Accept': 'application/json'
+                                },
+                                body: formData
+                            });
+
+                            if (!response.ok) {
+                                const error = await response.json();
+                                alert(error.message || 'Assignment failed');
+                                return;
+                            }
+
+                            // Success → reload page
+                            window.location.reload();
+
+                        } catch (err) {
+                            console.error(err);
+                            alert('Something went wrong');
+                        }
+                    });
                 });
+
                 document.addEventListener('DOMContentLoaded', function() {
                     // File preview for approval form
                     const fileInput = document.querySelector('input[name="attachments[]"]');

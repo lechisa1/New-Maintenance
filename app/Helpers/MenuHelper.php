@@ -32,7 +32,7 @@ class MenuHelper
                 'icon' => 'task',
                 'name' => 'My Tasks',
                 'path' => '/task',
-              'permission' => 'maintenance_requests.view',
+              'permission' => 'maintenance_requests.view_assigned',
             ],
             
                         [
@@ -45,7 +45,7 @@ class MenuHelper
                 'icon' => 'pages',
                 'name' => 'Base Data',
                 'path' => '/base-data',
-                'permission' => 'maintenance_requests.view',
+                'permission' => 'issue_types.view',
             ],
             [
                 'icon' => 'forms',
@@ -63,7 +63,7 @@ class MenuHelper
                 'icon' => 'tables',
                 'name' => 'Organization Unit',
                 'path' => '/organizations',
-                'permission' => 'organizations.view',
+                'permission' => 'organization_units.view',
             ],
         ];
 

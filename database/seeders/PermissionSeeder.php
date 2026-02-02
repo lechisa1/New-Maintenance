@@ -20,35 +20,44 @@ class PermissionSeeder extends Seeder
             $guard = 'web';
 
             /*
-            |--------------------------------------------------------------------------
+            |----------------------------------------------------------------------
             | RESOURCES & ACTIONS
-            |--------------------------------------------------------------------------
+            |----------------------------------------------------------------------
             */
             $resources = [
-                'users',
-                'roles',
-                'organizations',
-                'departments',
-                'divisions',
-                'maintenance_requests',
-                'reports',
-            ];
+                // User & Role Management
+                'users' => ['view', 'create', 'update', 'delete'],
+                'roles' => ['view', 'assign', 'create', 'update', 'delete'],
 
-            $actions = [
-                'view',
-                'create',
-                'update',
-                'delete',
-                'approve',
-                'assign',
+                // Organization Units
+                'organization_units' => ['view', 'create', 'update', 'delete', 'assign_head'],
+
+                // Inventory & Equipment
+                'equipment' => ['view', 'create', 'update', 'delete'],
+                'issue_types' => ['view', 'create', 'update', 'delete'],
+
+                // Maintenance System
+                'maintenance_requests' => [
+                    'view_unit', 'view_all', 'view_own', 'view_assigned',
+                    'create', 'update', 'assign', 'reassign', 'approve', 'reject',
+                    'resolve', 'confirm', 'reopen'
+                ],
+
+                // Reports
+                'reports' => ['view', 'generate'],
+
+                // System
+                'dashboard' => ['view'],
+                'profile' => ['view', 'update', 'password'],
+                'settings' => ['view', 'update'],
             ];
 
             /*
-            |--------------------------------------------------------------------------
+            |----------------------------------------------------------------------
             | CREATE PERMISSIONS
-            |--------------------------------------------------------------------------
+            |----------------------------------------------------------------------
             */
-            foreach ($resources as $resource) {
+            foreach ($resources as $resource => $actions) {
                 foreach ($actions as $action) {
                     Permission::firstOrCreate([
                         'name'       => "{$resource}.{$action}",
@@ -60,35 +69,17 @@ class PermissionSeeder extends Seeder
             }
 
             /*
-            |--------------------------------------------------------------------------
-            | EXTRA SYSTEM PERMISSIONS
-            |--------------------------------------------------------------------------
-            */
-            $extras = [
-                'dashboard.view' => 'dashboard',
-                'profile.update' => 'profile',
-                'settings.manage' => 'settings',
-            ];
-
-            foreach ($extras as $permission => $resource) {
-                Permission::firstOrCreate([
-                    'name'       => $permission,
-                    'guard_name' => $guard,
-                ], [
-                    'resource' => $resource,
-                ]);
-            }
-
-            /*
-            |--------------------------------------------------------------------------
+            |----------------------------------------------------------------------
             | ROLES
-            |--------------------------------------------------------------------------
+            |----------------------------------------------------------------------
             */
             $roles = [
                 'superadmin',
                 'admin',
-                'manager',
-                'employee',
+                'chairman',
+                'user',
+                'ict_director',
+                'technician'
             ];
 
             $roleModels = [];
@@ -100,50 +91,64 @@ class PermissionSeeder extends Seeder
             }
 
             /*
-            |--------------------------------------------------------------------------
+            |----------------------------------------------------------------------
             | ASSIGN PERMISSIONS TO ROLES
-            |--------------------------------------------------------------------------
+            |----------------------------------------------------------------------
             */
 
             // Super Admin → Everything
             $roleModels['superadmin']->syncPermissions(Permission::all());
 
-            // Admin → Limited permissions
+            // Admin → User, Role, Org, Maintenance & Reports
             $roleModels['admin']->syncPermissions(Permission::whereIn('name', [
                 'dashboard.view',
-                'users.view',
-                'users.create',
-                'users.update',
-                'roles.view',
-                'roles.create',
-                'roles.update',
-                'organizations.view',
-                'organizations.create',
-                'organizations.update',
-                'maintenance_requests.view',
-                'maintenance_requests.assign',
-                'maintenance_requests.approve',
+                'users.view', 'users.create', 'users.update', 'users.delete',
+                'roles.view', 'roles.assign', 'roles.create', 'roles.update', 'roles.delete',
+                'organization_units.view', 'organization_units.create', 'organization_units.update', 'organization_units.assign_head',
+                'equipment.view', 'equipment.create', 'equipment.update', 'equipment.delete',
+                'issue_types.view', 'issue_types.create', 'issue_types.update', 'issue_types.delete',
+                'maintenance_requests.view_all', 'maintenance_requests.assign', 'maintenance_requests.reassign', 'maintenance_requests.approve', 'maintenance_requests.reject',
+                'reports.view', 'reports.generate',
+                'settings.view', 'settings.update',
+            ])->get());
+
+                        // Admin → User, Role, Org, Maintenance & Reports
+            $roleModels['ict_director']->syncPermissions(Permission::whereIn('name', [
+                'dashboard.view',
+                'users.view', 'users.create', 'users.update', 'users.delete',
+                'roles.view', 'roles.assign', 'roles.create', 'roles.update', 'roles.delete',
+                'organization_units.view', 'organization_units.create', 'organization_units.update', 'organization_units.assign_head',
+                'equipment.view', 'equipment.create', 'equipment.update', 'equipment.delete',
+                'issue_types.view', 'issue_types.create', 'issue_types.update', 'issue_types.delete',
+                'maintenance_requests.view_all', 'maintenance_requests.assign', 'maintenance_requests.reassign', 'maintenance_requests.approve', 'maintenance_requests.reject',
+                'reports.view', 'reports.generate',
+                'settings.view', 'settings.update',
+            ])->get());
+
+            // Manager → Maintenance & Reports
+            $roleModels['chairman']->syncPermissions(Permission::whereIn('name', [
+                'dashboard.view',
+                'maintenance_requests.view_unit', 'maintenance_requests.approve', 'maintenance_requests.reject',
                 'reports.view',
             ])->get());
 
-            // Manager → Limited permissions
-            $roleModels['manager']->syncPermissions(Permission::whereIn('name', [
+            // Employee → Own Maintenance Requests & Profile
+            $roleModels['user']->syncPermissions(Permission::whereIn('name', [
                 'dashboard.view',
-                'maintenance_requests.view',
-                'maintenance_requests.assign',
-                'maintenance_requests.approve',
-                'reports.view',
+                'maintenance_requests.view_own', 'maintenance_requests.create', 'maintenance_requests.update',
+                'profile.view', 'profile.update',
             ])->get());
 
-            // Employee → Limited permissions
-            $roleModels['employee']->syncPermissions(Permission::whereIn('name', [
+            $roleModels['technician']->syncPermissions(Permission::whereIn('name', [
                 'dashboard.view',
-                'maintenance_requests.view',
-                'maintenance_requests.create',
-                'maintenance_requests.update',
-                'profile.update',
+                'maintenance_requests.view_own', 'maintenance_requests.create', 'maintenance_requests.update',
+                'profile.view', 'profile.update',
             ])->get());
         });
 
+        // Clear cached permissions again
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->command->info('✅ Permissions & roles seeded successfully.');
     }
 }

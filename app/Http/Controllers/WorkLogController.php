@@ -51,7 +51,7 @@ class WorkLogController extends Controller
             $maintenanceRequest = MaintenanceRequest::findOrFail($requestId);
             
             // Check if user is assigned to this request
-            if ($maintenanceRequest->assigned_to !== $user->id && !$user->isSuperAdmin() && !$user->isAdmin()) {
+            if ($maintenanceRequest->assigned_to !== $user->id ) {
                 abort(403, 'You are not assigned to this request.');
             }
         }

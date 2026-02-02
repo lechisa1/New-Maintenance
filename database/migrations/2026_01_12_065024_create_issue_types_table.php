@@ -18,6 +18,7 @@ Schema::create('issue_types', function (Blueprint $table) {
     $table->string('slug')->unique();
     $table->boolean('is_active')->default(true);
     $table->timestamps();
+    $table->softDeletes(); 
 });
     }
 

@@ -245,10 +245,10 @@ public function show(MaintenanceRequest $maintenanceRequest)
     
     // Get technicians who have 'reports.assign' permission
     $technicians = User::whereHas('roles.permissions', function ($query) {
-            $query->where('name', 'reports.assign');
+            $query->where('name', 'maintenance_requests.resolve');
         })
         ->orWhereHas('permissions', function ($query) {
-            $query->where('name', 'reports.assign');
+            $query->where('name', 'maintenance_requests.resolve');
         })
         ->select('id', 'full_name', 'email')
         ->get()
@@ -289,7 +289,7 @@ public function assign(Request $request, MaintenanceRequest $maintenanceRequest)
 
     // Check if the assigned user has 'reports.assign' permission
     $assignedUser = User::findOrFail($validated['assigned_to']);
-    if (!$assignedUser->hasPermissionTo('reports.assign')) {
+    if (!$assignedUser->hasPermissionTo('maintenance_requests.resolve')) {
         return redirect()->back()
             ->with('error', 'Selected user does not have the required permission.');
     }
@@ -298,7 +298,7 @@ public function assign(Request $request, MaintenanceRequest $maintenanceRequest)
     $maintenanceRequest->update([
         'assigned_to' => $validated['assigned_to'],
         'assigned_at' => now(),
-        'status' => $maintenanceRequest->status === 'waiting_approval' ? 'assigned' : $maintenanceRequest->status,
+        'status' => MaintenanceRequest::STATUS_ASSIGNED,
         'technician_notes' => $validated['technician_notes'] ?? $maintenanceRequest->technician_notes,
     ]);
 
@@ -309,8 +309,10 @@ public function assign(Request $request, MaintenanceRequest $maintenanceRequest)
         \Log::error('Failed to send assignment notification: ' . $e->getMessage());
     }
 
-    return redirect()->back()
-        ->with('success', 'Technician assigned successfully.');
+return response()->json([
+    'message' => 'Technician assigned successfully'
+]);
+
 }
     /**
      * Show the form for editing the specified resource.

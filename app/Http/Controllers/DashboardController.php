@@ -34,8 +34,9 @@ class DashboardController extends Controller
         
         // System Administration Statistics
         $totalUsers = User::count();
-        $activeUsers = User::whereNotNull('email_verified_at')->count();
-        $inactiveUsers = User::whereNull('email_verified_at')->count();
+      
+        $activeUsers = User::where('is_active', 1)->count();
+        $inactiveUsers = User::where('is_active', 0)->count();
         
         $totalRoles = Role::count();
         $totalDivisions = Division::count();
@@ -159,7 +160,26 @@ class DashboardController extends Controller
                 ->limit(3)
                 ->get();
                 
-        } else {
+        } 
+        else if($user->can('maintenance_requests.resolve')) {
+            // Admin/ICT Director view
+            $totalRequests = MaintenanceRequest::where('assigned_to', $user->id)->count();
+            $pendingRequests = MaintenanceRequest::where('assigned_to', $user->id)->where('status', MaintenanceRequest::STATUS_PENDING)->count();
+            $inProgressRequests = MaintenanceRequest::where('assigned_to', $user->id)->where('status', MaintenanceRequest::STATUS_IN_PROGRESS)->count();
+            $completedRequests = MaintenanceRequest::where('assigned_to', $user->id)->where('status', MaintenanceRequest::STATUS_COMPLETED)->count();
+            $assignedToMe = MaintenanceRequest::where('assigned_to', $user->id)->count();
+          
+            
+            // Recent requests for admin
+            $recentRequests = MaintenanceRequest::where('assigned_to', $user->id)->with(['user', 'issueType', 'assignedTechnician'])
+                ->latest()
+                ->limit(5)
+                ->get();
+                
+         
+                
+        }
+        else {
             // Regular user view
             $totalRequests = MaintenanceRequest::where('user_id', $user->id)->count();
             $pendingRequests = MaintenanceRequest::where('user_id', $user->id)

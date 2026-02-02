@@ -19,6 +19,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\MyRequestController;
 use App\Http\Controllers\WorkLogController;
+use App\Http\Controllers\PasswordChangeController ;
 
 
 
@@ -38,10 +39,8 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['web','auth'])->group(function () {
-    // Dashboard
-    // Route::get('/dashboard', function () {
-    //     return view('pages.dashboard.ecommerce', ['title' => 'E-commerce Dashboard']);
-    // })->name('dashboard');
+    Route::get('{user}/password', [PasswordChangeController ::class, 'editPassword'])->name('password.edit');
+    Route::put('{user}/password', [PasswordChangeController ::class, 'updatePassword'])->name('password.update');
         Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/admin-dashboard', [DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
     // Logout

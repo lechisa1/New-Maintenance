@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
             BaseDataSeeder::class,
             // UsersTableSeeder::class,
            
-             RoleSeeder::class,
+             IssueTypeSeeder::class,
         ]);
 
     }

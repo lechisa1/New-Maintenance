@@ -30,10 +30,12 @@
                             class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                             <i class="bi bi-download me-2"></i> Export
                         </a>
-                        <a href="{{ route('maintenance-requests.create') }}"
-                            class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">
-                            <i class="bi bi-plus-lg me-2"></i> New Request
-                        </a>
+                        @if (auth()->user()->can('maintenance_requests.create'))
+                            <a href="{{ route('maintenance-requests.create') }}"
+                                class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">
+                                <i class="bi bi-plus-lg me-2"></i> New Request
+                            </a>
+                        @endif
                     </div>
                 </div>
 

@@ -234,7 +234,7 @@ public function store(Request $request)
             }
             
             // Change status to waiting_confirmation
-            $maintenanceRequest->update(['status' => MaintenanceRequest::STATUS_WAITING_CONFIRMATION]);
+            // $maintenanceRequest->update(['status' => MaintenanceRequest::STATUS_WAITING_CONFIRMATION]);
             
         } elseif ($validated['new_status'] === 'not_fixed') {
             // Notify requester that work could not be completed

@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Permission;
 use App\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class PermissionSeeder extends Seeder
 {
@@ -111,7 +113,32 @@ class PermissionSeeder extends Seeder
                 'reports.view', 'reports.generate',
                 'settings.view', 'settings.update',
             ])->get());
+            /*
+            |--------------------------------------------------------------------------
+            | CREATE DEFAULT USERS
+            |--------------------------------------------------------------------------
+            */
+            $superAdmin = User::firstOrCreate(
+                ['email' => 'superAdmin@example.com'],
+                [
+                    'full_name' => 'Super Admin',
+                    'phone'     => '2345678901',
+                    'password'  => Hash::make('password123'),
+                ]
+            );
 
+            $superAdmin->syncRoles([$roleModels['superadmin']]);
+
+            $admin = User::firstOrCreate(
+                ['email' => 'admin@example.com'],
+                [
+                    'full_name' => 'Admin User',
+                    'phone'     => '2345678902',
+                    'password'  => Hash::make('password123'),
+                ]
+            );
+
+            $admin->syncRoles([$roleModels['admin']]);
                         // Admin → User, Role, Org, Maintenance & Reports
             $roleModels['ict_director']->syncPermissions(Permission::whereIn('name', [
                 'dashboard.view',
@@ -145,6 +172,8 @@ class PermissionSeeder extends Seeder
                 'profile.view', 'profile.update',
             ])->get());
         });
+
+        
 
         // Clear cached permissions again
         app(PermissionRegistrar::class)->forgetCachedPermissions();

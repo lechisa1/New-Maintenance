@@ -29,6 +29,7 @@ class User extends Authenticatable
         'full_name',
         'email',
         'phone',
+        'is_active',
         'password',
         'division_id',
         'cluster_id',

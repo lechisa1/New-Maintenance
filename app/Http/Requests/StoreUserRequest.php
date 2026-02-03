@@ -24,9 +24,20 @@ class StoreUserRequest extends FormRequest
 public function rules(): array
 {
     return [
-        'full_name' => 'required|string|max:255',
+'full_name' => [
+    'required',
+    'regex:/^[A-Za-z]+(?:[\s\'-][A-Za-z]+)*$/',
+    'max:255',
+],
+
+
         'email' => 'required|email|unique:users,email',
-        'phone' => 'nullable|string|unique:users,phone',
+       'phone' => [
+    'nullable',
+    'regex:/^(09\d{8}|2519\d{8})$/',
+    'unique:users,phone',
+],
+
 
         'assign_type' => 'required|in:cluster,division',
 
@@ -46,10 +57,11 @@ public function rules(): array
     public function messages(): array
     {
         return [
-            'full_name.required' => 'Full name is required.',
+            'full_name.regex' => 'Full name may only contain letters and spaces.',
+
             'email.required' => 'Email address is required.',
             'email.unique' => 'This email is already registered.',
-            'phone.unique' => 'This phone number is already registered.',
+            'phone.unique' => 'This phone number is already registered or in valid',
             'password.required' => 'Password is required.',
             'password.confirmed' => 'Password confirmation does not match.',
             'password.min' => 'Password must be at least 8 characters.',

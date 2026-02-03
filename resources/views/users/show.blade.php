@@ -26,8 +26,8 @@
                             </div>
                             <div class="mt-3 flex items-center space-x-2 sm:mt-0">
                                 <span
-                                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $user->email_verified_at ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' }}">
-                                    {{ $user->email_verified_at ? 'Active' : 'Inactive' }}
+                                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $user->is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' }}">
+                                    {{ $user->is_active ? 'Active' : 'Inactive' }}
                                 </span>
                                 <span
                                     class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
@@ -67,35 +67,46 @@
                                 </p>
                             </div>
                         </div>
+                        @if (auth()->user()->can('users.update'))
+                            <div class="mt-6 flex space-x-3">
 
-                        <div class="mt-6 flex space-x-3">
-
-                            <a href="{{ route('users.edit', $user) }}"
-                                class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-                                <i class="bi bi-pencil me-2"></i> Edit
-                            </a>
-
-
+                                <a href="{{ route('users.edit', $user) }}"
+                                    class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
+                                    <i class="bi bi-pencil me-2"></i> Edit
+                                </a>
 
 
-                            <button type="button" onclick="confirmDelete()"
-                                class="inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 shadow-theme-xs hover:bg-red-100 hover:text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
-                                <i class="bi bi-trash me-2"></i> Delete
-                            </button>
 
-                        </div>
+
+                                <button type="button" onclick="confirmDelete()"
+                                    class="inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 shadow-theme-xs hover:bg-red-100 hover:text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
+                                    <i class="bi bi-trash me-2"></i> Delete
+                                </button>
+
+                            </div>
+                        @endif
+                        @if (!$user->is_active && auth()->user()->can('users.update'))
+                            <form action="{{ route('users.restore', $user) }}" method="POST">
+                                @csrf
+                                <button type="submit"
+                                    class="inline-flex items-center rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-600 shadow-theme-xs hover:bg-green-100 hover:text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30">
+                                    <i class="bi bi-check-circle me-2"></i> Activate
+                                </button>
+                            </form>
+                        @endif
+
                     </div>
                 </div>
             </div>
 
             <!-- Recent Activity -->
-            <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            {{-- <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
                 <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
                     <i class="bi bi-clock-history me-2"></i>Recent Activity
                 </h3>
 
 
-            </div>
+            </div> --}}
         </div>
 
         <!-- Right Column: User Roles & Actions -->
@@ -129,44 +140,7 @@
                 </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-                <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
-                    <i class="bi bi-lightning me-2"></i>Quick Actions
-                </h3>
 
-                <div class="space-y-3">
-                    @if ($user->email_verified_at)
-                        <a href="#"
-                            class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-                            <i class="bi bi-envelope me-3"></i>
-                            Send Message
-                        </a>
-                    @endif
-
-                    @can('impersonate', $user)
-                        <a href="{{ route('impersonate', $user) }}"
-                            class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-                            <i class="bi bi-person-badge me-3"></i>
-                            Impersonate User
-                        </a>
-                    @endcan
-
-                    <a href="mailto:{{ $user->email }}"
-                        class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-                        <i class="bi bi-send me-3"></i>
-                        Send Email
-                    </a>
-
-                    @if ($user->phone)
-                        <a href="tel:{{ $user->phone }}"
-                            class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-                            <i class="bi bi-telephone me-3"></i>
-                            Call User
-                        </a>
-                    @endif
-                </div>
-            </div>
         </div>
     </div>
 

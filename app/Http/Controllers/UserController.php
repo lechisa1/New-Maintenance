@@ -279,18 +279,15 @@ public function update(UpdateUserRequest $request, User $user)
     {
         $user = User::withTrashed()->findOrFail($id);
         
-        $this->authorize('restore', $user);
-
         DB::beginTransaction();
 
         try {
             $user->restore();
+        // Make user active
+        $user->update([
+            'is_active' => true
+        ]);
 
-            // Log activity
-            activity()
-                ->causedBy(auth()->user())
-                ->performedOn($user)
-                ->log('restored user');
 
             DB::commit();
 

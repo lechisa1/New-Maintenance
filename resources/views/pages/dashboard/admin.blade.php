@@ -238,8 +238,8 @@
                                             </td>
                                             <td class="py-3 whitespace-nowrap">
                                                 <span
-                                                    class="inline-flex items-center rounded-full {{ $recentUser->email_verified_at ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' }} px-2.5 py-0.5 text-xs font-medium">
-                                                    {{ $recentUser->email_verified_at ? 'Active' : 'Inactive' }}
+                                                    class="inline-flex items-center rounded-full {{ $recentUser->is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' }} px-2.5 py-0.5 text-xs font-medium">
+                                                    {{ $recentUser->is_active ? 'Active' : 'Inactive' }}
                                                 </span>
                                             </td>
                                             <td class="py-3 whitespace-nowrap">

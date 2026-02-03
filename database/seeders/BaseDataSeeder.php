@@ -14,11 +14,8 @@ class BaseDataSeeder extends Seeder
     public function run(): void
     {
         $organizations = [
-            ['id' => Str::uuid(), 'name' => 'ICT Department'],
-            ['id' => Str::uuid(), 'name' => 'Human Resources'],
-            ['id' => Str::uuid(), 'name' => 'Finance Department'],
-            ['id' => Str::uuid(), 'name' => 'Maintenance & Support'],
-            ['id' => Str::uuid(), 'name' => 'Operations'],
+            ['id' => Str::uuid(), 'name' => 'Ethiopian Artificial Intelligence (AI)'],
+
         ];
 
         DB::table('organizations')->insert($organizations);

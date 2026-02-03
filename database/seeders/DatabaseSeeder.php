@@ -17,11 +17,12 @@ class DatabaseSeeder extends Seeder
             UsersTableSeeder::class,
             // RolesAndPermissionsSeeder::class,
             PermissionSeeder::class,
-            // UserSeeder::class,
+            
             BaseDataSeeder::class,
-            // UsersTableSeeder::class,
+            ItemSeeder::class,
            
              IssueTypeSeeder::class,
+             ClusterSeeder::class,
         ]);
 
     }

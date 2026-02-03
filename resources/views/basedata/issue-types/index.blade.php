@@ -127,7 +127,7 @@
                                         <button type="submit"
                                             class="inline-flex items-center gap-1.5 text-xs font-medium {{ $type->is_need_approval ? 'text-amber-600' : 'text-gray-500' }}">
                                             <i class="bi bi-{{ $type->is_need_approval ? 'shield-check' : 'shield' }}"></i>
-                                            {{ $type->is_need_approval ? 'Needs Approval' : 'Auto-Approve' }}
+                                            {{ $type->is_need_approval ? 'Requires Chairman Approval' : 'Does Not Require Approval' }}
                                         </button>
                                     </form>
                                 </td>

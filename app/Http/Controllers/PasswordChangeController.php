@@ -6,13 +6,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use App\Models\User;
-
 class PasswordChangeController extends Controller
 {
 public function editPassword(User $user)
     {
         abort_if(auth()->id() !== $user->id, 403);
-        return view('pages.auth.change-password',compact('user'));
+        return view('pages.auth.change-password');
     }
 
 public function updatePassword(Request $request, User $user)

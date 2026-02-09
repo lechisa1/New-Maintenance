@@ -2,7 +2,7 @@
 
 @section('content')
     <x-common.page-breadcrumb pageTitle="Clusters - {{ $organization->name }}" />
-
+    @include('maintenance-requests.partials.alerts')
     <div class="max-w-7xl mx-auto">
         <!-- Header with back button -->
         <div class="mb-6">

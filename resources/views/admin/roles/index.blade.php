@@ -1,7 +1,14 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Role Management'], // active page
+    ];
+@endphp
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Role Management" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
+
 
     <div class="space-y-6">
 

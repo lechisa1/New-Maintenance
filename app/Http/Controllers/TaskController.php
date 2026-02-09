@@ -86,7 +86,10 @@ class TaskController extends Controller
     }
 
     // --- PAGINATION ---
-    $requests = $query->latest()->paginate(5);
+              $requests = $query
+        ->orderByRaw("FIELD(priority, 'emergency','high', 'medium', 'low')")
+        ->orderBy('created_at', 'desc')
+        ->paginate(10);
 
     // --- STATISTICS ---
     $totalRequests = (clone $query)->count();

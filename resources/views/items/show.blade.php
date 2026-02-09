@@ -1,7 +1,15 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Equipment Management', 'url' => route('items.index')],
+        ['label' => $item->name], // Active page: equipment name
+    ];
+@endphp
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Equipment Details" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
+
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Left Column - Equipment Details -->
@@ -15,23 +23,27 @@
                                 <i class="bi bi-circle-fill me-1" style="font-size: 6px;"></i>
                                 {{ $item->getStatusText() }}
                             </span>
-                            <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                <i class="bi bi-{{ $item->type === 'computer' ? 'pc-display' : ($item->type === 'printer' ? 'printer' : ($item->type === 'aircon' ? 'snow' : 'box')) }} me-1"></i>
+                            <span
+                                class="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                <i
+                                    class="bi bi-{{ $item->type === 'computer' ? 'pc-display' : ($item->type === 'printer' ? 'printer' : ($item->type === 'aircon' ? 'snow' : 'box')) }} me-1"></i>
                                 {{ $item->getTypeText() }}
                             </span>
-                            <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                            <span
+                                class="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-800 dark:bg-gray-900 dark:text-gray-200">
                                 <i class="bi bi-rulers me-1"></i>
                                 {{ $item->getUnitText() }}
                             </span>
                         </div>
                     </div>
-                    
+
                     <div class="flex gap-2">
-                        <a href="{{ route('items.edit', $item) }}" 
+                        <a href="{{ route('items.edit', $item) }}"
                             class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                             <i class="bi bi-pencil me-2"></i> Edit
                         </a>
-                        <form action="{{ route('items.destroy', $item) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this equipment?')">
+                        <form action="{{ route('items.destroy', $item) }}" method="POST"
+                            onsubmit="return confirm('Are you sure you want to delete this equipment?')">
                             @csrf
                             @method('DELETE')
                             <button type="submit"
@@ -51,26 +63,29 @@
                         <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                             <i class="bi bi-card-checklist me-2"></i>Basic Information
                         </h4>
-                        
+
                         <div class="space-y-4">
                             <div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">Equipment Name</div>
                                 <div class="mt-1 font-medium text-gray-800 dark:text-white/90">{{ $item->name }}</div>
                             </div>
-                            
+
                             <div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">Equipment Type</div>
                                 <div class="mt-1">
-                                    <span class="inline-flex items-center rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                                        <i class="bi bi-{{ $item->type === 'computer' ? 'pc-display' : ($item->type === 'printer' ? 'printer' : ($item->type === 'aircon' ? 'snow' : 'box')) }} me-2"></i>
+                                    <span
+                                        class="inline-flex items-center rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                        <i
+                                            class="bi bi-{{ $item->type === 'computer' ? 'pc-display' : ($item->type === 'printer' ? 'printer' : ($item->type === 'aircon' ? 'snow' : 'box')) }} me-2"></i>
                                         {{ $item->getTypeText() }}
                                     </span>
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">Unit of Measure</div>
-                                <div class="mt-1 font-medium text-gray-800 dark:text-white/90">{{ $item->getUnitText() }}</div>
+                                <div class="mt-1 font-medium text-gray-800 dark:text-white/90">{{ $item->getUnitText() }}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -80,18 +95,19 @@
                         <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                             <i class="bi bi-clock-history me-2"></i>Timeline
                         </h4>
-                        
+
                         <div class="space-y-4">
                             <div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">Current Status</div>
                                 <div class="mt-1">
-                                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $item->getStatusBadgeClass() }}">
+                                    <span
+                                        class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $item->getStatusBadgeClass() }}">
                                         <i class="bi bi-circle-fill me-1" style="font-size: 6px;"></i>
                                         {{ $item->getStatusText() }}
                                     </span>
                                 </div>
                                 <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                    @if($item->status === 'active')
+                                    @if ($item->status === 'active')
                                         This equipment is available for maintenance requests
                                     @elseif($item->status === 'inactive')
                                         This equipment is not currently in use
@@ -100,7 +116,7 @@
                                     @endif
                                 </p>
                             </div>
-                            
+
                             <div class="space-y-3">
                                 <div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400">Registered On</div>
@@ -111,7 +127,7 @@
                                         {{ $item->created_at->diffForHumans() }}
                                     </div>
                                 </div>
-                                
+
                                 <div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400">Last Updated</div>
                                     <div class="mt-1 font-medium text-gray-800 dark:text-white/90">
@@ -126,21 +142,7 @@
                     </div>
                 </div>
 
-                <!-- Equipment ID -->
-                <div class="mt-8 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Equipment ID</div>
-                            <div class="mt-1 font-mono text-lg font-bold text-gray-800 dark:text-white/90">
-                                #{{ str_pad($item->id, 6, '0', STR_PAD_LEFT) }}
-                            </div>
-                        </div>
-                        <button onclick="navigator.clipboard.writeText('#{{ str_pad($item->id, 6, '0', STR_PAD_LEFT) }}')"
-                            class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03]">
-                            <i class="bi bi-clipboard me-1"></i> Copy ID
-                        </button>
-                    </div>
-                </div>
+
             </div>
         </div>
 
@@ -151,29 +153,29 @@
                 <h3 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                     <i class="bi bi-lightning me-2"></i>Quick Actions
                 </h3>
-                
+
                 <div class="space-y-3">
-                    <a href="{{ route('items.edit', $item) }}" 
+                    <a href="{{ route('items.edit', $item) }}"
                         class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                         <i class="bi bi-pencil-square me-3"></i>
                         Edit Equipment
                     </a>
-                    
-                    @if($item->status === 'active')
-                        <a href="#" 
+                    {{-- 
+                    @if ($item->status === 'active')
+                        <a href="#"
                             class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                             <i class="bi bi-wrench me-3"></i>
                             Request Maintenance
                         </a>
-                    @endif
-                    
-                    <a href="{{ route('items.create') }}" 
+                    @endif --}}
+
+                    <a href="{{ route('items.create') }}"
                         class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                         <i class="bi bi-plus-lg me-3"></i>
                         Add Similar Equipment
                     </a>
-                    
-                    <a href="{{ route('items.index') }}" 
+
+                    <a href="{{ route('items.index') }}"
                         class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                         <i class="bi bi-arrow-left me-3"></i>
                         Back to Equipment List
@@ -186,7 +188,7 @@
                 <h3 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                     <i class="bi bi-grid me-2"></i>Similar Equipment
                 </h3>
-                
+
                 <div class="space-y-3">
                     @php
                         $similarItems = App\Models\Item::where('type', $item->type)
@@ -195,16 +197,19 @@
                             ->take(3)
                             ->get();
                     @endphp
-                    
+
                     @forelse($similarItems as $similarItem)
-                        <a href="{{ route('items.show', $similarItem) }}" 
+                        <a href="{{ route('items.show', $similarItem) }}"
                             class="block rounded-lg border border-gray-200 p-3 hover:border-blue-300 hover:bg-blue-50 dark:border-gray-700 dark:hover:border-blue-800 dark:hover:bg-blue-900/20">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <div class="font-medium text-gray-800 dark:text-white/90">{{ $similarItem->name }}</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">{{ $similarItem->getUnitText() }}</div>
+                                    <div class="font-medium text-gray-800 dark:text-white/90">{{ $similarItem->name }}
+                                    </div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">{{ $similarItem->getUnitText() }}
+                                    </div>
                                 </div>
-                                <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $similarItem->getStatusBadgeClass() }}">
+                                <span
+                                    class="rounded-full px-2 py-0.5 text-xs font-medium {{ $similarItem->getStatusBadgeClass() }}">
                                     {{ $similarItem->getStatusText() }}
                                 </span>
                             </div>
@@ -223,14 +228,14 @@
                 <h3 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                     <i class="bi bi-download me-2"></i>Export Options
                 </h3>
-                
+
                 <div class="space-y-3">
                     <button onclick="printEquipmentDetails()"
                         class="flex w-full items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                         <i class="bi bi-printer me-3"></i>
                         Print Details
                     </button>
-                    
+
                     <button onclick="downloadEquipmentPDF()"
                         class="flex w-full items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                         <i class="bi bi-file-pdf me-3"></i>
@@ -248,8 +253,8 @@
             <div>
                 <h4 class="text-sm font-medium text-green-800 dark:text-green-200">Equipment Registration Purpose</h4>
                 <p class="mt-1 text-sm text-green-700 dark:text-green-300">
-                    This equipment is registered for maintenance requests. 
-                    Employees can request maintenance only for registered equipment. 
+                    This equipment is registered for maintenance requests.
+                    Employees can request maintenance only for registered equipment.
                     Keep equipment information updated for accurate maintenance tracking.
                 </p>
             </div>
@@ -301,7 +306,7 @@
                     </body>
                 </html>
             `;
-            
+
             const printWindow = window.open('', '_blank');
             printWindow.document.write(printContent);
             printWindow.document.close();

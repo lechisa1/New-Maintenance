@@ -1,8 +1,17 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Organization Management', 'url' => route('organizations.index')],
+        ['label' => $organization->name . ' Details'],
+    ];
+@endphp
+
+
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Organization Detail" :links="[['label' => 'Organizations', 'url' => route('organizations.index')], ['label' => $organization->name]]" />
-
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
+    @include('maintenance-requests.partials.alerts')
     <div class="space-y-6">
         {{-- Header Info Card --}}
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">

@@ -55,7 +55,10 @@ class MaintenanceRequestController extends Controller
 
         
         // Get requests with filters
-        $requests = $query->latest()->paginate(10);
+            $requests = $query
+        ->orderByRaw("FIELD(priority, 'emergency',high', 'medium', 'low')")
+        ->orderBy('created_at', 'desc')
+        ->paginate(10);
         
         // Statistics
         $totalRequests = MaintenanceRequest::where('user_id', auth()->id())->count();
@@ -89,7 +92,7 @@ class MaintenanceRequestController extends Controller
     {
         // Get active items for dropdown
         $items = Item::active()->orderBy('name')->get(['id', 'name', 'type']);
-        $issueTypes = IssueType::orderBy('name')->get();
+        $issueTypes = IssueType::where('is_active', true)->orderBy('name')->get();
         // Get user's recent requests
         $userRecentRequests = MaintenanceRequest::forUser(auth()->id())
             ->latest()

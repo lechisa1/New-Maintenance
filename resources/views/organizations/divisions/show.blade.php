@@ -1,39 +1,25 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Division Details" :links="[
-        ['label' => 'Organizations', 'url' => route('organizations.index')],
-        ['label' => $division->cluster->organization->name],
-        ['label' => $division->cluster->name, 'url' => route('clusters.divisions', $division->cluster)],
-        ['label' => $division->name],
-    ]" />
-    @if (session('success'))
-        <div id="alert-success"
-            class="mb-6 flex items-center rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400">
-            <i class="bi bi-check-circle-fill mr-3 text-xl"></i>
-            <div class="text-sm font-bold">
-                {{ session('success') }}
-            </div>
-            <button type="button" onclick="document.getElementById('alert-success').remove()"
-                class="ml-auto text-green-600 hover:text-green-800">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    @endif
+    @php
+        $breadcrumbs = [
+            ['label' => 'Home', 'url' => url('/')],
+            ['label' => 'Organizations', 'url' => route('organizations.index')],
+            [
+                'label' => $division->cluster->organization->name,
+                'url' => route('organizations.show', $division->cluster->organization),
+            ],
+            [
+                'label' => $division->cluster->name,
+                'url' => route('clusters.divisions', $division->cluster),
+            ],
+            ['label' => $division->name],
+        ];
+    @endphp
 
-    @if (session('error') || $errors->any())
-        <div id="alert-error"
-            class="mb-6 flex items-center rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
-            <i class="bi bi-exclamation-triangle-fill mr-3 text-xl"></i>
-            <div class="text-sm font-bold">
-                {{ session('error') ?? 'Please correct the highlighted errors below.' }}
-            </div>
-            <button type="button" onclick="document.getElementById('alert-error').remove()"
-                class="ml-auto text-red-600 hover:text-red-800">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    @endif
+    @include('maintenance-requests.partials.alerts')
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
+
     <div class="space-y-6">
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">

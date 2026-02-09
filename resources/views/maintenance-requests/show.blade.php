@@ -1,7 +1,13 @@
 @extends('layouts.app')
-
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Maintenance Requests', 'url' => route('maintenance-requests.index')],
+        ['label' => "Request #{$maintenanceRequest->ticket_number} Details"],
+    ];
+@endphp
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Maintenance Request Details" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
 
     @include('maintenance-requests.partials.alerts')
 

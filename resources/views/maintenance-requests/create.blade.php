@@ -133,9 +133,7 @@
 
                         <!-- Description -->
                         <div>
-                            <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
-                                <i class="bi bi-chat-dots me-1"></i>Problem Description
-                            </h4>
+
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                                     Describe the problem <span class="text-red-500">*</span>
@@ -260,15 +258,11 @@
                             {{ App\Models\Item::active()->count() }}
                         </div>
                     </div>
-                    <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-                        <div class="text-sm text-gray-500 dark:text-gray-400">Avg. Response</div>
-                        <div class="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">2.5h</div>
-                    </div>
+
                 </div>
 
                 <!-- Quick Tips -->
-                <div
-                    class="mt-6 rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                <div class="mt-6 rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
                     <h4 class="text-sm font-medium text-blue-800 dark:text-blue-200">
                         <i class="bi bi-lightbulb me-1"></i>Quick Tips
                     </h4>

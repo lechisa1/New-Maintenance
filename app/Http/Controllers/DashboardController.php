@@ -176,7 +176,7 @@ class DashboardController extends Controller
             $completedRequests = MaintenanceRequest::where('assigned_to', $user->id)->whereIn('status', [
         MaintenanceRequest::STATUS_COMPLETED,
         MaintenanceRequest::STATUS_CONFIRMED,
-    ])->count();
+])->count();
             $assignedToMe = MaintenanceRequest::where('assigned_to', $user->id)->count();
           
             

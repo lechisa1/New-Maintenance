@@ -22,7 +22,11 @@ class UpdateUserRequest extends FormRequest
 
             'email' => 'required|email|unique:users,email,' . $user->id,
 
-            'phone' => 'nullable|string|unique:users,phone,' . $user->id,
+            'phone' => [
+            'nullable',
+            'regex:/^(09\d{8}|2519\d{8})$/',
+            'unique:users,phone,' . $user->id,
+           ],
 
             'assign_type' => 'required|in:cluster,division',
 
@@ -46,7 +50,7 @@ class UpdateUserRequest extends FormRequest
         return [
             'roles.required' => 'A role must be assigned.',
             'email.unique'   => 'This email is already registered.',
-            'phone.unique'   => 'This phone number is already registered.',
+            'phone.unique'   => 'This phone number is already registered or invalid',
             'password.confirmed' => 'Password confirmation does not match.',
         ];
     }

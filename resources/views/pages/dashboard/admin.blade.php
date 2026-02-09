@@ -417,41 +417,59 @@
                 roleDistributionChart.render();
             @endif
 
-            // Division Distribution Chart
+
+            // Division Distribution Chart (COUNT + DECIMAL PERCENT)
+
+
             @if (isset($divisionDistribution) && $divisionDistribution->count() > 0)
                 const divisionData = {!! $divisionDistribution->toJson() !!};
+
                 const divisionLabels = divisionData.map(item => item.name || 'Unknown');
                 const divisionCounts = divisionData.map(item => item.users_count || 0);
 
+                const totalUsers = divisionCounts.reduce((sum, val) => sum + val, 0);
+
+                const divisionPercentages = divisionCounts.map(count =>
+                    totalUsers > 0 ? Number(((count / totalUsers) * 100).toFixed(1)) : 0
+                );
+
                 const divisionChartOptions = {
                     series: [{
+                        name: 'Users',
                         data: divisionCounts
                     }],
                     chart: {
-                        type: 'bar',
+                        type: 'line',
                         height: '100%',
                         toolbar: {
                             show: false
                         },
                         fontFamily: 'Inter, sans-serif'
                     },
-                    plotOptions: {
-                        bar: {
-                            borderRadius: 4,
-                            horizontal: true,
-                            distributed: true
+                    stroke: {
+                        curve: 'smooth',
+                        width: 3
+                    },
+                    markers: {
+                        size: 6,
+                        hover: {
+                            size: 8
                         }
                     },
                     dataLabels: {
                         enabled: true,
+                        formatter: function(val, opts) {
+                            const index = opts.dataPointIndex;
+                            return `${val} (${divisionPercentages[index]}%)`;
+                        },
                         style: {
-                            fontSize: '11px',
-                            colors: ['#fff']
+                            fontSize: '11px'
                         }
                     },
                     xaxis: {
                         categories: divisionLabels,
                         labels: {
+                            rotate: -30,
                             style: {
                                 fontSize: '12px',
                                 colors: '#6b7280'
@@ -459,22 +477,35 @@
                         }
                     },
                     yaxis: {
+                        title: {
+                            text: 'Number of Users'
+                        },
                         labels: {
-                            style: {
-                                fontSize: '12px',
-                                colors: '#6b7280'
+                            formatter: function(val) {
+                                return Math.round(val);
                             }
                         }
                     },
-                    colors: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899',
-                        '#14b8a6', '#f97316', '#6366f1'
-                    ]
+                    tooltip: {
+                        y: {
+                            formatter: function(val, opts) {
+                                const index = opts.dataPointIndex;
+                                return `${val} users (${divisionPercentages[index]}%)`;
+                            }
+                        }
+                    },
+                    colors: ['#3b82f6']
                 };
 
-                const divisionChart = new ApexCharts(document.querySelector("#divisionChart"),
-                    divisionChartOptions);
+                const divisionChart = new ApexCharts(
+                    document.querySelector("#divisionChart"),
+                    divisionChartOptions
+                );
                 divisionChart.render();
             @endif
+
+
+
         });
     </script>
 @endpush

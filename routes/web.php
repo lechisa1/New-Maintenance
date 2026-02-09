@@ -125,7 +125,13 @@ Route::middleware(['web','auth'])->group(function () {
     Route::post('/maintenance-requests/{maintenanceRequest}/update-status', [MaintenanceRequestController::class, 'updateStatus'])->name('maintenance-requests.update-status');
     Route::get('/maintenance-requests/{maintenanceRequest}/download-file/{file}', [MaintenanceRequestController::class, 'downloadFile'])->name('maintenance-requests.download-file');
     Route::delete('/maintenance-requests/{maintenanceRequest}/delete-file/{file}', [MaintenanceRequestController::class, 'deleteFile'])->name('maintenance-requests.delete-file');
-     Route::resource('maintenance-requests', MaintenanceRequestController::class);
+    Route::resource('maintenance-requests', MaintenanceRequestController::class);
+    Route::get('/maintenance/{maintenanceRequest}/report',[MaintenanceRequestController::class, 'downloadReport'])->name('maintenance.report');
+    Route::get(
+        '/maintenance-requests/{maintenanceRequest}/description-pdf',
+        [MaintenanceRequestController::class, 'descriptionPdf']
+    )->name('maintenance.description.pdf');
+
     // Items (Equipment)
     Route::resource('items', ItemController::class);
     Route::get('/items/trashed', [ItemController::class, 'trashed'])->name('items.trashed');

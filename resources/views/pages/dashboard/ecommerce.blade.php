@@ -72,42 +72,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-12 gap-4 md:gap-6">
-            <div class="col-span-12 xl:col-span-4">
-                <div
-                    class="h-full rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
-                    <h3 class="text-lg font-bold text-gray-800 dark:text-white/90 mb-6">Response Metrics</h3>
-                    <div class="space-y-6">
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/5">
-                            <span class="text-sm text-gray-600 dark:text-gray-400 font-medium">Avg. Response</span>
-                            <span class="text-md font-bold text-blue-600 dark:text-blue-400">
-                                {{ $responseMetrics['avg_response_time'] ? round($responseMetrics['avg_response_time'], 1) . 'h' : 'N/A' }}
-                            </span>
-                        </div>
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/5">
-                            <span class="text-sm text-gray-600 dark:text-gray-400 font-medium">Avg. Resolution</span>
-                            <span class="text-md font-bold text-green-600 dark:text-green-400">
-                                {{ $responseMetrics['avg_resolution_time'] ? round($responseMetrics['avg_resolution_time'], 1) . 'h' : 'N/A' }}
-                            </span>
-                        </div>
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/5">
-                            <span class="text-sm text-gray-600 dark:text-gray-400 font-medium">Currently Open</span>
-                            <span class="text-md font-bold text-orange-600 dark:text-orange-400">
-                                {{ $responseMetrics['total_open'] }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="col-span-12 xl:col-span-8">
-                <div
-                    class="h-full rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
-                    <h3 class="text-lg font-bold text-gray-800 dark:text-white/90 mb-4">Issue Type Distribution</h3>
-                    <div id="issueTypeChart" class="w-full h-64 overflow-x-auto"></div>
-                </div>
-            </div>
-        </div>
 
         <div class="col-span-12">
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">

@@ -39,7 +39,7 @@
                         <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Show:</label>
                         <select name="per_page"
                             class="filter-select h-9 rounded-md border-gray-300 bg-gray-50 py-1 text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                            @foreach ([10, 25, 50] as $size)
+                            @foreach ([5, 10, 25, 50] as $size)
                                 <option value="{{ $size }}"
                                     {{ request('per_page', 10) == $size ? 'selected' : '' }}>{{ $size }}</option>
                             @endforeach

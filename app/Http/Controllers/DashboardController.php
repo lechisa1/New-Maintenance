@@ -98,9 +98,13 @@ class DashboardController extends Controller
         if ($user->can('maintenance_requests.assign')) {
             // Admin/ICT Director view
             $totalRequests = MaintenanceRequest::count();
-            $pendingRequests = MaintenanceRequest::where('status', MaintenanceRequest::STATUS_PENDING)->count();
+            $pendingRequests = MaintenanceRequest::whereIn('status',[MaintenanceRequest::STATUS_PENDING,MaintenanceRequest::STATUS_WAITING_APPROVAL])->count();
             $inProgressRequests = MaintenanceRequest::where('status', MaintenanceRequest::STATUS_IN_PROGRESS)->count();
-            $completedRequests = MaintenanceRequest::where('status', MaintenanceRequest::STATUS_COMPLETED)->count();
+           $completedRequests = MaintenanceRequest::whereIn('status', [
+    MaintenanceRequest::STATUS_COMPLETED,
+    MaintenanceRequest::STATUS_CONFIRMED,
+])->count();
+
             $assignedToMe = MaintenanceRequest::where('assigned_to', $user->id)->count();
             $issueTypes = IssueType::count();
             
@@ -128,7 +132,7 @@ class DashboardController extends Controller
                 }
             })->count();
             
-            $pendingRequests = MaintenanceRequest::where('status', MaintenanceRequest::STATUS_WAITING_APPROVAL)
+            $pendingRequests = MaintenanceRequest::whereIn('status',[MaintenanceRequest::STATUS_PENDING,MaintenanceRequest::STATUS_WAITING_APPROVAL])
                 ->whereHas('user', function($query) use ($user) {
                     if ($user->isDivisionChairman()) {
                         $query->where('division_id', $user->division_id);
@@ -138,7 +142,10 @@ class DashboardController extends Controller
                 })
                 ->count();
                 
-            $completedRequests = MaintenanceRequest::where('status', MaintenanceRequest::STATUS_COMPLETED)
+            $completedRequests = MaintenanceRequest::whereIn('status', [
+        MaintenanceRequest::STATUS_COMPLETED,
+        MaintenanceRequest::STATUS_CONFIRMED,
+    ])
                 ->whereHas('user', function($query) use ($user) {
                     if ($user->isDivisionChairman()) {
                         $query->where('division_id', $user->division_id);
@@ -162,11 +169,14 @@ class DashboardController extends Controller
                 
         } 
         else if($user->can('maintenance_requests.resolve')) {
-            // Admin/ICT Director view
+            // Admin/ICT Director view 
             $totalRequests = MaintenanceRequest::where('assigned_to', $user->id)->count();
-            $pendingRequests = MaintenanceRequest::where('assigned_to', $user->id)->where('status', MaintenanceRequest::STATUS_PENDING)->count();
-            $inProgressRequests = MaintenanceRequest::where('assigned_to', $user->id)->where('status', MaintenanceRequest::STATUS_IN_PROGRESS)->count();
-            $completedRequests = MaintenanceRequest::where('assigned_to', $user->id)->where('status', MaintenanceRequest::STATUS_COMPLETED)->count();
+            $pendingRequests = MaintenanceRequest::where('assigned_to', $user->id)->whereIn('status',[MaintenanceRequest::STATUS_PENDING,MaintenanceRequest::STATUS_ASSIGNED])->count();
+            $inProgressRequests = MaintenanceRequest::where('assigned_to', $user->id)->whereIn('status', [MaintenanceRequest::STATUS_IN_PROGRESS,MaintenanceRequest::STATUS_WAITING_CONFIRMATION])->count();
+            $completedRequests = MaintenanceRequest::where('assigned_to', $user->id)->whereIn('status', [
+        MaintenanceRequest::STATUS_COMPLETED,
+        MaintenanceRequest::STATUS_CONFIRMED,
+    ])->count();
             $assignedToMe = MaintenanceRequest::where('assigned_to', $user->id)->count();
           
             
@@ -189,7 +199,10 @@ class DashboardController extends Controller
                 ->whereIn('status', [MaintenanceRequest::STATUS_ASSIGNED, MaintenanceRequest::STATUS_IN_PROGRESS])
                 ->count();
             $completedRequests = MaintenanceRequest::where('user_id', $user->id)
-                ->where('status', MaintenanceRequest::STATUS_COMPLETED)
+                    ->whereIn('status', [
+        MaintenanceRequest::STATUS_COMPLETED,
+        MaintenanceRequest::STATUS_CONFIRMED,
+    ])
                 ->count();
             
             // Recent requests for user

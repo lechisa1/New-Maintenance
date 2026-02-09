@@ -2,33 +2,7 @@
 
 @section('content')
     <x-common.page-breadcrumb pageTitle="Submit Maintenance Request" />
-    @if (session('success'))
-        <div id="alert-success"
-            class="mb-6 flex items-center rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400">
-            <i class="bi bi-check-circle-fill mr-3 text-xl"></i>
-            <div class="text-sm font-bold">
-                {{ session('success') }}
-            </div>
-            <button type="button" onclick="document.getElementById('alert-success').remove()"
-                class="ml-auto text-green-600 hover:text-green-800">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    @endif
-
-    @if (session('error') || $errors->any())
-        <div id="alert-error"
-            class="mb-6 flex items-center rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
-            <i class="bi bi-exclamation-triangle-fill mr-3 text-xl"></i>
-            <div class="text-sm font-bold">
-                {{ session('error') ?? 'Please correct the highlighted errors below.' }}
-            </div>
-            <button type="button" onclick="document.getElementById('alert-error').remove()"
-                class="ml-auto text-red-600 hover:text-red-800">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    @endif
+    @include('maintenance-requests.partials.alerts')
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Maintenance Request Form -->
         <div class="lg:col-span-2">
@@ -200,11 +174,8 @@
                                 </div>
 
                                 <!-- File List -->
-                                <div id="file-list" class="mt-4 space-y-2 hidden">
-                                    <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Attached Files (<span id="file-count">0</span>)
-                                    </h5>
-                                </div>
+                                <div id="file-list" class="mt-4 space-y-3 hidden"></div>
+
                             </div>
                             @error('files.*')
                                 <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
@@ -311,6 +282,39 @@
             </div>
         </div>
     </div>
+    <!-- File Preview Modal -->
+    <div x-data="{ open: false, file: null }" x-show="open" x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+
+        <div class="bg-white dark:bg-gray-900 rounded-xl w-full max-w-3xl p-6 relative">
+            <!-- Close -->
+            <button @click="open=false"
+                class="absolute right-4 top-4 text-gray-500 hover:text-gray-700 dark:text-gray-300">
+                <i class="bi bi-x-lg text-xl"></i>
+            </button>
+
+            <!-- Title -->
+            <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90" x-text="file?.name"></h3>
+
+            <!-- Image Preview -->
+            <template x-if="file && file.type.startsWith('image/')">
+                <img :src="file.url" class="max-h-[70vh] mx-auto rounded-lg object-contain">
+            </template>
+
+            <!-- PDF Preview -->
+            <template x-if="file && file.type === 'application/pdf'">
+                <iframe :src="file.url" class="w-full h-[70vh] rounded border"></iframe>
+            </template>
+
+            <!-- Other Files -->
+            <template x-if="file && !file.type.startsWith('image/') && file.type !== 'application/pdf'">
+                <div class="flex flex-col items-center justify-center h-64 text-gray-600 dark:text-gray-300">
+                    <i class="bi bi-file-earmark text-6xl mb-3"></i>
+                    <p class="text-sm">Preview not available</p>
+                </div>
+            </template>
+        </div>
+    </div>
 
     <!-- Demo Notice -->
     <div class="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
@@ -330,71 +334,104 @@
     @push('scripts')
         <script>
             document.addEventListener('DOMContentLoaded', function() {
+
                 const fileInput = document.getElementById('file-upload');
                 const fileList = document.getElementById('file-list');
-                const fileCount = document.getElementById('file-count');
+                const modal = document.getElementById('filePreviewModal');
+                const modalTitle = document.getElementById('previewTitle');
+                const modalContent = document.getElementById('previewContent');
+                const closeModal = document.getElementById('closePreviewModal');
 
-                fileInput.addEventListener('change', function(event) {
-                    const files = Array.from(event.target.files);
-
-                    // Clear previous list
-                    fileList.innerHTML =
-                        '<h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">Attached Files (<span id="file-count">0</span>)</h5>';
+                fileInput.addEventListener('change', function() {
+                    const files = Array.from(fileInput.files);
+                    fileList.innerHTML = `
+            <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Attached Files (${files.length})
+            </h5>`;
                     fileList.classList.remove('hidden');
 
-                    // Update file count
-                    fileCount.textContent = files.length;
-
-                    // Create file list items
                     files.forEach((file, index) => {
-                        const fileSizeMB = file.size / (1024 * 1024);
-                        const fileElement = document.createElement('div');
-                        fileElement.className =
-                            'flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700';
-                        fileElement.innerHTML = `
-                    <div class="flex items-center">
-                        <i class="${getFileIcon(file.type)} text-lg text-gray-500"></i>
-                        <div class="ml-3">
-                            <div class="text-sm font-medium text-gray-800 dark:text-white/90">${file.name}</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">${formatFileSize(fileSizeMB)} • ${file.type || 'Unknown type'}</div>
-                        </div>
+                        const url = URL.createObjectURL(file);
+
+                        const wrapper = document.createElement('div');
+                        wrapper.className =
+                            'flex items-center justify-between rounded-lg border p-3 dark:border-gray-700';
+
+                        wrapper.innerHTML = `
+                <div class="flex items-center gap-4 cursor-pointer preview-file">
+                    ${getPreviewIcon(file, url)}
+                    <div>
+                        <div class="text-sm font-medium">${file.name}</div>
+                        <div class="text-xs text-gray-500">${formatSize(file.size)}</div>
                     </div>
-                    <button type="button" class="text-red-500 hover:text-red-700 remove-file" data-index="${index}">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
-                `;
-                        fileList.appendChild(fileElement);
-                    });
+                </div>
+                <button class="text-red-500 remove-file" data-index="${index}">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            `;
 
-                    // Add remove functionality
-                    document.querySelectorAll('.remove-file').forEach(button => {
-                        button.addEventListener('click', function() {
-                            const index = this.getAttribute('data-index');
+                        // Preview click
+                        wrapper.querySelector('.preview-file').addEventListener('click', () => {
+                            openPreview(file, url);
+                        });
+
+                        // Remove file
+                        wrapper.querySelector('.remove-file').addEventListener('click', () => {
                             const dt = new DataTransfer();
-                            const filesArray = Array.from(fileInput.files);
-
-                            filesArray.splice(index, 1);
-                            filesArray.forEach(file => dt.items.add(file));
+                            files.filter((_, i) => i !== index).forEach(f => dt.items.add(f));
                             fileInput.files = dt.files;
-
-                            // Trigger change event to update list
                             fileInput.dispatchEvent(new Event('change'));
                         });
+
+                        fileList.appendChild(wrapper);
                     });
                 });
 
-                function formatFileSize(size) {
-                    if (size < 1) return (size * 1024).toFixed(0) + ' KB';
-                    return size.toFixed(2) + ' MB';
+                function openPreview(file, url) {
+                    modalTitle.textContent = file.name;
+                    modalContent.innerHTML = '';
+
+                    if (file.type.startsWith('image/')) {
+                        modalContent.innerHTML = `<img src="${url}" class="max-h-[70vh] rounded-lg">`;
+                    } else if (file.type === 'application/pdf') {
+                        modalContent.innerHTML = `
+                <iframe src="${url}" class="w-full h-[70vh] rounded border"></iframe>`;
+                    } else {
+                        modalContent.innerHTML = `
+                <div class="text-center text-gray-600">
+                    <i class="bi bi-file-earmark text-6xl mb-3"></i>
+                    <p>No preview available</p>
+                </div>`;
+                    }
+
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
                 }
 
-                function getFileIcon(fileType) {
-                    if (fileType.includes('image')) return 'bi bi-file-image';
-                    if (fileType.includes('pdf')) return 'bi bi-file-pdf';
-                    if (fileType.includes('word') || fileType.includes('document')) return 'bi bi-file-word';
-                    if (fileType.includes('text')) return 'bi bi-file-text';
-                    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'bi bi-file-excel';
-                    return 'bi bi-file';
+                closeModal.addEventListener('click', closePreview);
+                modal.addEventListener('click', e => e.target === modal && closePreview());
+                document.addEventListener('keydown', e => e.key === 'Escape' && closePreview());
+
+                function closePreview() {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    modalContent.innerHTML = '';
+                }
+
+                function formatSize(bytes) {
+                    return bytes < 1048576 ?
+                        (bytes / 1024).toFixed(0) + ' KB' :
+                        (bytes / 1048576).toFixed(2) + ' MB';
+                }
+
+                function getPreviewIcon(file, url) {
+                    if (file.type.startsWith('image/')) {
+                        return `<img src="${url}" class="h-16 w-16 rounded object-cover">`;
+                    }
+                    if (file.type === 'application/pdf') {
+                        return `<i class="bi bi-file-pdf text-4xl text-red-500"></i>`;
+                    }
+                    return `<i class="bi bi-file-earmark text-4xl"></i>`;
                 }
             });
         </script>

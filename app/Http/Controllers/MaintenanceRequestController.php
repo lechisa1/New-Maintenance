@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MaintenanceRequest;
 use App\Models\MaintenanceRequestFile;
 use App\Models\Item;
+use APP\Models\WorkLog;
 use App\Models\User;
 use App\Models\IssueType;
 use App\Http\Requests\StoreMaintenanceRequestRequest;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Notification;
 use App\Notifications\MaintenanceRequestAssigned;
 use App\Notifications\MaintenanceRequestCreated;
 use App\Notifications\MaintenanceRequestApproval;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class MaintenanceRequestController extends Controller
 {
@@ -128,6 +130,7 @@ public function store(StoreMaintenanceRequestRequest $request)
                     'original_name' => $file->getClientOriginalName(),
                     'mime_type' => $file->getMimeType(),
                     'path' => $path,
+                    'type'=>"request",
                     'size' => $file->getSize(),
                 ]);
             }
@@ -343,61 +346,80 @@ return response()->json([
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateMaintenanceRequestRequest $request, MaintenanceRequest $maintenanceRequest)
-    {
-        // Authorization check
-        if (auth()->user()->hasRole('user') && $maintenanceRequest->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized access.');
+public function update(UpdateMaintenanceRequestRequest $request, MaintenanceRequest $maintenanceRequest)
+{
+    // Authorization check
+    if ($maintenanceRequest->user_id !== auth()->id()) {
+        abort(403, 'Unauthorized access.');
+    }
+    
+    DB::beginTransaction();
+    
+    try {
+        $updates = $request->validated();
+        
+        // Handle status changes
+        if ($request->has('status')) {
+            $updates = $this->handleStatusChange($maintenanceRequest, $request->status, $updates);
         }
         
-        DB::beginTransaction();
+        // Update maintenance request
+        $maintenanceRequest->update($updates);
         
-        try {
-            $updates = $request->validated();
-            
-            // Handle status changes
-            if ($request->has('status')) {
-                $updates = $this->handleStatusChange($maintenanceRequest, $request->status, $updates);
-            }
-            
-            // Update maintenance request
-            $maintenanceRequest->update($updates);
-            
-            // Handle file uploads
-            if ($request->hasFile('files')) {
-                foreach ($request->file('files') as $file) {
+        // Handle file uploads - FIXED
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                // Validate individual file
+                if ($file->isValid()) {
+                    $originalName = $file->getClientOriginalName();
                     $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-                    $path = $file->storeAs('maintenance-requests/' . $maintenanceRequest->id, $filename, 'public');
+                    $path = $file->storeAs(
+                        'maintenance-requests/' . $maintenanceRequest->id, 
+                        $filename, 
+                        'public'
+                    );
                     
                     MaintenanceRequestFile::create([
                         'maintenance_request_id' => $maintenanceRequest->id,
                         'filename' => $filename,
-                        'original_name' => $file->getClientOriginalName(),
+                        'original_name' => $originalName,
                         'mime_type' => $file->getMimeType(),
                         'path' => $path,
+                        'type'=>"requester",
                         'size' => $file->getSize(),
+                    ]);
+                } else {
+                    \Log::warning('Invalid file upload attempt', [
+                        'file_name' => $file->getClientOriginalName(),
+                        'error' => $file->getError(),
+                        'maintenance_request_id' => $maintenanceRequest->id
                     ]);
                 }
             }
-            
-            // Update item status based on request status
-            $this->updateItemStatus($maintenanceRequest);
-            
-            DB::commit();
-            
-            return redirect()->route('maintenance-requests.show', $maintenanceRequest)
-                ->with('success', 'Maintenance request updated successfully!');
-                
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            \Log::error('Maintenance request update failed: ' . $e->getMessage());
-            
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Failed to update maintenance request. Please try again.');
         }
+        
+        // Update item status based on request status
+        $this->updateItemStatus($maintenanceRequest);
+        
+        DB::commit();
+        
+        return redirect()->route('maintenance-requests.show', $maintenanceRequest)
+            ->with('success', 'Maintenance request updated successfully!');
+            
+    } catch (\Exception $e) {
+        DB::rollBack();
+        
+        \Log::error('Maintenance request update failed: ' . $e->getMessage(), [
+            'exception' => $e,
+            'request_data' => $request->except(['files']),
+            'user_id' => auth()->id()
+        ]);
+        
+        return redirect()->back()
+            ->withInput()
+            ->with('error', 'Failed to update maintenance request: ' . $e->getMessage());
     }
+}
 
     /**
      * Remove the specified resource from storage.
@@ -648,39 +670,6 @@ return response()->json([
         return response()->json($stats);
     }
 
-    /**
-     * Assign request to technician
-     */
-    // public function assign(Request $request, MaintenanceRequest $maintenanceRequest)
-    // {
-    //     if (!auth()->user()->hasAnyRole(['admin', 'technician_lead'])) {
-    //         abort(403, 'Unauthorized.');
-    //     }
-        
-    //     $request->validate([
-    //         'assigned_to' => 'required|exists:users,id',
-    //     ]);
-        
-    //     try {
-    //         $maintenanceRequest->update([
-    //             'assigned_to' => $request->assigned_to,
-    //             'status' => MaintenanceRequest::STATUS_ASSIGNED,
-    //             'assigned_at' => now(),
-    //         ]);
-            
-    //         // Send notification to technician
-    //         // Notification::send($technician, new MaintenanceRequestAssigned($maintenanceRequest));
-            
-    //         return redirect()->back()
-    //             ->with('success', 'Request assigned to technician successfully.');
-                
-    //     } catch (\Exception $e) {
-    //         \Log::error('Request assignment failed: ' . $e->getMessage());
-            
-    //         return redirect()->back()
-    //             ->with('error', 'Failed to assign request.');
-    //     }
-    // }
 
     /**
      * Update status (for technicians)
@@ -727,4 +716,39 @@ return response()->json([
                 ->with('error', 'Failed to update status.');
         }
     }
+    public function downloadReport(MaintenanceRequest $maintenanceRequest)
+{
+    // Only technician or admin
+    if (
+        auth()->id() !== $maintenanceRequest->assigned_to) {
+        abort(403);
+    }
+
+    // Only after confirmation
+    if ($maintenanceRequest->status !== MaintenanceRequest::STATUS_CONFIRMED) {
+        return back()->with('error', 'Report available only after confirmation.');
+    }
+    $maintenanceRequest->load([
+    'workLogs' => function ($q) {
+        $q->where('status', WorkLog::STATUS_ACCEPTED);
+    }
+]);
+
+
+    $pdf = Pdf::loadView('exports.maintenance-report', [
+        'request' => $maintenanceRequest
+    ])->setPaper('a4');
+
+    return $pdf->download(
+        'maintenance_report_' . $maintenanceRequest->ticket_number . '.pdf'
+    );
+}
+public function descriptionPdf(MaintenanceRequest $maintenanceRequest)
+{
+    $pdf = Pdf::loadView('pdfs.maintenance-description', [
+        'maintenanceRequest' => $maintenanceRequest
+    ]);
+
+    return $pdf->stream('problem-description.pdf');
+}
 }

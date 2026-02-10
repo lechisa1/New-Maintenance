@@ -1,7 +1,14 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Role Management', 'url' => route('roles.index')], // active page
+        ['label' => 'Create Role', 'url' => route('roles.create')],
+    ];
+@endphp
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Create New Role" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
 
     <div class="mx-auto px-4 pb-10" x-data="roleForm()">
         <template x-if="alert.show">

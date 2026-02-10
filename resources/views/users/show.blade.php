@@ -1,8 +1,17 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Users', 'url' => route('users.index')],
+        ['label' => $user->full_name . ' Details'], // current page
+    ];
+@endphp
+
+
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="User Details" />
-
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
+    @include('maintenance-requests.partials.alerts')
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Left Column: User Profile -->
         <div class="lg:col-span-2 space-y-6">

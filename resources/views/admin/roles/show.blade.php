@@ -1,7 +1,15 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Role Management', 'url' => route('roles.index')],
+        ['label' => $role->display_name ?? $role->name],
+    ];
 
+@endphp
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Role Details" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
+
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Role Information -->
@@ -142,39 +150,7 @@
         <!-- Sidebar -->
         <div class="space-y-6">
             <!-- Statistics -->
-            <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-                <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
-                    <i class="bi bi-graph-up me-2"></i>Statistics
-                </h4>
 
-                <div class="space-y-4">
-                    <div>
-                        <div class="mb-2 flex items-center justify-between text-sm">
-                            <span class="text-gray-600 dark:text-gray-400">Assigned Users</span>
-                            <span class="font-medium text-gray-800 dark:text-white/90">
-                                {{ $role->users_count }}
-                            </span>
-                        </div>
-                        <div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700">
-                            <div class="h-full rounded-full bg-blue-500"
-                                style="width: {{ min(($role->users_count / 100) * 100, 100) }}%"></div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="mb-2 flex items-center justify-between text-sm">
-                            <span class="text-gray-600 dark:text-gray-400">Total Permissions</span>
-                            <span class="font-medium text-gray-800 dark:text-white/90">
-                                {{ $role->permissions_count }}
-                            </span>
-                        </div>
-                        <div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700">
-                            <div class="h-full rounded-full bg-green-500"
-                                style="width: {{ min(($role->permissions_count / 50) * 100, 100) }}%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Activity -->
             <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">

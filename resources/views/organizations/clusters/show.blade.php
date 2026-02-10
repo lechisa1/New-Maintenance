@@ -1,38 +1,21 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Organizations', 'url' => route('organizations.index')],
+        [
+            'label' => $cluster->organization->name,
+            'url' => route('organizations.show', $cluster->organization),
+        ],
+        ['label' => $cluster->name],
+    ];
+@endphp
+
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Cluster Detail" :links="[
-        ['label' => 'Organizations', 'url' => route('organizations.index')],
-        ['label' => 'Clusters'],
-        ['label' => $cluster->name],
-    ]" />
-    @if (session('success'))
-        <div id="alert-success"
-            class="mb-6 flex items-center rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400">
-            <i class="bi bi-check-circle-fill mr-3 text-xl"></i>
-            <div class="text-sm font-bold">
-                {{ session('success') }}
-            </div>
-            <button type="button" onclick="document.getElementById('alert-success').remove()"
-                class="ml-auto text-green-600 hover:text-green-800">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    @endif
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
 
-    @if (session('error') || $errors->any())
-        <div id="alert-error"
-            class="mb-6 flex items-center rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
-            <i class="bi bi-exclamation-triangle-fill mr-3 text-xl"></i>
-            <div class="text-sm font-bold">
-                {{ session('error') ?? 'Please correct the highlighted errors below.' }}
-            </div>
-            <button type="button" onclick="document.getElementById('alert-error').remove()"
-                class="ml-auto text-red-600 hover:text-red-800">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    @endif
+    @include('maintenance-requests.partials.alerts')
     <div class="space-y-6">
         {{-- Cluster Info Header --}}
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
@@ -45,8 +28,7 @@
                     <div>
                         <h2 class="text-xl font-bold text-gray-800 dark:text-white">{{ $cluster->name }}</h2>
                         <p class="text-sm text-gray-500">
-                            Total Divisions: <span
-                                class="font-semibold text-blue-600">{{ $cluster->divisions_count }}</span>
+                            Total Divisions: <span class="font-semibold text-blue-600">{{ $cluster->divisions_count }}</span>
                         </p>
                     </div>
                 </div>

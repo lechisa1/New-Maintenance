@@ -1,42 +1,17 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Base Data Management', 'url' => route('base-data.index')],
+        ['label' => 'Issue Types Management'], // Active page (no URL)
+    ];
+@endphp
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Issue Types Management" />
-    @if (session('success'))
-        <div id="alert-success"
-            class="mb-6 flex items-center rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400">
-            <i class="bi bi-check-circle-fill mr-3 text-xl"></i>
-            <div class="text-sm font-bold">
-                {{ session('success') }}
-            </div>
-            <button type="button" onclick="document.getElementById('alert-success').remove()"
-                class="ml-auto text-green-600 hover:text-green-800">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    @endif
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
 
-    @if (session('error') || $errors->any())
-        <div id="alert-error"
-            class="mb-6 flex items-center rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
-            <i class="bi bi-exclamation-triangle-fill mr-3 text-xl"></i>
-            <div class="text-sm font-bold">
-                {{ session('error') ?? 'Please correct the highlighted errors below.' }}
-            </div>
-            <button type="button" onclick="document.getElementById('alert-error').remove()"
-                class="ml-auto text-red-600 hover:text-red-800">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    @endif
+    @include('maintenance-requests.partials.alerts')
     <div class="space-y-6">
-        {{-- Statistics Cards --}}
-        {{-- <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <x-common.stat-card title="Total Types" value="{{ $issueTypes->total() }}" icon="bi bi-tags" variant="primary" />
-            <x-common.stat-card title="Active" value="{{ \App\Models\IssueType::where('is_active', true)->count() }}" icon="bi bi-check-circle" variant="success" />
-            <x-common.stat-card title="Need Approval" value="{{ \App\Models\IssueType::where('is_need_approval', true)->count() }}" icon="bi bi-hourglass-split" variant="warning" />
-            <x-common.stat-card title="Inactive" value="{{ \App\Models\IssueType::where('is_active', false)->count() }}" icon="bi bi-x-circle" variant="danger" />
-        </div> --}}
 
         {{-- Professional Filter Card --}}
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">

@@ -43,6 +43,7 @@ class MaintenanceRequest extends Model
         'forwarded_to_ict_director_at',
          'rejection_reason',
          'approval_notes',
+         'rejected_by',
     ];
 
     protected $casts = [

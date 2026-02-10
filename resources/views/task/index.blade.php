@@ -1,7 +1,27 @@
 @extends('layouts.app')
+@php
+    // Default URL
+    $maintenanceRequestsUrl = route('maintenance-requests.index');
+
+    if (!empty($pageType)) {
+        if ($pageType === 'tasks') {
+            $maintenanceRequestsUrl = route('user.task');
+        } elseif ($pageType === 'my_requests') {
+            $maintenanceRequestsUrl = route('my.requests');
+        }
+    }
+
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Maintenance Requests', 'url' => $maintenanceRequestsUrl],
+    ];
+@endphp
+
+
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Maintenance Requests" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
+ @include('maintenance-requests.partials.alerts')
 
     <div class="space-y-6">
         {{-- <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

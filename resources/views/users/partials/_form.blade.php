@@ -1,3 +1,10 @@
+@if ($errors->any())
+    <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <i class="bi bi-exclamation-circle mr-2"></i>
+        Please correct the highlighted fields below.
+    </div>
+@endif
+
 <form id="userForm" method="POST">
     @csrf
     <input type="hidden" name="_method" id="formMethod" value="POST">
@@ -42,8 +49,14 @@
                             <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Phone
                                 Number</label>
                             <input type="text" name="phone" value="{{ old('phone') }}"
-                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm transition focus:border-blue-500 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800"
-                                placeholder="+1 (555) 000-0000">
+                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm transition
+    @error('phone') border-red-500 focus:border-red-500 focus:ring-red-500/20 @enderror
+    dark:border-gray-700 dark:bg-gray-800">
+
+                            @error('phone')
+                                <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                            @enderror
+
                         </div>
                     </div>
                 </section>
@@ -86,7 +99,10 @@
 
                             <div id="cluster-wrapper">
                                 <select name="cluster_id"
-                                    class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800">
+                                    class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm
+    @error('cluster_id') border-red-500 @enderror
+    dark:border-gray-700 dark:bg-gray-800">
+
                                     <option value="">Select Cluster</option>
                                     @foreach ($clusters as $cluster)
                                         <option value="{{ $cluster->id }}"
@@ -94,11 +110,18 @@
                                             {{ $cluster->name }}</option>
                                     @endforeach
                                 </select>
+                                @error('cluster_id')
+                                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                @enderror
+
                             </div>
 
                             <div id="division-wrapper" class="hidden">
                                 <select name="division_id"
-                                    class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800">
+                                    class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm
+    @error('division_id') border-red-500 @enderror
+    dark:border-gray-700 dark:bg-gray-800">
+
                                     <option value="">Select Division</option>
                                     @foreach ($divisions as $division)
                                         <option value="{{ $division->id }}"
@@ -106,6 +129,10 @@
                                             {{ $division->name }}</option>
                                     @endforeach
                                 </select>
+                                @error('division_id')
+                                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                @enderror
+
                             </div>
                         </div>
 

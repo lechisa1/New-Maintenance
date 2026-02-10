@@ -1,7 +1,14 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Maintenance Requests'], // current page, no URL
+    ];
+@endphp
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Maintenance Requests" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
+
 
     {{-- Alerts --}}
     @if (session('success'))

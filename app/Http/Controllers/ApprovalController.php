@@ -107,57 +107,79 @@ public function approve(Request $request, MaintenanceRequest $maintenanceRequest
     /**
      * Reject a maintenance request
      */
-    public function reject(Request $request, MaintenanceRequest $maintenanceRequest)
-    {
-        $request->validate([
-            'rejection_reason' => 'required|string|max:500',
-        ]);
-        
-        $user = auth()->user();
-        
-        // Check authorization
-        if (!$this->isAuthorizedToApprove($user, $maintenanceRequest)) {
-            return back()->with('error', 'You are not authorized to reject this request.');
+public function reject(Request $request, MaintenanceRequest $maintenanceRequest)
+{
+    $request->validate([
+        'rejection_reason' => 'required|string|max:500',
+    ]);
+
+     $user = auth()->user();
+
+    // if (!$this->isAuthorizedToApprove($user, $maintenanceRequest)) {
+    //     if($request->expectsJson()){
+    //         return response()->json(['success' => false, 'error' => 'Unauthorized'], 403);
+    //     }
+    //     return back()->with('error', 'You are not authorized to reject this request.');
+    // }
+
+    DB::beginTransaction();
+    try {
+        $maintenanceRequest->reject($user, $request->rejection_reason);
+        DB::commit();
+
+        if($request->expectsJson()){
+            return response()->json(['success' => true]);
         }
-        
-        DB::beginTransaction();
-        
-        try {
-            $maintenanceRequest->reject($user, $request->rejection_reason);
-            
-            DB::commit();
-            
-            return back()->with('success', 'Request rejected successfully.');
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Rejection failed: ' . $e->getMessage());
-            return back()->with('error', 'Failed to reject request.');
+
+        return back()->with('success', 'Request rejected successfully.');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Rejection failed: ' . $e->getMessage());
+        if($request->expectsJson()){
+            return response()->json(['success' => false, 'error' => 'Failed to reject request']);
         }
+        return back()->with('error', 'Failed to reject request.');
     }
+}
+
     
     /**
      * Check if user is authorized to approve/reject
      */
-    private function isAuthorizedToApprove($user, $maintenanceRequest)
-    {
-        // Check if user is division chairman of requester
-        if ($maintenanceRequest->user->division && 
-            $maintenanceRequest->user->division->chairman_id == $user->id) {
-            return true;
-        }
-        
-        // Check if user is cluster chairman of requester
-        if ($maintenanceRequest->user->cluster && 
-            $maintenanceRequest->user->cluster->chairman_id == $user->id) {
-            return true;
-        }
-        
-        // Check if user is admin
-        if ($user->hasAnyRole(['super-admin', 'admin'])) {
-            return true;
-        }
-        
-        return false;
+private function isAuthorizedToApprove($user, $maintenanceRequest)
+{
+    $requester = $maintenanceRequest->user;
+
+    // Optional: Admins can always approve/reject
+    if ($user->hasAnyRole(['super-admin', 'admin'])) {
+        return true;
     }
+
+    // 1️⃣ Check if requester belongs to a division
+    if ($requester->division) {
+        $division = $requester->division;
+
+        // 2️⃣ If requester is NOT a division chairman (normal user)
+        if (!$requester->isDivisionChairman ?? false) {
+            if ($division->chairman_id == $user->id) {
+                return true; // Division chairman can approve/reject
+            }
+        }
+
+        // 3️⃣ If requester IS a division chairman
+        else {
+            // Find the cluster of this division
+            if ($division->cluster) {
+                $cluster = $division->cluster;
+                if ($cluster->chairman_id == $user->id) {
+                    return true; // Cluster chairman can approve/reject
+                }
+            }
+        }
+    }
+
+    // Otherwise, not authorized
+    return false;
+}
+
 }

@@ -2,33 +2,7 @@
 
 @section('content')
     <x-common.page-breadcrumb pageTitle="Edit Maintenance Request" />
-    @if (session('success'))
-        <div id="alert-success"
-            class="mb-6 flex items-center rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400">
-            <i class="bi bi-check-circle-fill mr-3 text-xl"></i>
-            <div class="text-sm font-bold">
-                {{ session('success') }}
-            </div>
-            <button type="button" onclick="document.getElementById('alert-success').remove()"
-                class="ml-auto text-green-600 hover:text-green-800">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    @endif
-
-    @if (session('error') || $errors->any())
-        <div id="alert-error"
-            class="mb-6 flex items-center rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
-            <i class="bi bi-exclamation-triangle-fill mr-3 text-xl"></i>
-            <div class="text-sm font-bold">
-                {{ session('error') ?? 'Please correct the highlighted errors below.' }}
-            </div>
-            <button type="button" onclick="document.getElementById('alert-error').remove()"
-                class="ml-auto text-red-600 hover:text-red-800">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    @endif
+    @include('maintenance-requests.partials.alerts')
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Edit Form -->
         <div class="lg:col-span-2">
@@ -183,63 +157,7 @@
                             @enderror
                         </div>
 
-                        <!-- Status Selection (Admin/Technician only) -->
-                        @if (auth()->user()->hasAnyRole(['admin', 'technician']))
-                            <div>
-                                <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
-                                    <i class="bi bi-gear me-1"></i>Request Status
-                                </h4>
-                                <select name="status"
-                                    class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800">
-                                    @foreach (App\Models\MaintenanceRequest::getStatusOptions() as $key => $value)
-                                        <option value="{{ $key }}"
-                                            {{ old('status', $maintenanceRequest->status) == $key ? 'selected' : '' }}>
-                                            {{ $value }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('status')
-                                    <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
-                                @enderror
-                            </div>
 
-                            <!-- Technician Assignment -->
-                            <div>
-                                <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
-                                    <i class="bi bi-person me-1"></i>Technician Assignment
-                                </h4>
-                                <select name="assigned_to"
-                                    class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800">
-                                    <option value="">Unassigned</option>
-                                    @foreach ($technicians as $tech)
-                                        <option value="{{ $tech->id }}"
-                                            {{ old('assigned_to', $maintenanceRequest->assigned_to) == $tech->id ? 'selected' : '' }}>
-                                            {{ $tech->full_name }} ({{ $tech->email }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <!-- Technician Notes -->
-                            <div>
-                                <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
-                                    <i class="bi bi-journal-text me-1"></i>Technician Notes
-                                </h4>
-                                <textarea name="technician_notes" rows="3"
-                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800"
-                                    placeholder="Add technician notes here...">{{ old('technician_notes', $maintenanceRequest->technician_notes) }}</textarea>
-                            </div>
-
-                            <!-- Resolution Notes -->
-                            <div>
-                                <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
-                                    <i class="bi bi-check-circle me-1"></i>Resolution Notes
-                                </h4>
-                                <textarea name="resolution_notes" rows="3"
-                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800"
-                                    placeholder="Add resolution notes here...">{{ old('resolution_notes', $maintenanceRequest->resolution_notes) }}</textarea>
-                            </div>
-                        @endif
 
                         <!-- Description -->
                         <div>
@@ -286,8 +204,7 @@
                                                 <div
                                                     class="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                                                     <div class="flex items-center">
-                                                        <i
-                                                            class="bi {{ $file->getFileIcon() }} text-lg text-gray-500"></i>
+                                                        <i class="bi {{ $file->getFileIcon() }} text-lg text-gray-500"></i>
                                                         <div class="ml-3">
                                                             <div
                                                                 class="text-sm font-medium text-gray-800 dark:text-white/90">

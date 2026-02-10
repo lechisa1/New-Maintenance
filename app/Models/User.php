@@ -162,6 +162,11 @@ public function isClusterChairman(): bool
     return Cluster::where('cluster_chairman', $this->id)->exists();
 }
 
+// User model
+public function assignedMaintenanceRequests()
+{
+    return $this->hasMany(MaintenanceRequest::class, 'assigned_to');
+}
 
     public function isActive()
     {

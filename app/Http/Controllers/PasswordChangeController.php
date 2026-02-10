@@ -11,7 +11,7 @@ class PasswordChangeController extends Controller
 public function editPassword(User $user)
     {
         abort_if(auth()->id() !== $user->id, 403);
-        return view('pages.auth.change-password');
+        return view('pages.auth.change-password',compact('user'));
     }
 
 public function updatePassword(Request $request, User $user)

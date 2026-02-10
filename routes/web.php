@@ -10,7 +10,7 @@ use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\MaintenanceRequestController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\admin\RoleController;
 use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\BaseDataController;
 use App\Http\Controllers\ApprovalController;
@@ -94,15 +94,15 @@ Route::middleware(['web', 'auth'])->group(function () {
     });
 
     // Role Management
-    Route::resource('roles', RoleController::class)->except(['show'])->middleware('permission:roles.view|roles.create|roles.update|roles.delete');
-    Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show')->withTrashed()->middleware('permission:roles.view');
-    Route::get('roles/{role}/users', [RoleController::class, 'users'])->name('roles.users')->middleware('permission:roles.view');
-    Route::post('roles/bulk-delete', [RoleController::class, 'bulkDestroy'])->name('roles.bulk-destroy')->middleware('permission:roles.delete');
-    Route::delete('roles/{role}/users/{user}', [RoleController::class, 'removeUser'])->name('roles.users.remove')->middleware('permission:roles.view');
-    Route::get('roles/check-name', [RoleController::class, 'checkName'])->name('roles.check-name')->middleware('permission:roles.update');
-    Route::patch('roles/{role}/restore', [RoleController::class, 'restore'])->name('roles.restore')->withTrashed()->middleware('permission:roles.delete');
-    Route::delete('roles/{role}/force-delete', [RoleController::class, 'forceDelete'])->name('roles.force-delete')->withTrashed()->middleware('permission:roles.delete');
-
+    
+    Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show')->withTrashed();
+    Route::get('roles/{role}/users', [RoleController::class, 'users'])->name('roles.users');
+    Route::post('roles/bulk-delete', [RoleController::class, 'bulkDestroy'])->name('roles.bulk-destroy');
+    Route::delete('roles/{role}/users/{user}', [RoleController::class, 'removeUser'])->name('roles.users.remove');
+    Route::get('roles/check-name', [RoleController::class, 'checkName'])->name('roles.check-name');
+    Route::patch('roles/{role}/restore', [RoleController::class, 'restore'])->name('roles.restore')->withTrashed();
+    Route::delete('roles/{role}/force-delete', [RoleController::class, 'forceDelete'])->name('roles.force-delete')->withTrashed();
+    Route::resource('roles', RoleController::class)->except(['show']);
     // Organizations
     Route::get('/organizations', [OrganizationController::class, 'index'])->name('organizations.index')->middleware('permission:organization_units.view');
     Route::get('/organizations/{organization}/clusters', [OrganizationController::class, 'clusters'])->name('organizations.clusters')->middleware('permission:organization_units.view');

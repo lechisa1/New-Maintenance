@@ -52,6 +52,6 @@ class BaseDataController extends Controller
             // ],
         ];
         
-        return view('basEdata.index', compact('modules'));
+        return view('basedata.index', compact('modules'));
     }
 }

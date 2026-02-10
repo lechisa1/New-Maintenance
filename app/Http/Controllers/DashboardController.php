@@ -93,6 +93,8 @@ class DashboardController extends Controller
         $recentRequests = collect();
         $issueTypeStats = collect(); 
         $issueTypes = 0;
+        $issueTypeAnalysis=collect();
+        $itemAnalysis=collect();
         
         // Metrics based on user role
         if ($user->can('maintenance_requests.assign')) {
@@ -121,6 +123,33 @@ class DashboardController extends Controller
                     }
                 ])
                 ->get();
+                // Item analysis: which items have most maintenance requests
+$itemAnalysis = MaintenanceRequest::select('item_id', DB::raw('COUNT(*) as total'))
+    ->groupBy('item_id')
+    ->with('item') // eager load related item
+    ->orderByDesc('total')
+    ->take(5) // top 5 most problematic items
+    ->get()
+    ->map(function($request) {
+        return [
+            'name' => $request->item?->name ?? 'N/A',
+            'count' => $request->total
+        ];
+    });
+// Issue Type analysis: which types occur most frequently
+$issueTypeAnalysis = MaintenanceRequest::select('issue_type_id', DB::raw('COUNT(*) as total'))
+    ->groupBy('issue_type_id')
+    ->with('issueType') // eager load related issueType
+    ->orderByDesc('total')
+    ->take(5) // top 5 most frequent
+    ->get()
+    ->map(function($request) {
+        return [
+            'name' => $request->issueType?->name ?? 'N/A',
+            'count' => $request->total
+        ];
+    });
+
                 
         } elseif ($user->isDivisionChairman() || $user->isClusterChairman()) {
             // Approver view
@@ -233,7 +262,9 @@ class DashboardController extends Controller
             'priorityStats',
             'responseMetrics',
             'issueTypeStats',
-            'issueTypes'
+            'issueTypes',
+                'issueTypeAnalysis',
+    'itemAnalysis'
         ));
     }
     

@@ -56,7 +56,7 @@ class MaintenanceRequestController extends Controller
         
         // Get requests with filters
             $requests = $query
-        ->orderByRaw("FIELD(priority, 'emergency',high', 'medium', 'low')")
+        ->orderByRaw("FIELD(priority, 'emergency','high', 'medium', 'low')")
         ->orderBy('created_at', 'desc')
         ->paginate(10);
         
@@ -246,22 +246,42 @@ public function approve(Request $request, MaintenanceRequest $maintenanceRequest
      */
 public function show(MaintenanceRequest $maintenanceRequest)
 {
-    
+    $activeStatuses = [
+    MaintenanceRequest::STATUS_ASSIGNED,
+    'in_progress',
+    'pending',
+    'approved',
+    'not_fixed',
+];
+
     $maintenanceRequest->load(['user', 'item', 'assignedTechnician', 'files']);
     
     // Get technicians who have 'reports.assign' permission
-    $technicians = User::whereHas('roles.permissions', function ($query) {
-            $query->where('name', 'maintenance_requests.resolve');
-        })
-        ->orWhereHas('permissions', function ($query) {
-            $query->where('name', 'maintenance_requests.resolve');
-        })
-        ->select('id', 'full_name', 'email')
-        ->get()
-        ->mapWithKeys(function ($user) {
-            return [$user->id => $user->full_name . ' (' . $user->email . ')'];
-        })
-        ->toArray();
+$technicians = User::whereHas('roles.permissions', function ($query) {
+        $query->where('name', 'maintenance_requests.resolve');
+    })
+    ->orWhereHas('permissions', function ($query) {
+        $query->where('name', 'maintenance_requests.resolve');
+    })
+    ->withCount([
+        'assignedMaintenanceRequests as active_tasks_count' => function ($q) use ($activeStatuses) {
+            $q->whereIn('status', $activeStatuses);
+        }
+    ])
+    ->orderBy('active_tasks_count', 'asc') // ✅ least workload first
+    ->get()
+    ->mapWithKeys(function ($user) {
+        return [
+            $user->id => sprintf(
+                '%s (%s) — %d active',
+                $user->full_name,
+                $user->email,
+                $user->active_tasks_count
+            )
+        ];
+    })
+    ->toArray();
+
 
     // Get similar requests
     $similarRequests = MaintenanceRequest::where('item_id', $maintenanceRequest->item_id)
@@ -299,7 +319,26 @@ public function assign(Request $request, MaintenanceRequest $maintenanceRequest)
         return redirect()->back()
             ->with('error', 'Selected user does not have the required permission.');
     }
+    // ✅ WORKLOAD CHECK (FAIR DISTRIBUTION)
+    $activeStatuses = [
+        MaintenanceRequest::STATUS_ASSIGNED,
+        'in_progress',
+        'pending',
+        'approved',
+        'not_fixed',
+    ];
 
+    $MAX_WORKLOAD = 5;
+    $currentWorkload = MaintenanceRequest::where('assigned_to', $assignedUser->id)
+        ->whereIn('status', $activeStatuses)
+        ->count();
+
+    if ($currentWorkload >= $MAX_WORKLOAD) {
+        return redirect()->back()->with(
+            'error',
+            "This technician already has {$currentWorkload} active tasks. Please assign another technician."
+        );
+    }
     // Update the maintenance request
     $maintenanceRequest->update([
         'assigned_to' => $validated['assigned_to'],

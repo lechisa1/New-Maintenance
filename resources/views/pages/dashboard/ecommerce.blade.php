@@ -79,6 +79,28 @@
                 <x-ecommerce.recent-orders :recentRequests="$recentRequests" />
             </div>
         </div>
+        @if (auth()->user()->can('maintenance_requests.assign'))
+            <div class="grid grid-cols-12 gap-4 md:gap-6 mt-6">
+                <!-- Issue Type Chart -->
+                <div class="col-span-12 xl:col-span-6">
+                    <div
+                        class="h-full rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03] p-5">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white/90 mb-3">Top Issue Types</h3>
+                        <div id="issueTypeChart" class="h-72"></div>
+                    </div>
+                </div>
+
+                <!-- Item Chart -->
+                <div class="col-span-12 xl:col-span-6">
+                    <div
+                        class="h-full rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03] p-5">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white/90 mb-3">Most Problematic Items</h3>
+                        <div id="itemChart" class="h-72"></div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
     </div>
 @endsection
 
@@ -148,10 +170,6 @@
 
                 const monthlyChart = new ApexCharts(document.querySelector("#monthlyChart"), monthlyChartOptions);
                 monthlyChart.render();
-            @else
-                // Handle empty monthly stats
-                document.getElementById('monthlyChart').innerHTML =
-                    '<div class="flex items-center justify-center h-64 text-gray-500">No data available for monthly statistics</div>';
             @endif
 
             // Priority Distribution Chart
@@ -236,10 +254,6 @@
                 const priorityChart = new ApexCharts(document.querySelector("#priorityChart"),
                     priorityChartOptions);
                 priorityChart.render();
-            @else
-                // Handle empty priority stats
-                document.getElementById('priorityChart').innerHTML =
-                    '<div class="flex items-center justify-center h-48 text-gray-500">No priority data available</div>';
             @endif
 
             // Issue Type Chart (for admin only)
@@ -286,7 +300,81 @@
                     document.getElementById('issueTypeChart').innerHTML =
                         '<div class="flex items-center justify-center h-64 text-gray-500">No issue type data available</div>';
                 @endif
+                // ===== Issue Type Line Chart =====
+                @if (isset($issueTypeAnalysis) && $issueTypeAnalysis->count() > 0)
+                    const issueTypeDataLine = {!! $issueTypeAnalysis->toJson() !!};
+                    const issueTypeLabelsLine = issueTypeDataLine.map(item => item.name || 'Unknown');
+                    const issueTypeCountsLine = issueTypeDataLine.map(item => item.count || 0);
+
+                    new ApexCharts(document.querySelector("#issueTypeChart"), {
+                        series: [{
+                            name: 'Requests',
+                            data: issueTypeCountsLine
+                        }],
+                        chart: {
+                            type: 'line',
+                            height: 300,
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        stroke: {
+                            curve: 'smooth',
+                            width: 3
+                        },
+                        markers: {
+                            size: 5
+                        },
+                        xaxis: {
+                            categories: issueTypeLabelsLine
+                        },
+                        tooltip: {
+                            y: {
+                                formatter: val => val + " requests"
+                            }
+                        },
+                        colors: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
+                    }).render();
+                @endif
+
+                // ===== Item Line Chart =====
+                @if (isset($itemAnalysis) && $itemAnalysis->count() > 0)
+                    const itemDataLine = {!! $itemAnalysis->toJson() !!};
+                    const itemLabelsLine = itemDataLine.map(item => item.name || 'Unknown');
+                    const itemCountsLine = itemDataLine.map(item => item.count || 0);
+
+                    new ApexCharts(document.querySelector("#itemChart"), {
+                        series: [{
+                            name: 'Requests',
+                            data: itemCountsLine
+                        }],
+                        chart: {
+                            type: 'line',
+                            height: 300,
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        stroke: {
+                            curve: 'smooth',
+                            width: 3
+                        },
+                        markers: {
+                            size: 5
+                        },
+                        xaxis: {
+                            categories: itemLabelsLine
+                        },
+                        tooltip: {
+                            y: {
+                                formatter: val => val + " requests"
+                            }
+                        },
+                        colors: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444']
+                    }).render();
+                @endif
             @endif
+
         });
     </script>
 @endpush

@@ -2,6 +2,7 @@
 @php
     $breadcrumbs = [
         ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Base Data', 'url' => route('base-data.index')],
         ['label' => 'Equipment Management', 'url' => route('items.index')],
         ['label' => $item->name], // Active page: equipment name
     ];

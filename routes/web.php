@@ -19,7 +19,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\MyRequestController;
 use App\Http\Controllers\WorkLogController;
-use App\Http\Controllers\PasswordChangeController ;
+use App\Http\Controllers\PasswordChangeController;
 
 
 
@@ -28,6 +28,7 @@ use App\Http\Controllers\PasswordChangeController ;
 | Public Routes (No Authentication Required)
 |--------------------------------------------------------------------------
 */
+
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login']);
@@ -38,21 +39,21 @@ Route::middleware('guest')->group(function () {
 | Authenticated Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['web','auth'])->group(function () {
-    Route::get('{user}/password', [PasswordChangeController ::class, 'editPassword'])->name('password.edit');
-    Route::put('{user}/password', [PasswordChangeController ::class, 'updatePassword'])->name('password.update');
-        Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
-        Route::get('/admin-dashboard', [DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('{user}/password', [PasswordChangeController::class, 'editPassword'])->name('password.edit');
+    Route::put('{user}/password', [PasswordChangeController::class, 'updatePassword'])->name('password.update');
+    Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/admin-dashboard', [DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
     // Logout
     Route::post('logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('logout', [LoginController::class, 'showLogoutForm'])->name('logout.confirm');
-    
+
     // Profile routes
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [UserController::class, 'edit'])->name('show');
         Route::put('/', [UserController::class, 'update'])->name('update');
     });
-    
+
     // User Management
     Route::prefix('users')->name('users.')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('index');
@@ -69,7 +70,7 @@ Route::middleware(['web','auth'])->group(function () {
         Route::get('/statistics', [UserController::class, 'statistics'])->name('statistics');
         Route::get('/api/users', [UserController::class, 'getUsers'])->name('api.users');
     });
-    
+
     // Role Management
     Route::resource('roles', RoleController::class)->except(['show']);
     Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show')->withTrashed();
@@ -79,7 +80,7 @@ Route::middleware(['web','auth'])->group(function () {
     Route::get('roles/check-name', [RoleController::class, 'checkName'])->name('roles.check-name');
     Route::patch('roles/{role}/restore', [RoleController::class, 'restore'])->name('roles.restore')->withTrashed();
     Route::delete('roles/{role}/force-delete', [RoleController::class, 'forceDelete'])->name('roles.force-delete')->withTrashed();
-    
+
     // Organizations
     Route::get('/organizations', [OrganizationController::class, 'index'])->name('organizations.index');
     Route::get('/organizations/{organization}/clusters', [OrganizationController::class, 'clusters'])->name('organizations.clusters');
@@ -95,12 +96,11 @@ Route::middleware(['web','auth'])->group(function () {
             Route::get('/{organizationId}/clusters', [OrganizationController::class, 'getClusters']);
             Route::get('/{organizationId}/divisions', [OrganizationController::class, 'getDivisions']);
         });
-        
+
         Route::prefix('clusters')->group(function () {
             Route::post('/', [ClusterController::class, 'store']);
             Route::put('/{cluster}', [ClusterController::class, 'update']);
             Route::delete('/{cluster}', [ClusterController::class, 'destroy']);
-            
         });
 
         Route::prefix('divisions')->group(function () {
@@ -110,13 +110,13 @@ Route::middleware(['web','auth'])->group(function () {
         });
     });
     Route::get('/organizations/{organization}', [OrganizationController::class, 'show'])
-    ->name('organizations.show');
+        ->name('organizations.show');
 
     Route::get('/clusters/{cluster}/divisions', [ClusterController::class, 'showDivisions'])
-    ->name('clusters.divisions');
+        ->name('clusters.divisions');
 
     Route::get('/divisions/{division}', [DivisionController::class, 'show'])
-    ->name('divisions.show');
+        ->name('divisions.show');
     // Maintenance Requests
 
     Route::get('/maintenance-requests/export', [MaintenanceRequestController::class, 'export'])->name('maintenance-requests.export');
@@ -126,7 +126,7 @@ Route::middleware(['web','auth'])->group(function () {
     Route::get('/maintenance-requests/{maintenanceRequest}/download-file/{file}', [MaintenanceRequestController::class, 'downloadFile'])->name('maintenance-requests.download-file');
     Route::delete('/maintenance-requests/{maintenanceRequest}/delete-file/{file}', [MaintenanceRequestController::class, 'deleteFile'])->name('maintenance-requests.delete-file');
     Route::resource('maintenance-requests', MaintenanceRequestController::class);
-    Route::get('/maintenance/{maintenanceRequest}/report',[MaintenanceRequestController::class, 'downloadReport'])->name('maintenance.report');
+    Route::get('/maintenance/{maintenanceRequest}/report', [MaintenanceRequestController::class, 'downloadReport'])->name('maintenance.report');
     Route::get(
         '/maintenance-requests/{maintenanceRequest}/description-pdf',
         [MaintenanceRequestController::class, 'descriptionPdf']
@@ -140,22 +140,20 @@ Route::middleware(['web','auth'])->group(function () {
     Route::post('/items/{id}/force-delete', [ItemController::class, 'forceDelete'])->name('items.forceDelete');
     Route::post('/items/restore/all', [ItemController::class, 'restoreAll'])->name('items.restore.all');
     Route::post('/items/forceDelete/all', [ItemController::class, 'forceDeleteAll'])->name('items.forceDelete.all');
-    
-    // Transactions
-    Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+
 
 
     //here base data for issue types
 
-        Route::resource('issue-types', IssueTypeController::class);
-    
+    Route::resource('issue-types', IssueTypeController::class);
+
     // Additional routes for toggling
     Route::post('/issue-types/{issueType}/toggle-status', [IssueTypeController::class, 'toggleStatus'])
         ->name('issue-types.toggle-status');
-    
+
     Route::post('/issue-types/{issueType}/toggle-approval', [IssueTypeController::class, 'toggleApproval'])
         ->name('issue-types.toggle-approval');
-Route::get('/base-data', [BaseDataController::class, 'index'])->name('base-data.index');
+    Route::get('/base-data', [BaseDataController::class, 'index'])->name('base-data.index');
 
     Route::get('/approvals', [ApprovalController::class, 'index'])->name('approvals.index');
     Route::post('/approvals/{maintenanceRequest}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
@@ -172,19 +170,19 @@ Route::get('/base-data', [BaseDataController::class, 'index'])->name('base-data.
     Route::patch('/permissions/{permission}/toggle', [PermissionController::class, 'toggleStatus'])->name('permissions.toggle');
 
     Route::put('maintenance-requests/{maintenanceRequest}/assign', [MaintenanceRequestController::class, 'assign'])
-    ->name('maintenance-requests.assign');
+        ->name('maintenance-requests.assign');
     Route::get('/my-requests', [MyRequestController::class, 'index'])->name('my.requests');
 
-// Work Logs routes
-Route::post('/work-logs', [WorkLogController::class, 'store'])->name('work-logs.store');
-Route::delete('/work-logs/{workLog}', [WorkLogController::class, 'destroy'])->name('work-logs.destroy');
-Route::get('/work-logs/request/{maintenanceRequest}', [WorkLogController::class, 'getForRequest'])->name('work-logs.by-request');
-    
-Route::post('/work-logs/{workLog}/reject', [WorkLogController::class, 'rejectWorkLog'])
-    ->name('work-logs.reject');
-    
-Route::post('/work-logs/{workLog}/accept', [WorkLogController::class, 'acceptWorkLog'])
-    ->name('work-logs.accept');
+    // Work Logs routes
+    Route::post('/work-logs', [WorkLogController::class, 'store'])->name('work-logs.store');
+    Route::delete('/work-logs/{workLog}', [WorkLogController::class, 'destroy'])->name('work-logs.destroy');
+    Route::get('/work-logs/request/{maintenanceRequest}', [WorkLogController::class, 'getForRequest'])->name('work-logs.by-request');
+
+    Route::post('/work-logs/{workLog}/reject', [WorkLogController::class, 'rejectWorkLog'])
+        ->name('work-logs.reject');
+
+    Route::post('/work-logs/{workLog}/accept', [WorkLogController::class, 'acceptWorkLog'])
+        ->name('work-logs.accept');
 });
 
 // Default route - redirect to login if not authenticated, dashboard if authenticated

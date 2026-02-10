@@ -1,7 +1,16 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Base Data', 'url' => route('base-data.index')],
+        ['label' => 'Equipment Management'], // Active page
+    ];
+@endphp
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Edit Equipment" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
+
+    @include('maintenance-requests.partials.alerts')
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Left Column - Edit Form -->
@@ -25,7 +34,7 @@
                 <form method="POST" action="{{ route('items.update', $item) }}">
                     @csrf
                     @method('PUT')
-                    
+
                     <div class="space-y-6">
                         <!-- Equipment Name -->
                         <div>
@@ -48,8 +57,9 @@
                             <select name="type" required
                                 class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800 @error('type') border-red-500 dark:border-red-500 @enderror">
                                 <option value="" disabled>Select equipment type</option>
-                                @foreach(App\Models\Item::getTypeOptions() as $key => $value)
-                                    <option value="{{ $key }}" {{ old('type', $item->type) == $key ? 'selected' : '' }}>
+                                @foreach (App\Models\Item::getTypeOptions() as $key => $value)
+                                    <option value="{{ $key }}"
+                                        {{ old('type', $item->type) == $key ? 'selected' : '' }}>
                                         {{ $value }}
                                     </option>
                                 @endforeach
@@ -67,8 +77,9 @@
                             <select name="unit" required
                                 class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800 @error('unit') border-red-500 dark:border-red-500 @enderror">
                                 <option value="" disabled>Select unit</option>
-                                @foreach(App\Models\Item::getUnitOptions() as $key => $value)
-                                    <option value="{{ $key }}" {{ old('unit', $item->unit) == $key ? 'selected' : '' }}>
+                                @foreach (App\Models\Item::getUnitOptions() as $key => $value)
+                                    <option value="{{ $key }}"
+                                        {{ old('unit', $item->unit) == $key ? 'selected' : '' }}>
                                         {{ $value }}
                                     </option>
                                 @endforeach
@@ -84,26 +95,46 @@
                                 Status <span class="text-red-500">*</span>
                             </label>
                             <div class="grid grid-cols-3 gap-3">
-                                @foreach(App\Models\Item::getStatusOptions() as $key => $value)
+                                @foreach (App\Models\Item::getStatusOptions() as $key => $value)
                                     <label class="cursor-pointer">
-                                        <input type="radio" name="status" value="{{ $key }}" 
+                                        <input type="radio" name="status" value="{{ $key }}"
                                             {{ old('status', $item->status) == $key ? 'checked' : '' }} required
                                             class="peer sr-only">
                                         @php
                                             $colors = [
-                                                'active' => ['border' => 'border-green-500', 'bg' => 'bg-green-50', 'dot' => 'bg-green-500', 'dark_bg' => 'dark:bg-green-900/20', 'dark_border' => 'dark:border-green-500'],
-                                                'inactive' => ['border' => 'border-gray-500', 'bg' => 'bg-gray-50', 'dot' => 'bg-gray-500', 'dark_bg' => 'dark:bg-gray-800', 'dark_border' => 'dark:border-gray-500'],
-                                                'maintenance' => ['border' => 'border-yellow-500', 'bg' => 'bg-yellow-50', 'dot' => 'bg-yellow-500', 'dark_bg' => 'dark:bg-yellow-900/20', 'dark_border' => 'dark:border-yellow-500'],
+                                                'active' => [
+                                                    'border' => 'border-green-500',
+                                                    'bg' => 'bg-green-50',
+                                                    'dot' => 'bg-green-500',
+                                                    'dark_bg' => 'dark:bg-green-900/20',
+                                                    'dark_border' => 'dark:border-green-500',
+                                                ],
+                                                'inactive' => [
+                                                    'border' => 'border-gray-500',
+                                                    'bg' => 'bg-gray-50',
+                                                    'dot' => 'bg-gray-500',
+                                                    'dark_bg' => 'dark:bg-gray-800',
+                                                    'dark_border' => 'dark:border-gray-500',
+                                                ],
+                                                'maintenance' => [
+                                                    'border' => 'border-yellow-500',
+                                                    'bg' => 'bg-yellow-50',
+                                                    'dot' => 'bg-yellow-500',
+                                                    'dark_bg' => 'dark:bg-yellow-900/20',
+                                                    'dark_border' => 'dark:border-yellow-500',
+                                                ],
                                             ];
                                             $color = $colors[$key] ?? $colors['active'];
                                         @endphp
-                                        <div class="rounded-lg border-2 p-4 text-center transition-all peer-checked:{{ $color['border'] }} peer-checked:{{ $color['bg'] }} dark:border-gray-700 peer-checked:{{ $color['dark_border'] }} peer-checked:{{ $color['dark_bg'] }}">
+                                        <div
+                                            class="rounded-lg border-2 p-4 text-center transition-all peer-checked:{{ $color['border'] }} peer-checked:{{ $color['bg'] }} dark:border-gray-700 peer-checked:{{ $color['dark_border'] }} peer-checked:{{ $color['dark_bg'] }}">
                                             <div class="flex items-center justify-center gap-2">
                                                 <div class="h-3 w-3 rounded-full {{ $color['dot'] }}"></div>
-                                                <div class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $value }}</div>
+                                                <div class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                                    {{ $value }}</div>
                                             </div>
                                             <div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                                                @if($key === 'active')
+                                                @if ($key === 'active')
                                                     Available for maintenance
                                                 @elseif($key === 'inactive')
                                                     Not in use
@@ -123,7 +154,8 @@
                         <!-- Submit Buttons -->
                         <div class="border-t border-gray-200 pt-6 dark:border-gray-700">
                             <div class="flex justify-between">
-                                <form action="{{ route('items.destroy', $item) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this equipment?')">
+                                <form action="{{ route('items.destroy', $item) }}" method="POST"
+                                    onsubmit="return confirm('Are you sure you want to delete this equipment?')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit"
@@ -131,9 +163,9 @@
                                         <i class="bi bi-trash me-2"></i>Delete
                                     </button>
                                 </form>
-                                
+
                                 <div class="flex gap-3">
-                                    <a href="{{ route('items.index') }}" 
+                                    <a href="{{ route('items.index') }}"
                                         class="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                                         <i class="bi bi-x-lg me-2"></i>Cancel
                                     </a>
@@ -156,13 +188,13 @@
                 <h3 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                     <i class="bi bi-info-circle me-2"></i>Equipment Details
                 </h3>
-                
+
                 <div class="space-y-4">
                     <div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">Equipment ID</div>
                         <div class="mt-1 font-medium text-gray-800 dark:text-white/90">#{{ $item->id }}</div>
                     </div>
-                    
+
                     <div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">Created On</div>
                         <div class="mt-1 font-medium text-gray-800 dark:text-white/90">
@@ -172,7 +204,7 @@
                             {{ $item->created_at->diffForHumans() }}
                         </div>
                     </div>
-                    
+
                     <div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">Last Updated</div>
                         <div class="mt-1 font-medium text-gray-800 dark:text-white/90">
@@ -182,17 +214,19 @@
                             {{ $item->updated_at->diffForHumans() }}
                         </div>
                     </div>
-                    
+
                     <div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">Current Type</div>
                         <div class="mt-1">
-                            <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                <i class="bi bi-{{ $item->type === 'computer' ? 'pc-display' : ($item->type === 'printer' ? 'printer' : ($item->type === 'aircon' ? 'snow' : 'box')) }} me-1"></i>
+                            <span
+                                class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                <i
+                                    class="bi bi-{{ $item->type === 'computer' ? 'pc-display' : ($item->type === 'printer' ? 'printer' : ($item->type === 'aircon' ? 'snow' : 'box')) }} me-1"></i>
                                 {{ $item->getTypeText() }}
                             </span>
                         </div>
                     </div>
-                    
+
                     <div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">Unit of Measure</div>
                         <div class="mt-1 font-medium text-gray-800 dark:text-white/90">
@@ -207,21 +241,21 @@
                 <h3 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                     <i class="bi bi-lightning me-2"></i>Quick Actions
                 </h3>
-                
+
                 <div class="space-y-3">
-                    <a href="{{ route('items.show', $item) }}" 
+                    <a href="{{ route('items.show', $item) }}"
                         class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                         <i class="bi bi-eye me-3"></i>
                         View Details
                     </a>
-                    
-                    <a href="{{ route('items.create') }}" 
+
+                    <a href="{{ route('items.create') }}"
                         class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                         <i class="bi bi-plus-lg me-3"></i>
                         Add Another Equipment
                     </a>
-                    
-                    <a href="{{ route('items.index') }}" 
+
+                    <a href="{{ route('items.index') }}"
                         class="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                         <i class="bi bi-list-ul me-3"></i>
                         View All Equipment
@@ -232,7 +266,7 @@
     </div>
 
     <!-- Success Message -->
-    @if(session('success'))
+    @if (session('success'))
         <div class="fixed bottom-4 right-4 z-50">
             <x-ui.alert variant="success" title="Success" :message="session('success')" />
         </div>

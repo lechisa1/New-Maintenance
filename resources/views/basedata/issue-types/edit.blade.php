@@ -1,7 +1,16 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Base Data Management', 'url' => route('base-data.index')],
+        ['label' => 'Issue Types Management'], // Active page (no URL)
+    ];
+@endphp
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Issue Type Details" :links="[['label' => 'Issue Types', 'url' => route('issue-types.index')], ['label' => $issueType->name]]" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
+
+    @include('maintenance-requests.partials.alerts')
 
     <div class="grid grid-cols-1 gap-6">
         <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">

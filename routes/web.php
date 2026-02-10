@@ -10,7 +10,7 @@ use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\MaintenanceRequestController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\admin\RoleController;
 use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\BaseDataController;
 use App\Http\Controllers\ApprovalController;
@@ -71,7 +71,7 @@ Route::middleware(['web','auth'])->group(function () {
     });
     
     // Role Management
-    Route::resource('roles', RoleController::class)->except(['show']);
+    
     Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show')->withTrashed();
     Route::get('roles/{role}/users', [RoleController::class, 'users'])->name('roles.users');
     Route::post('roles/bulk-delete', [RoleController::class, 'bulkDestroy'])->name('roles.bulk-destroy');
@@ -79,7 +79,7 @@ Route::middleware(['web','auth'])->group(function () {
     Route::get('roles/check-name', [RoleController::class, 'checkName'])->name('roles.check-name');
     Route::patch('roles/{role}/restore', [RoleController::class, 'restore'])->name('roles.restore')->withTrashed();
     Route::delete('roles/{role}/force-delete', [RoleController::class, 'forceDelete'])->name('roles.force-delete')->withTrashed();
-    
+    Route::resource('roles', RoleController::class)->except(['show']);
     // Organizations
     Route::get('/organizations', [OrganizationController::class, 'index'])->name('organizations.index');
     Route::get('/organizations/{organization}/clusters', [OrganizationController::class, 'clusters'])->name('organizations.clusters');

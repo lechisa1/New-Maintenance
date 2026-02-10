@@ -2,7 +2,7 @@
 
 @section('content')
     <x-common.page-breadcrumb pageTitle="Edit User" />
-
+    @include('maintenance-requests.partials.alerts')
     <div class="max-w-5xl mx-auto pb-10">
         <form action="{{ route('users.update', $user) }}" method="POST">
             @csrf

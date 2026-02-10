@@ -54,7 +54,7 @@ return new class extends Migration
             $table->string('original_name');
             $table->string('mime_type');
             $table->string('path');
-             $table->string('type');
+            $table->string('type');
             $table->integer('size');
             $table->timestamps();
         });

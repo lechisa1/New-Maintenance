@@ -154,15 +154,7 @@
                         <!-- Submit Buttons -->
                         <div class="border-t border-gray-200 pt-6 dark:border-gray-700">
                             <div class="flex justify-between">
-                                <form action="{{ route('items.destroy', $item) }}" method="POST"
-                                    onsubmit="return confirm('Are you sure you want to delete this equipment?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit"
-                                        class="rounded-lg border border-red-200 bg-red-50 px-6 py-3 text-sm font-medium text-red-600 shadow-theme-xs hover:bg-red-100 hover:text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
-                                        <i class="bi bi-trash me-2"></i>Delete
-                                    </button>
-                                </form>
+
 
                                 <div class="flex gap-3">
                                     <a href="{{ route('items.index') }}"

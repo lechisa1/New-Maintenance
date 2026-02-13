@@ -44,7 +44,7 @@
                                  </div>
                              </div>
 
-          
+
                              <!-- Action Buttons -->
                              <div class="flex gap-2">
                                  @if (auth()->user()->id === $maintenanceRequest->user_id &&
@@ -209,7 +209,7 @@
                              <div class="flex justify-end gap-2">
                                  <button @click="show = false">Cancel</button>
 
-                                 <button
+                                 <button type="button"
                                      @click="
                         acceptWorkLog(workLogId);
                         show = false;

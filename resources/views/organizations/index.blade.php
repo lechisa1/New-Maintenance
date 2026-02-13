@@ -45,12 +45,14 @@
         <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left">
-                    <thead class="bg-gray-50/50 dark:bg-gray-800/50">
+                    <thead class="bg-gray-50/50 dark:bg-gray-800/50 ">
                         <tr class="border-b border-gray-200 dark:border-gray-700">
-                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500">#</th>
-                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500">Organization Name</th>
-                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500">Clusters</th>
-                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500 text-right">Actions</th>
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500 dark:text-white">#</th>
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500 dark:text-white">Organization
+                                Name</th>
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500 dark:text-white">Clusters</th>
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-gray-500 text-right dark:text-white">
+                                Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -63,13 +65,13 @@
                                     <span
                                         class="font-medium text-gray-800 dark:text-gray-200">{{ $organization->name }}</span>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 dark:text-white">
                                     <div class="flex items-center gap-2">
                                         <span
                                             class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-400/10 dark:text-blue-400">
                                             {{ $organization->clusters_count }}
                                         </span>
-                                        <span class="text-sm text-gray-500">Clusters</span>
+                                        <span class="text-sm text-gray-500 dark:text-white">Clusters</span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-right">

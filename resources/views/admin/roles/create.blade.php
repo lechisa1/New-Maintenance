@@ -40,7 +40,7 @@
                                 <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Role Name
                                     <span class="text-red-500">*</span></label>
                                 <input type="text" x-model="formData.name" name="name" required
-                                    :class="`h-11 w-full rounded-lg border ${errors.name ? 'border-red-300' : 'border-gray-300'} bg-gray-50 px-4 py-2.5 text-sm transition focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800`"
+                                    :class="`h-11 w-full rounded-lg border ${errors.name ? 'border-red-300' : 'border-gray-300'} bg-gray-50 px-4 py-2.5 text-sm transition focus:border-blue-500 dark:text-white dark:border-gray-700 dark:bg-gray-800`"
                                     placeholder="e.g., Content Manager">
                                 <div x-show="errors.name" class="mt-1 text-xs text-red-500" x-text="errors.name"></div>
                             </div>
@@ -49,14 +49,14 @@
                                 <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Dashboard
                                     Route</label>
                                 <input type="text" x-model="formData.dashboard_route" placeholder="admin.dashboard"
-                                    class="h-11 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800">
+                                    class="h-11 w-full rounded-lg border dark:text-white border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800">
                             </div>
 
                             <div>
                                 <label
                                     class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Description</label>
                                 <textarea x-model="formData.description" rows="3" placeholder="Briefly define this role"
-                                    class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800"></textarea>
+                                    class="w-full rounded-lg border border-gray-300 dark:text-white bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800"></textarea>
                             </div>
 
                             <div class="pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-3">
@@ -92,7 +92,7 @@
                                     <i
                                         class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                                     <input type="text" x-model="searchQuery" placeholder="Filter permissions..."
-                                        class="h-9 w-40 md:w-56 rounded-full border-gray-200 bg-white pl-9 text-xs focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800">
+                                        class="h-9 w-40 md:w-56 rounded-full border-gray-200 bg-white pl-9 text-xs focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
                                 </div>
                                 <button type="button" @click="selectAllPermissions"
                                     class="text-xs font-semibold px-3 py-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 transition">All</button>

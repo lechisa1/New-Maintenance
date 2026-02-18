@@ -17,44 +17,45 @@
                 </h4>
             </div>
 
-            <div class="space-y-4">
-                @foreach ($maintenanceRequest->workLogs as $log)
-                    <div
-                        class="rounded-lg border p-4 {{ $log->is_rejected ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:bg-gray-800' }}">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <div class="font-medium text-gray-800 dark:text-white/90">
-                                    {{ $log->technician?->full_name ?? 'Technician' }}
-                                </div>
-                                <div class="text-sm text-gray-500 dark:text-gray-400">
-                                    {{ $log->created_at->format('M d, Y') }} at
-                                    {{ $log->created_at->format('h:i A') }}
-                                    @if ($log->status === 'rejected')
-                                        <span
-                                            class="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
-                                            <i class="bi bi-x-circle me-1"></i>Rejected
-                                        </span>
-                                    @endif
-                                    @if ($log->status === 'accepted')
-                                        <span
-                                            class="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
-                                            <i class="bi bi-check-circle me-1"></i>Confirmed
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
+             <div class="space-y-4">
+                 @foreach ($maintenanceRequest->workLogs as $log)
+                     <div
+                         class="rounded-lg border p-4 {{ $log->is_rejected ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:bg-gray-800' }}">
+                         <div class="flex justify-between items-start mb-2">
+                             <div>
+                                 <div class="font-medium text-gray-800 dark:text-white/90">
+                                     {{ $log->technician?->full_name ?? 'Technician' }}
+                                 </div>
+                                 <div class="text-sm text-gray-500 dark:text-gray-400">
+                                     {{ $log->created_at->format('M d, Y') }} at
+                                     {{ $log->created_at->format('h:i A') }}
+                                     @if ($log->status === 'rejected')
+                                         <span
+                                             class="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
+                                             <i class="bi bi-x-circle me-1"></i>Rejected
+                                         </span>
+                                     @endif
+                                     @if ($log->status === 'accepted')
+                                         <span
+                                             class="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+                                             <i class="bi bi-check-circle me-1"></i>Confirmed
+                                         </span>
+                                     @endif
+                                 </div>
+                             </div>
 
-                            <!-- Action Buttons -->
-                            <div class="flex gap-2">
-                                @if (auth()->user()->id === $maintenanceRequest->user_id &&
-                                        in_array($maintenanceRequest->status, ['completed', 'waiting_confirmation']) &&
-                                        $log->status === 'pending')
-                                    <!-- Reject Button -->
-                                    <button
-                                        @click="$dispatch('open-reject-worklog-modal', { workLogId: '{{ $log->id }}' })"
-                                        class="flex items-center gap-1 text-red-500 hover:text-red-700 text-xs">
-                                        <i class="bi bi-x-circle"></i> Reject
-                                    </button>
+
+                             <!-- Action Buttons -->
+                             <div class="flex gap-2">
+                                 @if (auth()->user()->id === $maintenanceRequest->user_id &&
+                                         in_array($maintenanceRequest->status, ['completed', 'waiting_confirmation']) &&
+                                         $log->status === 'pending')
+                                     <!-- Reject Button -->
+                                     <button
+                                         @click="$dispatch('open-reject-worklog-modal', { workLogId: '{{ $log->id }}' })"
+                                         class="flex items-center gap-1 text-red-500 hover:text-red-700 text-xs">
+                                         <i class="bi bi-x-circle"></i> Reject
+                                     </button>
 
                                     <!-- Confirm Button -->
                                     <button
@@ -183,39 +184,38 @@
                     </div>
                 </div>
 
-                <!-- Confirm Modal -->
-                <div x-data="{
-                    show: false,
-                    workLogId: null
-                }"
-                    @open-confirm-worklog-modal.window="
-                    workLogId = $event.detail.workLogId;
-                    show = true;
-                ">
-                    <div x-show="show" x-cloak
-                        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-                            <h3 class="text-lg font-semibold mb-4 text-green-500">
-                                Confirm Work Log
-                            </h3>
-                            <p class="mb-4">Are you sure you want to confirm this work log?</p>
-                            <div class="flex justify-end gap-2">
-                                <button @click="show = false" 
-                                    class="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                                    Cancel
-                                </button>
-                                <button type="button"
-                                    @click="
-                                        window.acceptWorkLog(workLogId);
-                                        show = false;
-                                    "
-                                    class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition-colors">
-                                    Confirm
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                 <div x-data="{
+                     show: false,
+                     workLogId: null
+                 }"
+                     @open-confirm-worklog-modal.window="
+        workLogId = $event.detail.workLogId;
+        show = true;
+    ">
+                     <div x-show="show" x-cloak
+                         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+                             <h3 class="text-lg font-semibold mb-4 text-green-500">
+                                 Confirm Work Log
+                             </h3>
+
+                             <p class="mb-4">Are you sure you want to confirm this work log?</p>
+
+                             <div class="flex justify-end gap-2">
+                                 <button @click="show = false">Cancel</button>
+
+                                 <button type="button"
+                                     @click="
+                        acceptWorkLog(workLogId);
+                        show = false;
+                    "
+                                     class="bg-green-500 text-white px-4 py-2 rounded">
+                                     Confirm
+                                 </button>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
 
                 <!-- Total Work Time -->
                 @if ($maintenanceRequest->workLogs->count() > 0 &&

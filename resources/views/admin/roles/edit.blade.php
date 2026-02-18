@@ -1,7 +1,15 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Role Management', 'url' => route('roles.index')], // active page
+
+        ['label' => $role->display_name ?? ucwords(str_replace('-', ' ', $role->name))], // active page
+    ];
+@endphp
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Edit Role" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
 
     <form @submit.prevent="submitForm" x-data="roleEditForm()">
         {{-- Alert Component: Controlled by Alpine.js --}}

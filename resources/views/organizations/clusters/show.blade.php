@@ -70,18 +70,22 @@
                 <table class="min-w-full">
                     <thead class="bg-gray-50 dark:bg-gray-800/50">
                         <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500">#</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500">Division Name</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500">Chairman</th>
-                            <th class="px-6 py-4 text-center text-xs font-bold uppercase text-gray-500">Actions</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500 dark:text-white">#</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500 dark:text-white">
+                                Division Name</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500 dark:text-white">
+                                Chairman</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold uppercase text-gray-500 dark:text-white">
+                                Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
                         @forelse ($divisions as $index => $division)
                             <tr class="hover:bg-gray-50/50 dark:hover:bg-white/[0.02]">
-                                <td class="px-6 py-4 text-sm text-gray-500">{{ $divisions->firstItem() + $index }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-500 dark:text-white">
+                                    {{ $divisions->firstItem() + $index }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-800 dark:text-white">{{ $division->name }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-white">
                                     {{ $division->chairman->full_name ?? 'Not Assigned' }}
                                 </td>
                                 <td class="px-6 py-4">

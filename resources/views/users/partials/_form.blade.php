@@ -10,7 +10,7 @@
     <input type="hidden" name="_method" id="formMethod" value="POST">
 
 
-    <div class="grid grid-cols-1 gap-6">
+    <div class="grid grid-cols-1 gap-6 dark:border-gray-100">
         <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900/50">
 
 
@@ -27,7 +27,7 @@
                             <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Full
                                 Name <span class="text-red-500">*</span></label>
                             <input type="text" name="full_name" value="{{ old('full_name') }}"
-                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm transition focus:border-blue-500 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 @error('full_name') border-red-500 @enderror"
+                                class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 dark:text-white text-sm transition focus:border-blue-500 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 @error('full_name') border-red-500 @enderror"
                                 placeholder="John Doe">
                             @error('full_name')
                                 <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
@@ -38,7 +38,7 @@
                             <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Email
                                 Address <span class="text-red-500">*</span></label>
                             <input type="email" name="email" value="{{ old('email') }}"
-                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm transition focus:border-blue-500 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 @error('email') border-red-500 @enderror"
+                                class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 dark:text-white text-sm transition focus:border-blue-500 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 @error('email') border-red-500 @enderror"
                                 placeholder="john@example.com">
                             @error('email')
                                 <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
@@ -49,7 +49,7 @@
                             <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Phone
                                 Number</label>
                             <input type="text" name="phone" value="{{ old('phone') }}"
-                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm transition
+                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm transition dark:text-white
     @error('phone') border-red-500 focus:border-red-500 focus:ring-red-500/20 @enderror
     dark:border-gray-700 dark:bg-gray-800">
 
@@ -73,19 +73,19 @@
 
                             <div class="mb-6 grid grid-cols-2 gap-4">
                                 <label
-                                    class="group relative flex cursor-pointer rounded-xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
+                                    class="group relative flex cursor-pointer rounded-xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800 dark:text-white">
                                     <input type="radio" name="assign_type" value="cluster" class="peer sr-only"
                                         {{ old('assign_type', 'cluster') == 'cluster' ? 'checked' : '' }}>
                                     <div class="flex flex-col peer-checked:text-blue-600">
-                                        <span class="text-sm font-bold uppercase">Cluster</span>
-                                        <span class="text-xs text-gray-500">Main Group Level</span>
+                                        <span class="text-sm font-bold uppercase dark:text-white">Cluster</span>
+                                        <span class="text-xs text-gray-500 dark:text-white">Main Group Level</span>
                                     </div>
                                     <i
                                         class="bi bi-check-circle-fill absolute right-4 top-1/2 -translate-y-1/2 opacity-0 peer-checked:opacity-100 text-blue-600 transition"></i>
                                 </label>
 
                                 <label
-                                    class="group relative flex cursor-pointer rounded-xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
+                                    class="group relative flex cursor-pointer rounded-xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800 dark:text-white">
                                     <input type="radio" name="assign_type" value="division" class="peer sr-only"
                                         {{ old('assign_type') == 'division' ? 'checked' : '' }}>
                                     <div class="flex flex-col peer-checked:text-blue-600">
@@ -99,7 +99,7 @@
 
                             <div id="cluster-wrapper">
                                 <select name="cluster_id"
-                                    class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm
+                                    class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:text-white
     @error('cluster_id') border-red-500 @enderror
     dark:border-gray-700 dark:bg-gray-800">
 
@@ -118,7 +118,7 @@
 
                             <div id="division-wrapper" class="hidden">
                                 <select name="division_id"
-                                    class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm
+                                    class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:text-white
     @error('division_id') border-red-500 @enderror
     dark:border-gray-700 dark:bg-gray-800">
 
@@ -143,7 +143,7 @@
                             <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">System
                                 Role <span class="text-red-500">*</span></label>
                             <select name="roles"
-                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800 @error('roles') border-red-500 @enderror">
+                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:text-white dark:bg-gray-800 @error('roles') border-red-500 @enderror">
                                 <option value="">Select a Role</option>
                                 @foreach ($roles as $role)
                                     <option value="{{ $role->name }}"
@@ -159,7 +159,7 @@
                     </div>
                 </section>
 
-                <hr class="border-gray-100 dark:border-gray-800">
+                <hr class="border-gray-100 dark:border-gray-800 dark:text-white">
 
                 {{-- Section 3: Security --}}
                 <section>
@@ -171,9 +171,9 @@
                             <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Password
                                 <span class="text-red-500">*</span></label>
                             <input :type="show ? 'text' : 'password'" name="password"
-                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800 @error('password') border-red-500 @enderror">
+                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:text-white dark:border-gray-700 dark:bg-gray-800 @error('password') border-red-500 @enderror">
                             <button type="button" @click="show = !show"
-                                class="absolute right-3 top-[38px] text-gray-400 hover:text-gray-600 transition">
+                                class="absolute right-3 top-[38px] text-gray-400 hover:text-gray-600 transition dark:text-white">
                                 <i class="bi" :class="show ? 'bi-eye-slash' : 'bi-eye'"></i>
                             </button>
                             @error('password')
@@ -185,7 +185,7 @@
                             <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Confirm
                                 Password <span class="text-red-500">*</span></label>
                             <input type="password" name="password_confirmation"
-                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800">
+                                class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white @error('password_confirmation') border-red-500 @enderror">
                         </div>
                     </div>
                 </section>

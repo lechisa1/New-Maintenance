@@ -2,13 +2,13 @@
     <table class="min-w-full border border-gray-200 dark:border-gray-800 rounded-lg">
         <thead class="bg-gray-50 dark:bg-gray-800">
             <tr>
-                <th class="px-4 py-3 text-left text-sm font-semibold">#</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold">Name</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold">Email</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold">Division</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold">Cluster</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold">Status</th>
-                <th class="px-4 py-3 text-center text-sm font-semibold">Actions</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">#</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Email</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Division</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Cluster</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
             </tr>
         </thead>
 
@@ -36,17 +36,17 @@
                     </td>
 
                     <!-- Email -->
-                    <td class="px-4 py-3 text-sm">
+                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         {{ $user->email }}
                     </td>
 
                     <!-- Division -->
-                    <td class="px-4 py-3 text-sm">
+                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         {{ $user->division?->name ?? 'N/A' }}
                     </td>
 
                     <!-- Cluster -->
-                    <td class="px-4 py-3 text-sm">
+                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         {{ $user->cluster?->name ?? 'N/A' }}
                     </td>
 

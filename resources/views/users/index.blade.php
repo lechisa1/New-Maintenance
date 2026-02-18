@@ -142,9 +142,10 @@
     </div>
     {{-- Create User Modal --}}
     <div id="userModal"
-        class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-sm flex items-center justify-center mt-5">
+        class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-sm flex items-center justify-center mt-5 dark:border-white">
 
-        <div class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl mx-4 shadow-xl overflow-y-auto max-h-[90vh]">
+        <div
+            class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl mx-4 shadow-xl overflow-y-auto max-h-[90vh] dark:border-gray-200">
 
             {{-- Modal Header --}}
             <div class="flex items-center justify-between p-6 border-b dark:border-gray-800">
@@ -154,7 +155,7 @@
                 </h3>
 
                 <button onclick="closeUserModal()" class="text-gray-500 hover:text-gray-700">
-                    <i class="bi bi-x-lg"></i>
+                    <i class="bi bi-x-lg dark:text-white"></i>
                 </button>
             </div>
 

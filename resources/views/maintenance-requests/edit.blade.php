@@ -1,7 +1,14 @@
 @extends('layouts.app')
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Maintenance Requests', 'url' => route('maintenance-requests.index')],
+        ['label' => 'Edit Requests'], // current page, no URL
+    ];
+@endphp
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Edit Maintenance Request" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
     @include('maintenance-requests.partials.alerts')
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Edit Form -->

@@ -353,9 +353,9 @@ class MaintenanceRequestController extends Controller
             \Log::error('Failed to send assignment notification: ' . $e->getMessage());
         }
 
-        return response()->json([
-            'message' => 'Technician assigned successfully'
-        ]);
+return redirect()->back()
+    ->with('success', 'Technician assigned successfully');
+
     }
     /**
      * Show the form for editing the specified resource.

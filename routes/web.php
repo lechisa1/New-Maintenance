@@ -72,7 +72,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     });
 
     // Role Management
-    
+    Route::resource('roles', RoleController::class)->except(['show']);
     Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show')->withTrashed();
     Route::get('roles/{role}/users', [RoleController::class, 'users'])->name('roles.users');
     Route::post('roles/bulk-delete', [RoleController::class, 'bulkDestroy'])->name('roles.bulk-destroy');

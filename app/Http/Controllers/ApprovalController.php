@@ -131,7 +131,7 @@ public function reject(Request $request, MaintenanceRequest $maintenanceRequest)
             return response()->json(['success' => true]);
         }
 
-        return back()->with('success', 'Request rejected successfully.');
+        return redirect()->back()->with('success', 'Request rejected successfully.');
     } catch (\Exception $e) {
         DB::rollBack();
         \Log::error('Rejection failed: ' . $e->getMessage());

@@ -158,16 +158,16 @@ class ApprovalController extends Controller
                 return response()->json(['success' => true]);
             }
 
-            return back()->with('success', 'Request rejected successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Rejection failed: ' . $e->getMessage());
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'error' => 'Failed to reject request']);
-            }
-            return back()->with('error', 'Failed to reject request.');
+        return redirect()->back()->with('success', 'Request rejected successfully.');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Rejection failed: ' . $e->getMessage());
+        if($request->expectsJson()){
+            return response()->json(['success' => false, 'error' => 'Failed to reject request']);
         }
+        return back()->with('error', 'Failed to reject request.');
     }
+}
 
 
     /**

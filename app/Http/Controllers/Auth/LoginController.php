@@ -202,7 +202,7 @@ class LoginController extends Controller
      */
     protected function maxAttempts()
     {
-        return 5;
+        return 10;
     }
 
     /**

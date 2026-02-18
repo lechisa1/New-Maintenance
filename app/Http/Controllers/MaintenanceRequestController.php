@@ -563,11 +563,12 @@ class MaintenanceRequestController extends Controller
 
             return redirect()->back()->with('success', 'Request rejected successfully.');
         } catch (\Exception $e) {
-            \DB::rollBack();
-            \Log::error('Failed to reject request: ' . $e->getMessage());
-
-            return redirect()->back()->with('error', 'Failed to reject request: ' . $e->getMessage());
+            \Log::error('Failed to send assignment notification: ' . $e->getMessage());
         }
+
+return redirect()->back()
+    ->with('success', 'Technician assigned successfully');
+
     }
 
     /**

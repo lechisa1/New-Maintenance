@@ -14,6 +14,7 @@
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Main Content -->
         <div class="lg:col-span-2">
+            
             <!-- Request Details Card -->
             <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
                 @include('maintenance-requests.partials.header')
@@ -76,11 +77,7 @@
         }
     }">
     </div>
-    {{-- @if (session('success'))
-        <div class="fixed bottom-4 right-4 z-50">
-            <x-ui.alert variant="success" title="Success" :message="session('success')" />
-        </div>
-    @endif --}}
+
 @endsection
 
 @push('scripts')

@@ -83,23 +83,25 @@ class WorkLogController extends Controller
             $maintenanceRequest->update($statusUpdateData);
             
             \DB::commit();
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Work log created and status updated successfully.',
-                'workLog' => [
-                    'id' => $workLog->id,
-                    'work_done' => $workLog->work_done,
-                    'materials_used' => $workLog->materials_used,
-                    'time_spent_formatted' => $workLog->getTimeSpentFormatted(),
-                    'log_date_formatted' => $workLog->getLogDateFormatted(),
-                    'log_time_formatted' => $workLog->getLogTimeFormatted(),
-                    'completion_notes' => $workLog->completion_notes,
-                    'technician_name' => $workLog->technician?->full_name ?? 'Unknown Technician',
-                ],
-                'new_status' => $validated['new_status'],
-                'new_status_text' => $maintenanceRequest->getStatusText(),
-            ]);
+            return redirect()->back()
+    ->with('success', 'Work log created and status updated successfully');
+
+            // return response()->json([
+            //     'success' => true,
+            //     'message' => 'Work log created and status updated successfully.',
+            //     'workLog' => [
+            //         'id' => $workLog->id,
+            //         'work_done' => $workLog->work_done,
+            //         'materials_used' => $workLog->materials_used,
+            //         'time_spent_formatted' => $workLog->getTimeSpentFormatted(),
+            //         'log_date_formatted' => $workLog->getLogDateFormatted(),
+            //         'log_time_formatted' => $workLog->getLogTimeFormatted(),
+            //         'completion_notes' => $workLog->completion_notes,
+            //         'technician_name' => $workLog->technician?->full_name ?? 'Unknown Technician',
+            //     ],
+            //     'new_status' => $validated['new_status'],
+            //     'new_status_text' => $maintenanceRequest->getStatusText(),
+            // ]);
             
         } catch (\Exception $e) {
             \DB::rollBack();

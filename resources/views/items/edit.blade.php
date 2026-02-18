@@ -6,8 +6,18 @@
         ['label' => 'Equipment Management'], // Active page
     ];
 @endphp
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Base Data', 'url' => route('base-data.index')],
+        ['label' => 'Equipment Management'], // Active page
+    ];
+@endphp
 
 @section('content')
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
+
+    @include('maintenance-requests.partials.alerts')
     <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
 
     @include('maintenance-requests.partials.alerts')
@@ -155,7 +165,7 @@
                         <div class="border-t border-gray-200 pt-6 dark:border-gray-700">
                             <div class="flex justify-between">
 
-
+                                
                                 <div class="flex gap-3">
                                     <a href="{{ route('items.index') }}"
                                         class="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">

@@ -6,18 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+
 class Item extends Model
 {
     use HasFactory, SoftDeletes, HasUuids;
 
     protected $fillable = [
-      
+
         'name',
         'type',
         'unit',
         'status'
     ];
-        protected $keyType = 'string';
+    protected $keyType = 'string';
     public $incrementing = false;
 
     // Constants for status
@@ -50,7 +51,7 @@ class Item extends Model
         return [
             self::STATUS_ACTIVE => 'Active',
             self::STATUS_INACTIVE => 'Inactive',
-           
+
         ];
     }
 
@@ -90,7 +91,7 @@ class Item extends Model
      */
     public function getStatusBadgeClass(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_ACTIVE => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
             self::STATUS_INACTIVE => 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
             self::STATUS_MAINTENANCE => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
@@ -152,5 +153,9 @@ class Item extends Model
     public function scopeByType($query, $type)
     {
         return $query->where('type', $type);
+    }
+    public function maintenanceRequests()
+    {
+        return $this->hasMany(MaintenanceRequestItem::class);
     }
 }

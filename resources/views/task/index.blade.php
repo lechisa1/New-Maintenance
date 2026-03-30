@@ -21,7 +21,7 @@
 
 @section('content')
     <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
- @include('maintenance-requests.partials.alerts')
+    @include('maintenance-requests.partials.alerts')
 
     <div class="space-y-6">
         {{-- <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -32,7 +32,22 @@
                 variant="success" />
             <x-common.stat-card title="My Requests" value="{{ $myRequests ?? 0 }}" icon="bi bi-person" variant="info" />
         </div> --}}
-
+        {{-- In your task/index.blade.php, add this to the stats cards --}}
+        @if (auth()->user()->isIctDirector() && isset($pendingApprovalReviews) && $pendingApprovalReviews > 0)
+            <div class="rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-900/20">
+                <div class="flex items-center">
+                    <div
+                        class="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                        <i class="bi bi-question-circle"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm text-purple-700 dark:text-purple-300">Pending Review</div>
+                        <div class="text-2xl font-semibold text-purple-800 dark:text-purple-200">
+                            {{ $pendingApprovalReviews }}</div>
+                    </div>
+                </div>
+            </div>
+        @endif
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <form action="{{ $pageType === 'tasks' ? route('user.task') : route('my.requests') }}" method="GET"
                 id="filterForm" class="space-y-4">
@@ -114,9 +129,16 @@
                                 <td class="px-6 py-4 text-gray-500">{{ $requests->firstItem() + $index }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-800 dark:text-white">
                                     {{ $request->ticket_number }}</td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ $request->item?->name ?? 'N/A' }}
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                    @foreach ($request->items as $requestItem)
+                                        {{ $requestItem->item?->name ?? 'N/A' }}
+                                        @if (!$loop->last)
+                                            ,
+                                        @endif
+                                    @endforeach
                                 </td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ $request->getIssueTypeText() }}
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                    {{ $request->getIssueTypeText() }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span

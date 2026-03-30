@@ -158,6 +158,27 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/approvals', [ApprovalController::class, 'index'])->name('approvals.index');
     Route::post('/approvals/{maintenanceRequest}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
     Route::post('/approvals/{maintenanceRequest}/reject', [ApprovalController::class, 'reject'])->name('approvals.reject');
+    //here route added for forwarding approval request to ICT Director after reviewed by technicians
+
+    // routes/web.php
+
+    Route::post(
+        '/maintenance-requests/{maintenanceRequest}/request-approval',
+        [ApprovalController::class, 'requestApproval']
+    )
+        ->name('maintenance-requests.request-approval');
+
+    Route::post(
+        '/maintenance-requests/{maintenanceRequest}/forward-to-chairman',
+        [ApprovalController::class, 'forwardToChairman']
+    )
+        ->name('maintenance-requests.forward-to-chairman');
+
+    Route::post(
+        '/maintenance-requests/{maintenanceRequest}/reject-approval-request',
+        [ApprovalController::class, 'rejectApprovalRequest']
+    )
+        ->name('maintenance-requests.reject-approval-request');
 
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

@@ -6,14 +6,18 @@ use App\Models\MaintenanceRequest;
 use App\Models\MaintenanceRequestFile;
 use App\Models\Item;
 use APP\Models\WorkLog;
+use App\Models\MaintenanceRequestItem;
 use App\Models\User;
 use App\Models\IssueType;
+use App\Models\MaintenanceRequestTechnician;
 use App\Http\Requests\StoreMaintenanceRequestRequest;
 use App\Http\Requests\UpdateMaintenanceRequestRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
+
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\MaintenanceRequestAssigned;
 use App\Notifications\MaintenanceRequestCreated;
@@ -27,50 +31,74 @@ class MaintenanceRequestController extends Controller
      */
     public function index(Request $request)
     {
-        $query = MaintenanceRequest::where('user_id', auth()->id())->with(['user', 'item', 'assignedTechnician']);
+        // Base query for authenticated user
+        $query = MaintenanceRequest::with([
+            'user',
+            'items',
+            'items.item',
+            'items.issueType',
+            'assignedTechnician'
+        ])->where('user_id', auth()->id());
 
-        // Apply filters
+        // Apply search filter
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('ticket_number', 'like', '%' . $request->search . '%')
                     ->orWhere('description', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('item', function ($q) use ($request) {
-                        $q->where('name', 'like', '%' . $request->search . '%');
+                    ->orWhereHas('items.item', function ($q2) use ($request) {
+                        $q2->where('name', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('items.issueType', function ($q3) use ($request) {
+                        $q3->where('name', 'like', '%' . $request->search . '%');
                     });
             });
         }
 
+        // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
+        // Filter by priority
         if ($request->filled('priority')) {
             $query->where('priority', $request->priority);
         }
 
+        // Filter by issue type
         if ($request->filled('issue_type')) {
-            $query->where('issue_type', $request->issue_type);
+            $query->whereHas('items.issueType', function ($q) use ($request) {
+                $q->where('id', $request->issue_type);
+            });
         }
 
-
-
-        // Get requests with filters
+        // Get requests with sorting and pagination
         $requests = $query
-            ->orderByRaw("FIELD(priority, 'emergency','high', 'medium', 'low')")
+            ->orderByRaw("FIELD(priority, 'emergency','high','medium','low')")
             ->orderBy('created_at', 'desc')
             ->paginate(10);
+
+        // DEBUG: Check what's actually being sent to the view
+        \Log::info('=== DEBUG: Data being sent to view ===');
+        foreach ($requests as $req) {
+            \Log::info('Ticket: ' . $req->ticket_number);
+            \Log::info('Items count: ' . $req->items->count());
+            foreach ($req->items as $item) {
+                \Log::info('  - Item: ' . ($item->item?->name ?? 'NULL') . ' (ID: ' . $item->item_id . ')');
+            }
+        }
 
         // Statistics
         $totalRequests = MaintenanceRequest::where('user_id', auth()->id())->count();
         $openRequests = MaintenanceRequest::where('user_id', auth()->id())->open()->count();
-        $completedRequests = MaintenanceRequest::where('user_id', auth()->id())->where('status', MaintenanceRequest::STATUS_COMPLETED)->count();
-        // $myRequests = $request->user()->hasRole('user') ? 
-        //     MaintenanceRequest::forUser($request->user()->id)->count() : 
-        //     MaintenanceRequest::assignedTo($request->user()->id)->count();
+        $completedRequests = MaintenanceRequest::where('user_id', auth()->id())
+            ->where('status', MaintenanceRequest::STATUS_COMPLETED)
+            ->count();
 
         $myRequests = 10;
+
         // Recent requests for sidebar
-        $recentRequests = MaintenanceRequest::where('user_id', auth()->id())->with('item')
+        $recentRequests = MaintenanceRequest::where('user_id', auth()->id())
+            ->with('items.item')
             ->latest()
             ->take(5)
             ->get();
@@ -84,7 +112,6 @@ class MaintenanceRequestController extends Controller
             'recentRequests'
         ));
     }
-
     /**
      * Show the form for creating a new resource.
      */
@@ -105,7 +132,6 @@ class MaintenanceRequestController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-
     public function store(StoreMaintenanceRequestRequest $request)
     {
         DB::beginTransaction();
@@ -114,12 +140,21 @@ class MaintenanceRequestController extends Controller
             // Create maintenance request
             $maintenanceRequest = MaintenanceRequest::create([
                 'user_id' => auth()->id(),
-                'item_id' => $request->item_id,
                 'description' => $request->description,
-                'issue_type_id' => $request->issue_type_id,
                 'priority' => $request->priority,
-                'status' => "pending",
+                'status' => 'pending',
+                'requested_at' => now(),
             ]);
+
+            // Store items
+            foreach ($request->items as $itemData) {
+                MaintenanceRequestItem::create([
+                    'maintenance_request_id' => $maintenanceRequest->id,
+                    'item_id' => $itemData['item_id'],
+                    'issue_type_id' => $itemData['issue_type_id'],
+                    'description' => $itemData['description'] ?? null,
+                ]);
+            }
 
             // Handle file uploads
             if ($request->hasFile('files')) {
@@ -133,14 +168,16 @@ class MaintenanceRequestController extends Controller
                         'original_name' => $file->getClientOriginalName(),
                         'mime_type' => $file->getMimeType(),
                         'path' => $path,
-                        'type' => "request",
+                        'type' => 'request',
                         'size' => $file->getSize(),
+                        'uploaded_by' => auth()->id(),
                     ]);
                 }
             }
 
-
             DB::commit();
+            // $maintenanceRequest->refresh(); // Refresh to get fresh data
+            // $maintenanceRequest->handleNotifications();
 
             return redirect()->route('maintenance-requests.index')
                 ->with('success', 'Maintenance request created successfully. Ticket: ' . $maintenanceRequest->ticket_number);
@@ -150,7 +187,7 @@ class MaintenanceRequestController extends Controller
                 'user_id' => auth()->id(),
                 'error' => $e->getTraceAsString()
             ]);
-            return back()->with('error', 'Failed to create maintenance request: ' . $e->getMessage());
+            return back()->with('error', 'Failed to create maintenance request: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -163,7 +200,7 @@ class MaintenanceRequestController extends Controller
             'user:id,full_name,division_id,cluster_id',
             'issueType:id,name,is_need_approval'
         ])
-            ->whereHas('issueType', function ($query) {
+            ->whereHas('items.issueType', function ($query) {
                 $query->where('is_need_approval', true);
             })
             ->whereHas('user', function ($query) use ($chairman) {
@@ -253,9 +290,10 @@ class MaintenanceRequestController extends Controller
             'not_fixed',
         ];
 
-        $maintenanceRequest->load(['user', 'item', 'assignedTechnician', 'files']);
+        $maintenanceRequest->load(['user', 'items.item', 'items.issueType',  'assignedTechnicians.technician', 'approvalRequest.technician', 'files']);
 
         // Get technicians who have 'reports.assign' permission
+        // Get technicians who have 'maintenance_requests.resolve' permission
         $technicians = User::whereHas('roles.permissions', function ($query) {
             $query->where('name', 'maintenance_requests.resolve');
         })
@@ -267,32 +305,46 @@ class MaintenanceRequestController extends Controller
                     $q->whereIn('status', $activeStatuses);
                 }
             ])
-            ->orderBy('active_tasks_count', 'asc') // ✅ least workload first
+            ->orderBy('active_tasks_count', 'asc')
             ->get()
             ->mapWithKeys(function ($user) {
+                // Get actual item count from technician assignments
+                $activeItemCount = MaintenanceRequestTechnician::where('user_id', $user->id)
+                    ->whereIn('status', ['assigned', 'in_progress'])
+                    ->get()
+                    ->sum(function ($assignment) {
+                        return count($assignment->item_ids ?? []);
+                    });
+
                 return [
                     $user->id => sprintf(
-                        '%s (%s) — %d active',
+                        '%s (%s) — %d items',
                         $user->full_name,
                         $user->email,
-                        $user->active_tasks_count
+                        $activeItemCount ?: $user->active_tasks_count
                     )
                 ];
             })
             ->toArray();
-
+        $issueTypes = IssueType::orderBy('name')->get();
 
         // Get similar requests
-        $similarRequests = MaintenanceRequest::where('item_id', $maintenanceRequest->item_id)
+        $similarRequests = MaintenanceRequest::whereHas('items', function ($query) use ($maintenanceRequest) {
+            $query->whereIn(
+                'item_id',
+                $maintenanceRequest->items->pluck('item_id')
+            );
+        })
             ->where('id', '!=', $maintenanceRequest->id)
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
+            ->latest()
+            ->take(5)
             ->get();
 
         return view('maintenance-requests.show', compact(
             'maintenanceRequest',
             'technicians',
-            'similarRequests'
+            'similarRequests',
+            'issueTypes'
         ));
     }
     /**
@@ -308,54 +360,143 @@ class MaintenanceRequestController extends Controller
 
         // Validate the request
         $validated = $request->validate([
-            'assigned_to' => 'required|exists:users,id',
+            'assigned_technicians' => 'required|array|min:1',
+            'assigned_technicians.*' => 'exists:users,id',
+            'assigned_items' => 'required|array|min:1',
+            'assigned_items.*' => 'exists:items,id',
             'technician_notes' => 'nullable|string|max:1000',
         ]);
 
-        // Check if the assigned user has 'reports.assign' permission
-        $assignedUser = User::findOrFail($validated['assigned_to']);
-        if (!$assignedUser->hasPermissionTo('maintenance_requests.resolve')) {
-            return redirect()->back()
-                ->with('error', 'Selected user does not have the required permission.');
+        // Check if selected items belong to this request
+        $requestItemIds = $maintenanceRequest->items->pluck('item_id')->toArray();
+        foreach ($validated['assigned_items'] as $itemId) {
+            if (!in_array($itemId, $requestItemIds)) {
+                return redirect()->back()
+                    ->with('error', 'Selected item does not belong to this request.');
+            }
         }
-        // ✅ WORKLOAD CHECK (FAIR DISTRIBUTION)
-        $activeStatuses = [
-            MaintenanceRequest::STATUS_ASSIGNED,
-            'in_progress',
-            'pending',
-            'approved',
-            'not_fixed',
-        ];
 
-        $MAX_WORKLOAD = 5;
-        $currentWorkload = MaintenanceRequest::where('assigned_to', $assignedUser->id)
-            ->whereIn('status', $activeStatuses)
-            ->count();
+        $MAX_WORKLOAD = 15; // Items per technician
+        $errors = [];
 
-        if ($currentWorkload >= $MAX_WORKLOAD) {
+        try {
+            \DB::beginTransaction();
+
+            foreach ($validated['assigned_technicians'] as $technicianId) {
+                // Check if the assigned user has permission
+                $assignedUser = User::findOrFail($technicianId);
+                if (!$assignedUser->hasPermissionTo('maintenance_requests.resolve')) {
+                    $errors[] = "User {$assignedUser->full_name} does not have the required permission.";
+                    continue;
+                }
+
+                // ✅ WORKLOAD CHECK - Count items per technician
+                $activeStatuses = [
+                    MaintenanceRequest::STATUS_ASSIGNED,
+                    'in_progress',
+                    'pending',
+                    'approved',
+                    'not_fixed',
+                ];
+
+                // Get all active assignments for this technician
+                $existingAssignments = MaintenanceRequestTechnician::where('user_id', $technicianId)
+                    ->whereIn('status', ['assigned', 'in_progress'])
+                    ->with('maintenanceRequest')
+                    ->get()
+                    ->filter(function ($assignment) use ($activeStatuses) {
+                        return in_array($assignment->maintenanceRequest->status, $activeStatuses);
+                    });
+
+                // Count total items currently assigned to this technician
+                $currentWorkload = $existingAssignments->sum(function ($assignment) {
+                    return count($assignment->item_ids ?? []);
+                });
+
+                $newItemsCount = count($validated['assigned_items']);
+                $newWorkload = $currentWorkload + $newItemsCount;
+
+                if ($newWorkload > $MAX_WORKLOAD) {
+                    $errors[] = "{$assignedUser->full_name} already has {$currentWorkload} items assigned. Adding {$newItemsCount} more would exceed the limit.";
+                    continue;
+                }
+
+                // Check if this technician already has an assignment for this request
+                $existingAssignment = MaintenanceRequestTechnician::where([
+                    'maintenance_request_id' => $maintenanceRequest->id,
+                    'user_id' => $technicianId,
+                ])->first();
+
+                if ($existingAssignment) {
+                    // Merge existing items with new items (remove duplicates)
+                    $currentItems = $existingAssignment->item_ids ?? [];
+                    $mergedItems = array_unique(array_merge($currentItems, $validated['assigned_items']));
+
+                    $existingAssignment->update([
+                        'item_ids' => array_values($mergedItems),
+                        'notes' => $validated['technician_notes'] ?? $existingAssignment->notes,
+                        'status' => 'assigned',
+                        'assigned_at' => now(),
+                    ]);
+                } else {
+                    // Create new technician assignment
+                    MaintenanceRequestTechnician::create([
+                        'maintenance_request_id' => $maintenanceRequest->id,
+                        'user_id' => $technicianId,
+                        'item_ids' => $validated['assigned_items'],
+                        'notes' => $validated['technician_notes'] ?? null,
+                        'status' => 'assigned',
+                        'assigned_at' => now(),
+                    ]);
+                }
+
+                // Send notification to each technician
+                try {
+                    $assignedUser->notify(new \App\Notifications\MaintenanceRequestAssigned(
+                        $maintenanceRequest,
+                        $validated['assigned_items']
+                    ));
+                } catch (\Exception $e) {
+                    \Log::error("Failed to send assignment notification to {$assignedUser->id}: " . $e->getMessage());
+                }
+            }
+
+            // Update main request status if needed
+            $allAssignments = MaintenanceRequestTechnician::where('maintenance_request_id', $maintenanceRequest->id)
+                ->whereIn('status', ['assigned', 'in_progress'])
+                ->count();
+
+            if ($allAssignments > 0 && $maintenanceRequest->status !== MaintenanceRequest::STATUS_ASSIGNED) {
+                $maintenanceRequest->update([
+                    'status' => MaintenanceRequest::STATUS_ASSIGNED,
+                    'assigned_at' => now(),
+                ]);
+            }
+
+            \DB::commit();
+
+            if (!empty($errors)) {
+                return response()->json([
+                    'success' => true,
+                    'warning' => 'Some technicians could not be assigned:',
+                    'errors' => $errors,
+                    'message' => 'Technicians assigned with some warnings.'
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Technicians assigned successfully to selected items.'
+            ]);
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Failed to assign technicians: ' . $e->getMessage());
+
             return redirect()->back()->with(
                 'error',
-                "This technician already has {$currentWorkload} active tasks. Please assign another technician."
+                'Failed to assign technicians: ' . $e->getMessage()
             );
         }
-        // Update the maintenance request
-        $maintenanceRequest->update([
-            'assigned_to' => $validated['assigned_to'],
-            'assigned_at' => now(),
-            'status' => MaintenanceRequest::STATUS_ASSIGNED,
-            'technician_notes' => $validated['technician_notes'] ?? $maintenanceRequest->technician_notes,
-        ]);
-
-        // Optional: Send notification to assigned technician
-        try {
-            $assignedUser->notify(new \App\Notifications\MaintenanceRequestAssigned($maintenanceRequest));
-        } catch (\Exception $e) {
-            \Log::error('Failed to send assignment notification: ' . $e->getMessage());
-        }
-
-        return response()->json([
-            'message' => 'Technician assigned successfully'
-        ]);
     }
     /**
      * Show the form for editing the specified resource.
@@ -758,23 +899,17 @@ class MaintenanceRequestController extends Controller
     }
     public function downloadReport(MaintenanceRequest $maintenanceRequest)
     {
-        // Only technician or admin
-        if (
-            auth()->id() !== $maintenanceRequest->assigned_to
-        ) {
-            abort(403);
-        }
-
-        // Only after confirmation
         if ($maintenanceRequest->status !== MaintenanceRequest::STATUS_CONFIRMED) {
             return back()->with('error', 'Report available only after confirmation.');
         }
+
         $maintenanceRequest->load([
+            'items.item',
+            'assignedTechnicians.technician',
             'workLogs' => function ($q) {
                 $q->where('status', WorkLog::STATUS_ACCEPTED);
             }
         ]);
-
 
         $pdf = Pdf::loadView('exports.maintenance-report', [
             'request' => $maintenanceRequest

@@ -3,13 +3,14 @@
     $breadcrumbs = [
         ['label' => 'Home', 'url' => url('/')],
         ['label' => 'Maintenance Requests', 'url' => route('maintenance-requests.index')],
-        ['label' => 'Create Requests'], // current page, no URL
+        ['label' => 'Create Requests'],
     ];
 @endphp
 
 @section('content')
     <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
     @include('maintenance-requests.partials.alerts')
+
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Maintenance Request Form -->
         <div class="lg:col-span-2">
@@ -24,61 +25,55 @@
 
                     <div class="space-y-6">
                         <!-- Equipment Information -->
-                        <div>
-                            <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
-                                <i class="bi bi-box me-1"></i>Equipment Information
-                            </h4>
-                            <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-                                <!-- Select Equipment -->
-                                <div>
-                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Select Equipment <span class="text-red-500">*</span>
-                                    </label>
-                                    <select name="item_id" required
-                                        class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800 @error('item_id') border-red-500 dark:border-red-500 @enderror">
-                                        <option value="" disabled selected>Select equipment</option>
-                                        @foreach ($items as $item)
-                                            <option value="{{ $item->id }}"
-                                                {{ old('item_id') == $item->id ? 'selected' : '' }}>
-                                                {{ $item->name }} ({{ $item->getTypeText() }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('item_id')
-                                        <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
-                                    @enderror
-                                </div>
+                        <div id="items-wrapper" class="space-y-4">
+                            <!-- First Item Row (always present) -->
+                            <div class="item-row border rounded-lg p-4 dark:border-gray-700">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Select Equipment <span class="text-red-500">*</span>
+                                        </label>
+                                        <select name="items[0][item_id]" required
+                                            class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                            <option value="">Select Item</option>
+                                            @foreach ($items as $item)
+                                                <option value="{{ $item->id }}">{{ $item->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
 
-                                <!-- Select Issue Type -->
-                                <div>
-                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Issue Type <span class="text-red-500">*</span>
-                                    </label>
-                                    <select name="issue_type_id" required
-                                        class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-blue-800 @error('issue_type') border-red-500 dark:border-red-500 @enderror">
-                                        <option value="" disabled selected>Select issue type</option>
-                                        @foreach ($issueTypes as $issueType)
-                                            <option value="{{ $issueType->id }}"
-                                                {{ old('issue_type_id') == $issueType->id ? 'selected' : '' }}>
-                                                {{ $issueType->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('issue_type')
-                                        <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
-                                    @enderror
+                                    <div>
+                                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Issue Type <span class="text-red-500">*</span>
+                                        </label>
+                                        <select name="items[0][issue_type_id]" required
+                                            class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                            <option value="">Select Issue Type</option>
+                                            @foreach ($issueTypes as $issueType)
+                                                <option value="{{ $issueType->id }}">{{ $issueType->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+
+
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Priority Selection -->
+                        <button type="button" id="add-item"
+                            class="rounded-lg bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-theme-xs hover:bg-blue-600">
+                            <i class="bi bi-plus-circle me-1"></i>Add Another Item
+                        </button>
+
+                        <!-- Priority Selection (keep your existing code) -->
                         <div>
-                            <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
+                            <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90 ">
                                 <i class="bi bi-flag me-1"></i>Priority Level
                             </h4>
                             <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                                 @foreach (App\Models\MaintenanceRequest::getPriorityOptions() as $key => $value)
-                                    <label class="cursor-pointer">
+                                    <label class="cursor-pointer ">
                                         <input type="radio" name="priority" value="{{ $key }}"
                                             {{ old('priority', 'medium') == $key ? 'checked' : '' }} required
                                             class="peer sr-only">
@@ -118,7 +113,7 @@
                                         <div
                                             class="rounded-lg border-2 p-4 text-center transition-all peer-checked:{{ $color['border'] }} {{ $color['bg'] }} {{ $color['text'] }} dark:border-gray-700 peer-checked:dark:{{ $color['border'] }} {{ $color['dark_bg'] }} {{ $color['dark_text'] }}">
                                             <div class="text-sm font-medium">{{ $value }}</div>
-                                            <div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                            <div class="mt-1 text-xs text-gray-600 dark:text-gray-400 dark:border-white">
                                                 @if ($key === 'low')
                                                     Non-urgent, can wait
                                                 @elseif($key === 'medium')
@@ -138,26 +133,20 @@
                             @enderror
                         </div>
 
-                        <!-- Description -->
+                        <!-- Overall Description -->
                         <div>
-
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Describe the problem <span class="text-red-500">*</span>
-                                </label>
-                                <textarea name="description" rows="4" required
-                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800 @error('description') border-red-500 dark:border-red-500 @enderror"
-                                    placeholder="Please provide detailed description of the problem, including any error messages, when it started, and what you've tried...">{{ old('description') }}</textarea>
-                                @error('description')
-                                    <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
-                                @enderror
-                                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    Be as detailed as possible. Minimum 10 characters.
-                                </div>
-                            </div>
+                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Overall Problem Description <span class="text-red-500">*</span>
+                            </label>
+                            <textarea name="description" rows="4" required
+                                class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800 @error('description') border-red-500 dark:border-red-500 @enderror"
+                                placeholder="Please provide detailed description of the overall problem...">{{ old('description') }}</textarea>
+                            @error('description')
+                                <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
+                            @enderror
                         </div>
 
-                        <!-- File Upload -->
+                        <!-- File Upload (keep your existing code) -->
                         <div>
                             <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                                 <i class="bi bi-paperclip me-1"></i>Attach Files (Optional)
@@ -177,10 +166,7 @@
                                         Maximum file size: 10MB. Allowed: JPG, PNG, PDF, DOC, DOCX, TXT, XLS, XLSX
                                     </p>
                                 </div>
-
-                                <!-- File List -->
                                 <div id="file-list" class="mt-4 space-y-3 hidden"></div>
-
                             </div>
                             @error('files.*')
                                 <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</div>
@@ -192,10 +178,10 @@
                             <div class="flex justify-end gap-3">
                                 <button type="reset"
                                     class="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
-                                    <i class="bi bi-x-lg me-2"></i>Reset Form
+                                    <i class="bi bi-x-lg me-2"></i>Reset
                                 </button>
                                 <button type="submit"
-                                    class="rounded-lg bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-theme-xs hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                                    class="rounded-lg bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-theme-xs hover:bg-blue-600">
                                     <i class="bi bi-send me-2"></i>Submit Request
                                 </button>
                             </div>
@@ -333,51 +319,41 @@
     </div>
 
     @push('scripts')
+        <!-- File upload script (keep your existing file upload code) -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-
+                // Your existing file upload code here
                 const fileInput = document.getElementById('file-upload');
                 const fileList = document.getElementById('file-list');
-                const modal = document.getElementById('filePreviewModal');
-                const modalTitle = document.getElementById('previewTitle');
-                const modalContent = document.getElementById('previewContent');
-                const closeModal = document.getElementById('closePreviewModal');
 
                 fileInput.addEventListener('change', function() {
                     const files = Array.from(fileInput.files);
                     fileList.innerHTML = `
-            <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Attached Files (${files.length})
-            </h5>`;
+                        <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Attached Files (${files.length})
+                        </h5>
+                    `;
                     fileList.classList.remove('hidden');
 
                     files.forEach((file, index) => {
                         const url = URL.createObjectURL(file);
-
                         const wrapper = document.createElement('div');
                         wrapper.className =
                             'flex items-center justify-between rounded-lg border p-3 dark:border-gray-700';
-
                         wrapper.innerHTML = `
-                <div class="flex items-center gap-4 cursor-pointer preview-file">
-                    ${getPreviewIcon(file, url)}
-                    <div>
-                        <div class="text-sm font-medium">${file.name}</div>
-                        <div class="text-xs text-gray-500">${formatSize(file.size)}</div>
-                    </div>
-                </div>
-                <button class="text-red-500 remove-file" data-index="${index}">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-            `;
+                            <div class="flex items-center gap-4">
+                                ${getPreviewIcon(file, url)}
+                                <div>
+                                    <div class="text-sm font-medium">${file.name}</div>
+                                    <div class="text-xs text-gray-500">${formatSize(file.size)}</div>
+                                </div>
+                            </div>
+                            <button type="button" class="text-red-500 remove-file" data-index="${index}">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        `;
 
-                        // Preview click
-                        wrapper.querySelector('.preview-file').addEventListener('click', () => {
-                            openPreview(file, url);
-                        });
-
-                        // Remove file
-                        wrapper.querySelector('.remove-file').addEventListener('click', () => {
+                        wrapper.querySelector('.remove-file').addEventListener('click', function() {
                             const dt = new DataTransfer();
                             files.filter((_, i) => i !== index).forEach(f => dt.items.add(f));
                             fileInput.files = dt.files;
@@ -388,37 +364,6 @@
                     });
                 });
 
-                function openPreview(file, url) {
-                    modalTitle.textContent = file.name;
-                    modalContent.innerHTML = '';
-
-                    if (file.type.startsWith('image/')) {
-                        modalContent.innerHTML = `<img src="${url}" class="max-h-[70vh] rounded-lg">`;
-                    } else if (file.type === 'application/pdf') {
-                        modalContent.innerHTML = `
-                <iframe src="${url}" class="w-full h-[70vh] rounded border"></iframe>`;
-                    } else {
-                        modalContent.innerHTML = `
-                <div class="text-center text-gray-600">
-                    <i class="bi bi-file-earmark text-6xl mb-3"></i>
-                    <p>No preview available</p>
-                </div>`;
-                    }
-
-                    modal.classList.remove('hidden');
-                    modal.classList.add('flex');
-                }
-
-                closeModal.addEventListener('click', closePreview);
-                modal.addEventListener('click', e => e.target === modal && closePreview());
-                document.addEventListener('keydown', e => e.key === 'Escape' && closePreview());
-
-                function closePreview() {
-                    modal.classList.add('hidden');
-                    modal.classList.remove('flex');
-                    modalContent.innerHTML = '';
-                }
-
                 function formatSize(bytes) {
                     return bytes < 1048576 ?
                         (bytes / 1024).toFixed(0) + ' KB' :
@@ -427,13 +372,79 @@
 
                 function getPreviewIcon(file, url) {
                     if (file.type.startsWith('image/')) {
-                        return `<img src="${url}" class="h-16 w-16 rounded object-cover">`;
+                        return `<img src="${url}" class="h-10 w-10 rounded object-cover">`;
                     }
                     if (file.type === 'application/pdf') {
-                        return `<i class="bi bi-file-pdf text-4xl text-red-500"></i>`;
+                        return `<i class="bi bi-file-pdf text-2xl text-red-500"></i>`;
                     }
-                    return `<i class="bi bi-file-earmark text-4xl"></i>`;
+                    return `<i class="bi bi-file-earmark-text text-2xl"></i>`;
                 }
+            });
+        </script>
+
+        <!-- Add Item Script (FIXED) -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                let index = 1;
+
+                document.getElementById('add-item').addEventListener('click', function() {
+                    let wrapper = document.getElementById('items-wrapper');
+
+                    let html = `
+                        <div class="item-row border rounded-lg p-4 dark:border-gray-700 mt-4">
+                            <div class="flex justify-end mb-2">
+                                <button type="button" class="text-red-500 hover:text-red-700 remove-item">
+                                    <i class="bi bi-trash"></i> Remove
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Select Equipment <span class="text-red-500">*</span>
+                                    </label>
+                                    <select name="items[${index}][item_id]" required
+                                        class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                        <option value="">Select Item</option>
+                                        @foreach ($items as $item)
+                                            <option value="{{ $item->id }}">{{ $item->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Issue Type <span class="text-red-500">*</span>
+                                    </label>
+                                    <select name="items[${index}][issue_type_id]" required
+                                        class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                        <option value="">Select Issue Type</option>
+                                        @foreach ($issueTypes as $issueType)
+                                            <option value="{{ $issueType->id }}">{{ $issueType->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Specific Description (Optional)
+                                    </label>
+                                    <textarea name="items[${index}][description]" rows="3"
+                                        class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                                        placeholder="Specific issues with this item..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    wrapper.insertAdjacentHTML('beforeend', html);
+                    index++;
+
+                    // Add remove functionality to the new item
+                    const newItem = wrapper.lastElementChild;
+                    newItem.querySelector('.remove-item').addEventListener('click', function() {
+                        newItem.remove();
+                    });
+                });
             });
         </script>
     @endpush

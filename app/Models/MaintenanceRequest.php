@@ -445,6 +445,11 @@ class MaintenanceRequest extends Model
         return $this->hasMany(MaintenanceRequestFile::class);
     }
 
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(StatusHistory::class)->orderBy('created_at', 'desc');
+    }
+
     /**
      * Scope for user's requests
      */
@@ -539,6 +544,11 @@ class MaintenanceRequest extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    public function rejectedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
     /**
      * Check if request is completed
      */
@@ -554,7 +564,7 @@ class MaintenanceRequest extends Model
         return $this->update([
             'status' => self::STATUS_REJECTED,
             'rejected_at' => now(),
-            'approved_by' => $rejector->id,
+            'rejected_by' => $rejector->id,
             'rejection_reason' => $reason,
         ]);
     }

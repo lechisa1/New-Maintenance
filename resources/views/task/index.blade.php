@@ -61,10 +61,10 @@
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <a href="{{ route('maintenance-requests.export') }}"
+                        {{-- <a href="{{ route('maintenance-requests.export') }}"
                             class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                             <i class="bi bi-download me-2"></i> Export
-                        </a>
+                        </a> --}}
                         @if (auth()->user()->can('maintenance_requests.create'))
                             <a href="{{ route('maintenance-requests.create') }}"
                                 class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">
@@ -119,6 +119,7 @@
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Item</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Issue Type</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Priority</th>
+                            <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Requester Division</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
                             <th class="px-6 py-4 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                         </tr>
@@ -140,11 +141,15 @@
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
                                     {{ $request->getIssueTypeText() }}
                                 </td>
+
                                 <td class="px-6 py-4">
                                     <span
                                         class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $request->getPriorityBadgeClass() }}">
                                         {{ $request->getPriorityText() }}
                                     </span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                    {{ $request->user->division?->name ?? 'N/A' }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span

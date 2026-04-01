@@ -238,6 +238,17 @@
             @endif
         @endcan
 
+        {{-- REJECT REQUEST BUTTON (for users with assign permission) --}}
+        @can('maintenance_requests.assign')
+            @if (in_array($maintenanceRequest->status, ['pending', 'assigned', 'in_progress']))
+                <button @click="$dispatch('open-reject-assigner-modal')"
+                    class="flex w-full items-center rounded-lg border border-red-200 bg-white px-4 py-3 text-sm font-medium text-red-700 shadow-theme-xs hover:bg-red-50 dark:border-red-700 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20">
+                    <i class="bi bi-x-circle me-3"></i>
+                    Reject Request
+                </button>
+            @endif
+        @endcan
+
         @php
             // Check if current user is assigned to any items in this request
             $userAssignment = $maintenanceRequest
@@ -302,8 +313,8 @@
 {{-- WORK LOG SUBMIT MODAL --}}
 <div x-data="workLogSubmitModal()" @open-worklog-modal.window="showWorkLogModal = true; initializeItems();">
 
-    <div x-show="showWorkLogModal" x-cloak class="fixed inset-0 z-[999] overflow-y-auto" aria-labelledby="modal-title"
-        role="dialog" aria-modal="true">
+    <div x-show="showWorkLogModal" x-cloak class="fixed inset-0 z-[999] overflow-y-auto"
+        aria-labelledby="modal-title" role="dialog" aria-modal="true">
 
         <!-- Backdrop with blur -->
         <div x-show="showWorkLogModal" x-transition:enter="transition ease-out duration-300"

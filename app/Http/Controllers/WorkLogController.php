@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\WorkLog;
 use App\Models\MaintenanceRequest;
 use App\Models\MaintenanceRequestTechnician;
+use App\Models\StatusHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -329,6 +330,14 @@ class WorkLogController extends Controller
 
             // Update the request
             $maintenanceRequest->update($statusUpdateData);
+
+            // Record status history
+            StatusHistory::create([
+                'maintenance_request_id' => $maintenanceRequest->id,
+                'from_status' => $oldStatus,
+                'to_status' => $statusUpdateData['status'],
+                'changed_by' => $user->id,
+            ]);
             // Update technician assignment status if all their items are completed
             $allTechnicianItems = $assignment->item_ids ?? [];
             $remainingItems = array_diff($allTechnicianItems, $validated['item_ids']);
@@ -580,8 +589,17 @@ class WorkLogController extends Controller
 
                 // If no accepted work logs remain, set status to in_progress
                 if (!$latestWorkLog) {
+                    $oldStatus = $maintenanceRequest->status;
                     $maintenanceRequest->update([
                         'status' => MaintenanceRequest::STATUS_IN_PROGRESS,
+                    ]);
+
+                    // Record status history
+                    StatusHistory::create([
+                        'maintenance_request_id' => $maintenanceRequest->id,
+                        'from_status' => $oldStatus,
+                        'to_status' => MaintenanceRequest::STATUS_IN_PROGRESS,
+                        'changed_by' => $user->id,
                     ]);
                 }
             }
@@ -640,9 +658,18 @@ class WorkLogController extends Controller
             ]);
 
             // Update maintenance request status to 'confirmed'
+            $oldStatus = $maintenanceRequest->status;
             $maintenanceRequest->update([
                 'status' => MaintenanceRequest::STATUS_CONFIRMED,
                 'completed_at' => now(), // Ensure completed_at is set
+            ]);
+
+            // Record status history
+            StatusHistory::create([
+                'maintenance_request_id' => $maintenanceRequest->id,
+                'from_status' => $oldStatus,
+                'to_status' => MaintenanceRequest::STATUS_CONFIRMED,
+                'changed_by' => $user->id,
             ]);
 
             // Send notifications

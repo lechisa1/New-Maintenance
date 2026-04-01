@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MaintenanceRequest;
 use App\Models\MaintenanceRequestFile;
 use App\Models\User;
+use App\Models\StatusHistory;
 use Illuminate\Http\Request;
 use App\Notifications\ApprovalRequestSubmitted;
 use App\Notifications\ApprovalRequestForwarded;
@@ -72,6 +73,8 @@ class ApprovalController extends Controller
 
         \DB::transaction(function () use ($maintenanceRequest, $validated) {
 
+            $oldStatus = $maintenanceRequest->status;
+
             // ✅ Update request status
             $maintenanceRequest->update([
                 'status' => MaintenanceRequest::STATUS_APPROVED,
@@ -80,6 +83,14 @@ class ApprovalController extends Controller
                 'approved_by' => auth()->id(),
                 'forwarded_to_ict_director_at' => now(),
                 'approval_notes' => $validated['approval_notes'] ?? null,
+            ]);
+
+            // Record status history
+            StatusHistory::create([
+                'maintenance_request_id' => $maintenanceRequest->id,
+                'from_status' => $oldStatus,
+                'to_status' => MaintenanceRequest::STATUS_APPROVED,
+                'changed_by' => auth()->id(),
             ]);
 
             // 📎 Store attachments
@@ -129,7 +140,17 @@ class ApprovalController extends Controller
 
         DB::beginTransaction();
         try {
+            $oldStatus = $maintenanceRequest->status;
             $maintenanceRequest->reject($user, $request->rejection_reason);
+
+            // Record status history
+            StatusHistory::create([
+                'maintenance_request_id' => $maintenanceRequest->id,
+                'from_status' => $oldStatus,
+                'to_status' => 'rejected',
+                'changed_by' => $user->id,
+            ]);
+
             DB::commit();
 
             if ($request->expectsJson()) {
@@ -314,8 +335,17 @@ class ApprovalController extends Controller
             ]);
 
             // Update maintenance request status
+            $oldStatus = $maintenanceRequest->status;
             $maintenanceRequest->update([
                 'status' => 'waiting_approval',
+            ]);
+
+            // Record status history
+            StatusHistory::create([
+                'maintenance_request_id' => $maintenanceRequest->id,
+                'from_status' => $oldStatus,
+                'to_status' => 'waiting_approval',
+                'changed_by' => $user->id,
             ]);
 
             DB::commit();
@@ -360,8 +390,17 @@ class ApprovalController extends Controller
             ]);
 
             // Update maintenance request status back to assigned
+            $oldStatus = $maintenanceRequest->status;
             $maintenanceRequest->update([
                 'status' => 'assigned',
+            ]);
+
+            // Record status history
+            StatusHistory::create([
+                'maintenance_request_id' => $maintenanceRequest->id,
+                'from_status' => $oldStatus,
+                'to_status' => 'assigned',
+                'changed_by' => $user->id,
             ]);
 
             DB::commit();

@@ -296,14 +296,14 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        // Monthly statistics data (update these methods to use the new structure)
-        $monthlyStats = $this->getMonthlyStatistics();
+        // Monthly statistics data (updated to filter by user role)
+        $monthlyStats = $this->getMonthlyStatistics($user);
 
-        // Priority distribution (update this method)
-        $priorityStats = $this->getPriorityStatistics();
+        // Priority distribution (updated to filter by user role)
+        $priorityStats = $this->getPriorityStatistics($user);
 
-        // Response time metrics (update this method)
-        $responseMetrics = $this->getResponseTimeMetrics();
+        // Response time metrics (updated to filter by user role)
+        $responseMetrics = $this->getResponseTimeMetrics($user);
 
         return view('pages.dashboard.ecommerce', compact(
             'totalRequests',
@@ -322,11 +322,37 @@ class DashboardController extends Controller
         ));
     }
 
-    private function getMonthlyStatistics()
+    private function getMonthlyStatistics($user)
     {
         $currentYear = Carbon::now()->year;
 
-        $monthlyData = MaintenanceRequest::selectRaw('
+        // Build base query based on user role
+        $query = MaintenanceRequest::query();
+
+        if ($user->can('maintenance_requests.assign')) {
+            // Admin/ICT Director: see all requests
+            // No additional filter needed
+        } elseif ($user->isDivisionChairman()) {
+            // Division Chairman: see requests from their division
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('division_id', $user->division_id);
+            });
+        } elseif ($user->isClusterChairman()) {
+            // Cluster Chairman: see requests from their cluster
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('cluster_id', $user->cluster_id);
+            });
+        } elseif ($user->can('maintenance_requests.resolve')) {
+            // Technician: see only assigned requests
+            $query->whereHas('assignedTechnicians', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        } else {
+            // Regular user: see only their own requests
+            $query->where('user_id', $user->id);
+        }
+
+        $monthlyData = (clone $query)->selectRaw('
             MONTH(requested_at) as month,
             COUNT(*) as total,
             SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed,
@@ -346,35 +372,88 @@ class DashboardController extends Controller
         return $monthlyData;
     }
 
-    private function getPriorityStatistics()
+    private function getPriorityStatistics($user)
     {
-        return MaintenanceRequest::selectRaw('
+        // Build base query based on user role
+        $query = MaintenanceRequest::query();
+
+        if ($user->can('maintenance_requests.assign')) {
+            // Admin/ICT Director: see all requests
+            // No additional filter needed
+        } elseif ($user->isDivisionChairman()) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('division_id', $user->division_id);
+            });
+        } elseif ($user->isClusterChairman()) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('cluster_id', $user->cluster_id);
+            });
+        } elseif ($user->can('maintenance_requests.resolve')) {
+            $query->whereHas('assignedTechnicians', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        } else {
+            $query->where('user_id', $user->id);
+        }
+
+        // Get total count for percentage calculation
+        $totalCount = (clone $query)->count();
+
+        if ($totalCount === 0) {
+            return collect();
+        }
+
+        return (clone $query)->selectRaw('
             priority,
             COUNT(*) as count,
-            ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM maintenance_requests)), 2) as percentage
-        ')
+            ROUND((COUNT(*) * 100.0 / ?), 2) as percentage
+        ', [$totalCount])
             ->groupBy('priority')
             ->orderByRaw("FIELD(priority, 'emergency', 'high', 'medium', 'low')")
             ->get();
     }
 
-    private function getResponseTimeMetrics()
+    private function getResponseTimeMetrics($user)
     {
+        // Build base query based on user role
+        $query = MaintenanceRequest::query();
+
+        if ($user->can('maintenance_requests.assign')) {
+            // Admin/ICT Director: see all requests
+        } elseif ($user->isDivisionChairman()) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('division_id', $user->division_id);
+            });
+        } elseif ($user->isClusterChairman()) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('cluster_id', $user->cluster_id);
+            });
+        } elseif ($user->can('maintenance_requests.resolve')) {
+            $query->whereHas('assignedTechnicians', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        } else {
+            $query->where('user_id', $user->id);
+        }
+
         return [
-            'avg_response_time' => MaintenanceRequest::whereNotNull('assigned_at')
+            'avg_response_time' => (clone $query)
+                ->whereNotNull('assigned_at')
                 ->whereNotNull('requested_at')
                 ->avg(DB::raw('TIMESTAMPDIFF(HOUR, requested_at, assigned_at)')),
 
-            'avg_resolution_time' => MaintenanceRequest::where('status', MaintenanceRequest::STATUS_COMPLETED)
+            'avg_resolution_time' => (clone $query)
+                ->where('status', MaintenanceRequest::STATUS_COMPLETED)
                 ->whereNotNull('completed_at')
                 ->whereNotNull('assigned_at')
                 ->avg(DB::raw('TIMESTAMPDIFF(HOUR, assigned_at, completed_at)')),
 
-            'total_open' => MaintenanceRequest::whereIn('status', [
-                MaintenanceRequest::STATUS_PENDING,
-                MaintenanceRequest::STATUS_ASSIGNED,
-                MaintenanceRequest::STATUS_IN_PROGRESS
-            ])->count(),
+            'total_open' => (clone $query)
+                ->whereIn('status', [
+                    MaintenanceRequest::STATUS_PENDING,
+                    MaintenanceRequest::STATUS_ASSIGNED,
+                    MaintenanceRequest::STATUS_IN_PROGRESS
+                ])->count(),
         ];
     }
 

@@ -95,6 +95,14 @@
                             {{ $maintenanceRequest->user?->email ?? 'No email' }}
                         </span>
                     </div>
+
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <i class="bi bi-phone text-xs text-gray-400"></i>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ $maintenanceRequest->user?->phone ?? 'No phone' }}
+                        </span>
+                    </div>
+
                 </div>
             </div>
         </div>

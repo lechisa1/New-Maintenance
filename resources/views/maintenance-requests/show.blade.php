@@ -40,6 +40,7 @@
             @include('maintenance-requests.partials.sidebar.approval-section')
             @include('maintenance-requests.partials.sidebar.needs-approval-reviewed')
             @include('maintenance-requests.partials.sidebar.work-log-section')
+            @include('maintenance-requests.partials.sidebar.status-history-section')
             @include('maintenance-requests.partials.sidebar.similar-requests')
         </div>
     </div>
@@ -48,6 +49,7 @@
     @include('maintenance-requests.partials.modals.update-status')
     @include('maintenance-requests.partials.modals.approve-request')
     @include('maintenance-requests.partials.modals.reject-request')
+    @include('maintenance-requests.partials.modals.reject-request-assigner')
     @include('maintenance-requests.partials.modals.preview-modal')
     @include('maintenance-requests.partials.sidebar.work-log-modals')
 
@@ -63,6 +65,9 @@
             });
             this.$el.addEventListener('open-reject-modal', () => {
                 this.$dispatch('open-modal', 'reject');
+            });
+            this.$el.addEventListener('open-reject-assigner-modal', () => {
+                this.$dispatch('open-modal', 'rejectAssigner');
             });
             this.$el.addEventListener('open-worklog-modal', () => {
                 this.$dispatch('open-modal', 'worklog');

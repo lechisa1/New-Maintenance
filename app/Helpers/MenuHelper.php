@@ -1,7 +1,9 @@
 <?php
 
 namespace App\Helpers;
+
 use Illuminate\Support\Facades\Auth;
+
 class MenuHelper
 {
     public static function getMainNavItems()
@@ -32,16 +34,16 @@ class MenuHelper
                 'icon' => 'task',
                 'name' => 'My Tasks',
                 'path' => '/task',
-              'permission' => 'maintenance_requests.view_assigned',
+                'permission' => 'maintenance_requests.view_assigned',
             ],
-            
-                        [
+
+            [
                 'icon' => 'base',
                 'name' => 'My Request',
                 'path' => '/my-requests',
-              'permission' => 'maintenance_requests.create',
+                'permission' => 'maintenance_requests.create',
             ],
-                        [
+            [
                 'icon' => 'pages',
                 'name' => 'Base Data',
                 'path' => '/base-data',
@@ -64,6 +66,14 @@ class MenuHelper
                 'name' => 'Organization Unit',
                 'path' => '/organizations',
                 'permission' => 'organization_units.view',
+            ],
+            [
+                'icon' => 'charts',
+                'name' => 'Reports',
+                'subItems' => [
+                    ['name' => 'Technician Reports', 'path' => '/reports/technicians', 'permission' => 'maintenance_requests.assign'],
+                    ['name' => 'My Reports', 'path' => '/reports/my', 'permission' => 'maintenance_requests.resolve'],
+                ],
             ],
         ];
 

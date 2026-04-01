@@ -108,6 +108,7 @@
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Item</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Issue Type</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Priority</th>
+                            <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Requester Department</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
                             <th class="px-6 py-4 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                         </tr>
@@ -134,6 +135,9 @@
                                         class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $request->getPriorityBadgeClass() }}">
                                         {{ $request->getPriorityText() }}
                                     </span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                    {{ $request->department?->name ?? 'N/A' }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span

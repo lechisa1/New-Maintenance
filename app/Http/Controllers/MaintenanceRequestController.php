@@ -10,6 +10,7 @@ use App\Models\MaintenanceRequestItem;
 use App\Models\User;
 use App\Models\IssueType;
 use App\Models\MaintenanceRequestTechnician;
+use App\Models\StatusHistory;
 use App\Http\Requests\StoreMaintenanceRequestRequest;
 use App\Http\Requests\UpdateMaintenanceRequestRequest;
 use Illuminate\Http\Request;
@@ -175,6 +176,9 @@ class MaintenanceRequestController extends Controller
                 }
             }
 
+            // Record initial status history
+            $this->recordStatusHistory($maintenanceRequest, null, 'pending');
+
             DB::commit();
             // $maintenanceRequest->refresh(); // Refresh to get fresh data
             // $maintenanceRequest->handleNotifications();
@@ -240,6 +244,8 @@ class MaintenanceRequestController extends Controller
 
         \DB::transaction(function () use ($maintenanceRequest, $validated) {
 
+            $oldStatus = $maintenanceRequest->status;
+
             // ✅ Update request status
             $maintenanceRequest->update([
                 'status' => MaintenanceRequest::STATUS_APPROVED,
@@ -249,6 +255,9 @@ class MaintenanceRequestController extends Controller
                 'forwarded_to_ict_director_at' => now(),
                 'approval_notes' => $validated['approval_notes'] ?? null,
             ]);
+
+            // Record status history
+            $this->recordStatusHistory($maintenanceRequest, $oldStatus, MaintenanceRequest::STATUS_APPROVED);
 
             // 📎 Store attachments
             foreach ($validated['attachments'] as $file) {
@@ -467,10 +476,13 @@ class MaintenanceRequestController extends Controller
                 ->count();
 
             if ($allAssignments > 0 && $maintenanceRequest->status !== MaintenanceRequest::STATUS_ASSIGNED) {
+                $oldStatus = $maintenanceRequest->status;
                 $maintenanceRequest->update([
                     'status' => MaintenanceRequest::STATUS_ASSIGNED,
                     'assigned_at' => now(),
                 ]);
+                // Record status history
+                $this->recordStatusHistory($maintenanceRequest, $oldStatus, MaintenanceRequest::STATUS_ASSIGNED);
             }
 
             \DB::commit();
@@ -498,6 +510,58 @@ class MaintenanceRequestController extends Controller
             );
         }
     }
+
+    /**
+     * Reject maintenance request (for users with assign permission).
+     */
+    public function reject(Request $request, MaintenanceRequest $maintenanceRequest)
+    {
+        // Check if user has permission to assign (same permission as assign)
+        if (!auth()->user()->can('maintenance_requests.assign')) {
+            return redirect()->back()
+                ->with('error', 'You do not have permission to reject requests.');
+        }
+
+        // Validate the request
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:1000',
+        ]);
+
+        try {
+            \DB::beginTransaction();
+
+            $oldStatus = $maintenanceRequest->status;
+
+            // Update request status to rejected
+            $maintenanceRequest->update([
+                'status' => MaintenanceRequest::STATUS_REJECTED,
+                'rejected_at' => now(),
+                'rejected_by' => auth()->id(),
+                'rejection_reason' => $validated['rejection_reason'],
+            ]);
+
+            // Record status history
+            $this->recordStatusHistory($maintenanceRequest, $oldStatus, MaintenanceRequest::STATUS_REJECTED);
+
+            // Cancel all active technician assignments
+            MaintenanceRequestTechnician::where('maintenance_request_id', $maintenanceRequest->id)
+                ->whereIn('status', ['assigned', 'in_progress'])
+                ->update([
+                    'status' => 'cancelled',
+                    'completed_at' => now(),
+                ]);
+
+            \DB::commit();
+
+            return redirect()->back()->with('success', 'Request rejected successfully.');
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Failed to reject request: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Failed to reject request: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Show the form for editing the specified resource.
      */
@@ -693,6 +757,9 @@ class MaintenanceRequestController extends Controller
      */
     private function handleStatusChange($maintenanceRequest, $newStatus, $updates): array
     {
+        // Record status history
+        $this->recordStatusHistory($maintenanceRequest, $maintenanceRequest->status, $newStatus);
+
         switch ($newStatus) {
             case MaintenanceRequest::STATUS_ASSIGNED:
                 $updates['assigned_at'] = now();
@@ -712,6 +779,19 @@ class MaintenanceRequestController extends Controller
         }
 
         return $updates;
+    }
+
+    /**
+     * Record status change history
+     */
+    private function recordStatusHistory($maintenanceRequest, $fromStatus, $toStatus): void
+    {
+        StatusHistory::create([
+            'maintenance_request_id' => $maintenanceRequest->id,
+            'from_status' => $fromStatus,
+            'to_status' => $toStatus,
+            'changed_by' => auth()->id(),
+        ]);
     }
 
     /**
@@ -873,6 +953,7 @@ class MaintenanceRequestController extends Controller
         ]);
 
         try {
+            $oldStatus = $maintenanceRequest->status;
             $updates = ['status' => $request->status];
 
             if ($request->status === MaintenanceRequest::STATUS_COMPLETED) {
@@ -884,6 +965,9 @@ class MaintenanceRequestController extends Controller
             }
 
             $maintenanceRequest->update($updates);
+
+            // Record status history
+            $this->recordStatusHistory($maintenanceRequest, $oldStatus, $request->status);
 
             // Update item status
             $this->updateItemStatus($maintenanceRequest);

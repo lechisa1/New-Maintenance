@@ -221,7 +221,7 @@
              <div>
                  <div class="text-sm font-medium text-gray-800 dark:text-white/90">
                      Rejected by
-                     {{ $maintenanceRequest->approvedByUser ? $maintenanceRequest->approvedByUser->full_name : 'N/A' }}
+                     {{ $maintenanceRequest->rejectedByUser ? $maintenanceRequest->rejectedByUser->full_name : 'N/A' }}
                  </div>
                  <div class="text-xs text-gray-600 dark:text-gray-400">
                      on {{ $maintenanceRequest->rejected_at?->format('M d, Y h:i A') }}

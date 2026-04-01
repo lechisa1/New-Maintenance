@@ -210,12 +210,12 @@ class TaskController extends Controller
 
         $maintenanceRequest->load(['user', 'item', 'assignedTechnician', 'files']);
 
-        // Get technicians who have 'reports.assign' permission
+        // Get technicians who have 'maintenance_requests.resolve' permission
         $technicians = User::whereHas('roles.permissions', function ($query) {
-            $query->where('name', 'reports.assign');
+            $query->where('name', 'maintenance_requests.resolve');
         })
             ->orWhereHas('permissions', function ($query) {
-                $query->where('name', 'reports.assign');
+                $query->where('name', 'maintenance_requests.resolve');
             })
             ->select('id', 'full_name', 'email')
             ->get()

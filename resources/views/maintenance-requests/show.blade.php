@@ -39,6 +39,7 @@
             @include('maintenance-requests.partials.sidebar.quick-actions')
             @include('maintenance-requests.partials.sidebar.approval-section')
             @include('maintenance-requests.partials.sidebar.needs-approval-reviewed')
+            @include('maintenance-requests.partials.sidebar.chairman-approval-section')
             @include('maintenance-requests.partials.sidebar.work-log-section')
             @include('maintenance-requests.partials.sidebar.status-history-section')
             @include('maintenance-requests.partials.sidebar.similar-requests')

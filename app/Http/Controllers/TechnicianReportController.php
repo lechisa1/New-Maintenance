@@ -263,57 +263,59 @@ class TechnicianReportController extends Controller
             abort(403, 'You do not have permission to view your reports.');
         }
 
-        $period = $request->period ?? 'week'; // week or month
+        $period = $request->period ?? 'week'; // week, month, or custom
 
         // Determine date range based on period
         if ($period === 'month') {
             $startDate = Carbon::now()->startOfMonth();
             $endDate = Carbon::now()->endOfMonth();
-        } else {
+        } elseif ($period === 'week') {
             $startDate = Carbon::now()->startOfWeek();
             $endDate = Carbon::now()->endOfWeek();
+        } else {
+            // Custom range
+            $startDate = $request->filled('start_date')
+                ? Carbon::parse($request->start_date)->startOfDay()
+                : Carbon::now()->subDays(30)->startOfDay();
+            $endDate = $request->filled('end_date')
+                ? Carbon::parse($request->end_date)->endOfDay()
+                : Carbon::now()->endOfDay();
         }
 
-        // Get user's completed assignments
+        // Get user's completed assignments - FIXED: Specify table names
         $query = MaintenanceRequestTechnician::with([
             'maintenanceRequest.user',
             'maintenanceRequest.items.item'
         ])
-            ->where('user_id', $user->id)
-            ->where('status', 'completed');
+            ->where('maintenance_request_technicians.user_id', $user->id)
+            ->where('maintenance_request_technicians.status', 'completed');
 
-        // Filter by date range if provided
-        if ($request->start_date && $request->end_date) {
-            $startDate = Carbon::parse($request->start_date)->startOfDay();
-            $endDate = Carbon::parse($request->end_date)->endOfDay();
-            $period = 'custom';
-        }
-
+        // Filter by date range
         $completedAssignments = $query
-            ->whereBetween('completed_at', [$startDate, $endDate])
-            ->orderBy('completed_at', 'desc')
+            ->whereBetween('maintenance_request_technicians.completed_at', [$startDate, $endDate])
+            ->orderBy('maintenance_request_technicians.completed_at', 'desc')
             ->paginate(15);
 
-        // Calculate statistics for the period
-        $totalCompleted = MaintenanceRequestTechnician::where('user_id', $user->id)
-            ->where('status', 'completed')
-            ->whereBetween('completed_at', [$startDate, $endDate])
+        // Calculate statistics for the period - FIXED: Specify table names
+        $totalCompleted = MaintenanceRequestTechnician::where('maintenance_request_technicians.user_id', $user->id)
+            ->where('maintenance_request_technicians.status', 'completed')
+            ->whereBetween('maintenance_request_technicians.completed_at', [$startDate, $endDate])
             ->count();
 
-        // Calculate average completion time
-        $avgCompletionTime = MaintenanceRequestTechnician::where('user_id', $user->id)
-            ->where('status', 'completed')
-            ->whereBetween('completed_at', [$startDate, $endDate])
-            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, assigned_at, completed_at)) as avg_time')
+        // Calculate average completion time - FIXED: Specify table for all columns
+        $avgCompletionTime = MaintenanceRequestTechnician::where('maintenance_request_technicians.user_id', $user->id)
+            ->where('maintenance_request_technicians.status', 'completed')
+            ->whereBetween('maintenance_request_technicians.completed_at', [$startDate, $endDate])
+            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, maintenance_request_technicians.assigned_at, maintenance_request_technicians.completed_at)) as avg_time')
             ->value('avg_time');
 
-        // Get weekly summary for chart
+        // Get weekly summary for chart - FIXED: Specify table names
         $weeklySummary = [];
         if ($period === 'week' || $period === 'custom') {
-            $weeklySummary = MaintenanceRequestTechnician::where('user_id', $user->id)
-                ->where('status', 'completed')
-                ->whereBetween('completed_at', [$startDate, $endDate])
-                ->selectRaw('DATE(completed_at) as date, COUNT(*) as count')
+            $weeklySummary = MaintenanceRequestTechnician::where('maintenance_request_technicians.user_id', $user->id)
+                ->where('maintenance_request_technicians.status', 'completed')
+                ->whereBetween('maintenance_request_technicians.completed_at', [$startDate, $endDate])
+                ->selectRaw('DATE(maintenance_request_technicians.completed_at) as date, COUNT(*) as count')
                 ->groupBy('date')
                 ->orderBy('date')
                 ->get()
@@ -321,10 +323,10 @@ class TechnicianReportController extends Controller
                 ->toArray();
         }
 
-        // Monthly summary
-        $monthlySummary = MaintenanceRequestTechnician::where('user_id', $user->id)
-            ->where('status', 'completed')
-            ->selectRaw('YEAR(completed_at) as year, MONTH(completed_at) as month, COUNT(*) as count')
+        // Monthly summary - FIXED: Specify table names
+        $monthlySummary = MaintenanceRequestTechnician::where('maintenance_request_technicians.user_id', $user->id)
+            ->where('maintenance_request_technicians.status', 'completed')
+            ->selectRaw('YEAR(maintenance_request_technicians.completed_at) as year, MONTH(maintenance_request_technicians.completed_at) as month, COUNT(*) as count')
             ->groupBy('year', 'month')
             ->orderBy('year', 'desc')
             ->orderBy('month', 'desc')
@@ -346,6 +348,15 @@ class TechnicianReportController extends Controller
     /**
      * Download technician's own completed tasks as PDF
      */
+    /**
+     * Download technician's own completed tasks as PDF with custom date range
+     */
+    /**
+     * Download technician's own completed tasks as PDF with custom date range
+     */
+    /**
+     * Download technician's own completed tasks as PDF with custom date range
+     */
     public function downloadMyReport(Request $request)
     {
         $user = Auth::user();
@@ -354,48 +365,73 @@ class TechnicianReportController extends Controller
             abort(403, 'You do not have permission to download your report.');
         }
 
+        // Get date range from request
+        $startDate = $request->filled('start_date')
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : Carbon::now()->startOfWeek();
+
+        $endDate = $request->filled('end_date')
+            ? Carbon::parse($request->end_date)->endOfDay()
+            : Carbon::now()->endOfWeek();
+
         $period = $request->period ?? 'week';
 
-        if ($period === 'month') {
-            $startDate = Carbon::now()->startOfMonth();
-            $endDate = Carbon::now()->endOfMonth();
-        } else {
-            $startDate = Carbon::now()->startOfWeek();
-            $endDate = Carbon::now()->endOfWeek();
+        // If custom period but no dates provided, use last 30 days
+        if ($period === 'custom' && (!$request->filled('start_date') || !$request->filled('end_date'))) {
+            $startDate = Carbon::now()->subDays(30)->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
         }
 
-        if ($request->start_date && $request->end_date) {
-            $startDate = Carbon::parse($request->start_date)->startOfDay();
-            $endDate = Carbon::parse($request->end_date)->endOfDay();
-        }
-
+        // Get completed assignments within date range
         $completedAssignments = MaintenanceRequestTechnician::with([
             'maintenanceRequest.user',
-            'maintenanceRequest.items.item'
+            'maintenanceRequest.items.item',
+            'maintenanceRequest.items.issueType'
         ])
-            ->where('user_id', $user->id)
-            ->where('status', 'completed')
-            ->whereBetween('completed_at', [$startDate, $endDate])
-            ->orderBy('completed_at', 'desc')
+            ->where('maintenance_request_technicians.user_id', $user->id)
+            ->where('maintenance_request_technicians.status', 'completed')
+            ->whereBetween('maintenance_request_technicians.completed_at', [$startDate, $endDate])
+            ->orderBy('maintenance_request_technicians.completed_at', 'desc')
             ->get();
 
         $totalCompleted = $completedAssignments->count();
 
+        // Calculate average completion time - FIXED: Specify table for all columns
+        $avgCompletionTime = MaintenanceRequestTechnician::where('maintenance_request_technicians.user_id', $user->id)
+            ->where('maintenance_request_technicians.status', 'completed')
+            ->whereBetween('maintenance_request_technicians.completed_at', [$startDate, $endDate])
+            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, maintenance_request_technicians.assigned_at, maintenance_request_technicians.completed_at)) as avg_time')
+            ->value('avg_time');
+
+        // Group by priority - FIXED: Specify table for all columns
+        $priorityStats = MaintenanceRequestTechnician::where('maintenance_request_technicians.user_id', $user->id)
+            ->where('maintenance_request_technicians.status', 'completed')
+            ->whereBetween('maintenance_request_technicians.completed_at', [$startDate, $endDate])
+            ->join('maintenance_requests', 'maintenance_request_technicians.maintenance_request_id', '=', 'maintenance_requests.id')
+            ->selectRaw('maintenance_requests.priority, COUNT(*) as count')
+            ->groupBy('maintenance_requests.priority')
+            ->get();
+
         $pdf = Pdf::loadView('reports.my.pdf', compact(
             'completedAssignments',
             'totalCompleted',
+            'avgCompletionTime',
+            'priorityStats',
             'period',
             'startDate',
             'endDate',
             'user'
         ));
 
-        $filename = 'my_completed_tasks_' . $period . '_' . Carbon::now()->format('Ymd_His') . '.pdf';
+        // Set paper size and orientation
+        $pdf->setPaper('A4', 'portrait');
+
+        $filename = 'my_completed_tasks_' . $startDate->format('Ymd') . '_to_' . $endDate->format('Ymd') . '.pdf';
         return $pdf->download($filename);
     }
 
     /**
-     * Export technician's own completed tasks as CSV
+     * Export technician's own completed tasks as CSV with custom date range
      */
     public function exportMyReport(Request $request)
     {
@@ -405,51 +441,77 @@ class TechnicianReportController extends Controller
             abort(403, 'You do not have permission to export your report.');
         }
 
+        // Get date range from request
+        $startDate = $request->filled('start_date')
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : Carbon::now()->startOfWeek();
+
+        $endDate = $request->filled('end_date')
+            ? Carbon::parse($request->end_date)->endOfDay()
+            : Carbon::now()->endOfWeek();
+
         $period = $request->period ?? 'week';
 
-        if ($period === 'month') {
-            $startDate = Carbon::now()->startOfMonth();
-            $endDate = Carbon::now()->endOfMonth();
-        } else {
-            $startDate = Carbon::now()->startOfWeek();
-            $endDate = Carbon::now()->endOfWeek();
-        }
-
-        if ($request->start_date && $request->end_date) {
-            $startDate = Carbon::parse($request->start_date)->startOfDay();
-            $endDate = Carbon::parse($request->end_date)->endOfDay();
+        // If custom period but no dates provided, use last 30 days
+        if ($period === 'custom' && (!$request->filled('start_date') || !$request->filled('end_date'))) {
+            $startDate = Carbon::now()->subDays(30)->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
         }
 
         $completedAssignments = MaintenanceRequestTechnician::with([
             'maintenanceRequest.user',
-            'maintenanceRequest.items.item'
+            'maintenanceRequest.items.item',
+            'maintenanceRequest.items.issueType'
         ])
-            ->where('user_id', $user->id)
-            ->where('status', 'completed')
-            ->whereBetween('completed_at', [$startDate, $endDate])
-            ->orderBy('completed_at', 'desc')
+            ->where('maintenance_request_technicians.user_id', $user->id)
+            ->where('maintenance_request_technicians.status', 'completed')
+            ->whereBetween('maintenance_request_technicians.completed_at', [$startDate, $endDate])
+            ->orderBy('maintenance_request_technicians.completed_at', 'desc')
             ->get();
 
         $output = fopen('php://temp', 'r+');
 
+        // Add UTF-8 BOM for Excel compatibility
+        fwrite($output, "\xEF\xBB\xBF");
+
+        // CSV Headers
         fputcsv($output, [
             'Ticket Number',
             'Request Description',
+            'Priority',
             'Requester',
+            'Requester Division',
+            'Requester Cluster',
+            'Assigned Date',
             'Completed Date',
             'Items Worked On',
+            'Issue Types',
+            'Time to Complete (Hours)',
             'Notes'
         ]);
 
         foreach ($completedAssignments as $assignment) {
             $items = $assignment->maintenanceRequest->items->pluck('item.name')->implode(', ');
+            $issueTypes = $assignment->maintenanceRequest->items->pluck('issueType.name')->implode(', ');
+
+            // Calculate completion time in hours
+            $completionTime = null;
+            if ($assignment->assigned_at && $assignment->completed_at) {
+                $completionTime = round($assignment->assigned_at->diffInHours($assignment->completed_at), 1);
+            }
 
             fputcsv($output, [
                 $assignment->maintenanceRequest->ticket_number ?? 'N/A',
-                substr($assignment->maintenanceRequest->description ?? '', 0, 100),
+                substr($assignment->maintenanceRequest->description ?? '', 0, 200),
+                $assignment->maintenanceRequest->priority ?? 'N/A',
                 $assignment->maintenanceRequest->user->full_name ?? 'N/A',
-                $assignment->completed_at ? $assignment->completed_at->format('Y-m-d H:i') : 'N/A',
+                $assignment->maintenanceRequest->user->division->name ?? 'N/A',
+                $assignment->maintenanceRequest->user->cluster->name ?? 'N/A',
+                $assignment->assigned_at ? $assignment->assigned_at->format('Y-m-d H:i:s') : 'N/A',
+                $assignment->completed_at ? $assignment->completed_at->format('Y-m-d H:i:s') : 'N/A',
                 $items,
+                $issueTypes,
+                $completionTime,
                 $assignment->notes ?? ''
             ]);
         }
@@ -458,9 +520,9 @@ class TechnicianReportController extends Controller
         $content = stream_get_contents($output);
         fclose($output);
 
-        $filename = 'my_completed_tasks_' . $period . '_' . Carbon::now()->format('Ymd_His') . '.csv';
+        $filename = 'my_completed_tasks_' . $startDate->format('Ymd') . '_to_' . $endDate->format('Ymd') . '.csv';
         return response($content)
-            ->header('Content-Type', 'text/csv')
+            ->header('Content-Type', 'text/csv; charset=UTF-8')
             ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
     }
 }

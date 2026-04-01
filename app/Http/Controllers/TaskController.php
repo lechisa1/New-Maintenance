@@ -23,7 +23,9 @@ class TaskController extends Controller
             'items.issueType',
             'assignedTechnicians.technician',
             'approvalRequest.technician',
-            'approvalRequest.issueType'
+            'approvalRequest.issueType',
+            'forwardedApprovalRequest.issueType',
+            'forwardedApprovalRequest.technician',  // For forwarded ones
         ]);
 
         /*
@@ -82,64 +84,158 @@ class TaskController extends Controller
 
                 /*
             |--------------------------------------------------------------------------
-            | 2️⃣ Division Chairman
+            | 2️⃣ Division Chairman - See requests that need chairman approval
             |--------------------------------------------------------------------------
             */
 
+                // if ($user->isDivisionChairman()) {
+                //     $divisionId = $user->division_id;
+                //     $userId = $user->id;
+
+                //     // Show requests that are either:
+                //     // 1. Waiting for chairman approval (status = waiting_approval with forwarded approval request)
+                //     // 2. Requests with issue types that need approval in pending/assigned status
+                //     $mainQuery->orWhere(function ($q) use ($divisionId, $userId) {
+                //         // Requests with forwarded approval requests waiting for chairman
+                //         $q->whereHas('user', function ($sub) use ($divisionId, $userId) {
+                //             $sub->where('division_id', $divisionId)
+                //                 ->where('id', '!=', $userId);
+                //         })
+                //             ->where('status', 'waiting_approval')
+                //             ->whereHas('approvalRequest', function ($approvalQ) {
+                //                 $approvalQ->where('status', 'forwarded');
+                //             });
+                //     });
+
+                //     // Also show requests with issue types that need approval
+                //     $mainQuery->orWhere(function ($q) use ($divisionId, $userId) {
+                //         $q->whereHas('user', function ($sub) use ($divisionId, $userId) {
+                //             $sub->where('division_id', $divisionId)
+                //                 ->where('id', '!=', $userId);
+                //         })
+                //             ->whereHas('items.issueType', function ($sub) {
+                //                 $sub->where('is_need_approval', true);
+                //             })
+                //             ->whereIn('status', ['pending', 'assigned']);
+                //     });
+                // }
                 if ($user->isDivisionChairman()) {
                     $divisionId = $user->division_id;
                     $userId = $user->id;
 
+                    // ✅ FIXED: Use forwardedApprovalRequest instead of approvalRequest
                     $mainQuery->orWhere(function ($q) use ($divisionId, $userId) {
                         $q->whereHas('user', function ($sub) use ($divisionId, $userId) {
                             $sub->where('division_id', $divisionId)
-                                ->where('id', '!=', $userId); // 🚀 Exclude own request
+                                ->where('id', '!=', $userId);
+                        })
+                            ->where('status', 'waiting_approval')
+                            ->whereHas('forwardedApprovalRequest', function ($approvalQ) {
+                                $approvalQ->where('status', 'forwarded');
+                            });
+                    });
+
+                    // Also show requests with issue types that need approval
+                    $mainQuery->orWhere(function ($q) use ($divisionId, $userId) {
+                        $q->whereHas('user', function ($sub) use ($divisionId, $userId) {
+                            $sub->where('division_id', $divisionId)
+                                ->where('id', '!=', $userId);
                         })
                             ->whereHas('items.issueType', function ($sub) {
                                 $sub->where('is_need_approval', true);
                             })
-                            ->whereIn('status', ['waiting_approval', 'pending_approval_review', 'pending']);
+                            ->whereIn('status', ['pending', 'assigned']);
                     });
                 }
-
                 /*
             |--------------------------------------------------------------------------
-            | 3️⃣ Cluster Chairman
+            | 3️⃣ Cluster Chairman - See requests that need chairman approval
             |--------------------------------------------------------------------------
             */
-                /*
-|--------------------------------------------------------------------------
-| 3️⃣ Cluster Chairman
-|--------------------------------------------------------------------------
-*/ elseif ($user->isClusterChairman()) {
+                // elseif ($user->isClusterChairman()) {
 
+                //         $clusterId = $user->cluster_id;
+
+                //         // Show requests with forwarded approval requests waiting for chairman
+                //         $mainQuery->orWhere(function ($q) use ($clusterId) {
+                //             $q->where('status', 'waiting_approval')
+                //                 ->whereHas('approvalRequest', function ($approvalQ) {
+                //                     $approvalQ->where('status', 'forwarded');
+                //                 })
+                //                 ->whereHas('user', function ($sub) use ($clusterId) {
+                //                     $sub->where(function ($userQuery) use ($clusterId) {
+                //                         // Division chairmen under this cluster
+                //                         $userQuery->whereHas('division', function ($div) use ($clusterId) {
+                //                             $div->where('cluster_id', $clusterId)
+                //                                 ->whereColumn('divisions.division_chairman', 'users.id');
+                //                         });
+                //                         // Users without division but directly under cluster
+                //                         $userQuery->orWhere(function ($direct) use ($clusterId) {
+                //                             $direct->whereNull('division_id')
+                //                                 ->where('cluster_id', $clusterId);
+                //                         });
+                //                     });
+                //                 });
+                //         });
+
+                //         // Also show requests with issue types that need approval
+                //         $mainQuery->orWhere(function ($q) use ($clusterId) {
+                //             $q->whereHas('items.issueType', function ($sub) {
+                //                 $sub->where('is_need_approval', true);
+                //             })
+                //                 ->whereIn('status', ['pending', 'assigned'])
+                //                 ->whereHas('user', function ($sub) use ($clusterId) {
+                //                     $sub->where(function ($userQuery) use ($clusterId) {
+                //                         $userQuery->whereHas('division', function ($div) use ($clusterId) {
+                //                             $div->where('cluster_id', $clusterId)
+                //                                 ->whereColumn('divisions.division_chairman', 'users.id');
+                //                         });
+                //                         $userQuery->orWhere(function ($direct) use ($clusterId) {
+                //                             $direct->whereNull('division_id')
+                //                                 ->where('cluster_id', $clusterId);
+                //                         });
+                //                     });
+                //                 });
+                //         });
+                //     }
+                // });
+                elseif ($user->isClusterChairman()) {
                     $clusterId = $user->cluster_id;
 
+                    // ✅ FIXED: Use forwardedApprovalRequest instead of approvalRequest
                     $mainQuery->orWhere(function ($q) use ($clusterId) {
-
-                        $q->whereHas('items.issueType', function ($sub) {
-                            $sub->where('is_need_approval', true);
-                        })
-                            ->whereIn('status', ['waiting_approval', 'pending_approval_review', 'pending'])
+                        $q->where('status', 'waiting_approval')
+                            ->whereHas('forwardedApprovalRequest', function ($approvalQ) {
+                                $approvalQ->where('status', 'forwarded');
+                            })
                             ->whereHas('user', function ($sub) use ($clusterId) {
-
                                 $sub->where(function ($userQuery) use ($clusterId) {
-
-                                    /*
-                    |--------------------------------------------------------------------------
-                    | 1️⃣ Division Chairmen under this cluster
-                    |--------------------------------------------------------------------------
-                    */
+                                    // Division chairmen under this cluster
                                     $userQuery->whereHas('division', function ($div) use ($clusterId) {
                                         $div->where('cluster_id', $clusterId)
                                             ->whereColumn('divisions.division_chairman', 'users.id');
                                     });
+                                    // Users without division but directly under cluster
+                                    $userQuery->orWhere(function ($direct) use ($clusterId) {
+                                        $direct->whereNull('division_id')
+                                            ->where('cluster_id', $clusterId);
+                                    });
+                                });
+                            });
+                    });
 
-                                    /*
-                    |--------------------------------------------------------------------------
-                    | 2️⃣ Users without division but directly under cluster
-                    |--------------------------------------------------------------------------
-                    */
+                    // Also show requests with issue types that need approval
+                    $mainQuery->orWhere(function ($q) use ($clusterId) {
+                        $q->whereHas('items.issueType', function ($sub) {
+                            $sub->where('is_need_approval', true);
+                        })
+                            ->whereIn('status', ['pending', 'assigned'])
+                            ->whereHas('user', function ($sub) use ($clusterId) {
+                                $sub->where(function ($userQuery) use ($clusterId) {
+                                    $userQuery->whereHas('division', function ($div) use ($clusterId) {
+                                        $div->where('cluster_id', $clusterId)
+                                            ->whereColumn('divisions.division_chairman', 'users.id');
+                                    });
                                     $userQuery->orWhere(function ($direct) use ($clusterId) {
                                         $direct->whereNull('division_id')
                                             ->where('cluster_id', $clusterId);
@@ -195,6 +291,28 @@ class TaskController extends Controller
                 ->count();
         }
 
+        // Pending chairman approvals for division/cluster chairmen
+        $pendingChairmanApprovals = 0;
+        if ($user->isDivisionChairman()) {
+            $pendingChairmanApprovals = ApprovalRequest::where('status', 'forwarded')
+                ->whereHas('maintenanceRequest', function ($q) use ($user) {
+                    $q->where('status', 'waiting_approval')
+                        ->whereHas('user', function ($sub) use ($user) {
+                            $sub->where('division_id', $user->division_id);
+                        });
+                })
+                ->count();
+        } elseif ($user->isClusterChairman()) {
+            $pendingChairmanApprovals = ApprovalRequest::where('status', 'forwarded')
+                ->whereHas('maintenanceRequest', function ($q) use ($user) {
+                    $q->where('status', 'waiting_approval')
+                        ->whereHas('user.division', function ($sub) use ($user) {
+                            $sub->where('cluster_id', $user->cluster_id);
+                        });
+                })
+                ->count();
+        }
+
         return view('task.index', [
             'requests' => $requests,
             'totalRequests' => $totalRequests,
@@ -202,6 +320,7 @@ class TaskController extends Controller
             'completedRequests' => $completedRequests,
             'myRequests' => $myRequests,
             'pendingApprovalReviews' => $pendingApprovalReviews ?? 0,
+            'pendingChairmanApprovals' => $pendingChairmanApprovals ?? 0,
             'pageType' => 'tasks',
         ]);
     }

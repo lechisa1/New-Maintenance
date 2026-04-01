@@ -299,7 +299,7 @@ class MaintenanceRequestController extends Controller
             'not_fixed',
         ];
 
-        $maintenanceRequest->load(['user', 'items.item', 'items.issueType',  'assignedTechnicians.technician', 'approvalRequest.technician', 'files']);
+        $maintenanceRequest->load(['user', 'items.item', 'items.issueType',  'assignedTechnicians.technician', 'approvalRequest.technician', 'approvalRequest.issueType', 'approvalRequest.item', 'files']);
 
         // Get technicians who have 'reports.assign' permission
         // Get technicians who have 'maintenance_requests.resolve' permission
@@ -496,10 +496,9 @@ class MaintenanceRequestController extends Controller
                 ]);
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Technicians assigned successfully to selected items.'
-            ]);
+            return redirect()->back()
+                ->with('warning', 'Some technicians could not be assigned.')
+                ->with('errors', $errors);
         } catch (\Exception $e) {
             \DB::rollBack();
             \Log::error('Failed to assign technicians: ' . $e->getMessage());

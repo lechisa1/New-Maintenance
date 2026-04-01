@@ -181,6 +181,19 @@ Route::middleware(['web', 'auth'])->group(function () {
     )
         ->name('maintenance-requests.reject-approval-request')->middleware('permission:maintenance_requests.reject');
 
+    // Chairman approval routes for issue type change
+    Route::post(
+        '/maintenance-requests/{maintenanceRequest}/chairman-approve',
+        [ApprovalController::class, 'chairmanApprove']
+    )
+        ->name('maintenance-requests.chairman-approve');
+
+    Route::post(
+        '/maintenance-requests/{maintenanceRequest}/chairman-reject',
+        [ApprovalController::class, 'chairmanReject']
+    )
+        ->name('maintenance-requests.chairman-reject');
+
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');

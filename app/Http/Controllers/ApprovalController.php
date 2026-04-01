@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use App\Notifications\ApprovalRequestSubmitted;
 use App\Notifications\ApprovalRequestForwarded;
 use App\Notifications\ApprovalRequestRejected;
+use App\Notifications\ChairmanApprovalNotification;
 use Illuminate\Support\Facades\DB;
 use App\Models\ApprovalRequest;
 use Illuminate\Support\Facades\Auth;
@@ -413,6 +414,229 @@ class ApprovalController extends Controller
             DB::rollBack();
             \Log::error('Failed to reject approval request: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to reject approval request.');
+        }
+    }
+
+    /**
+     * Chairman approves the issue type change request
+     * This method is called when the chairman approves a request that was forwarded by admin
+     */
+    public function chairmanApprove(Request $request, MaintenanceRequest $maintenanceRequest)
+    {
+        $user = Auth::user();
+
+        // Check if user is chairman
+        if (!$user->isDivisionChairman() && !$user->isClusterChairman()) {
+            return redirect()->back()->with('error', 'You are not authorized to perform this action.');
+        }
+
+        // Get the forwarded approval request
+        $approvalRequest = $maintenanceRequest->forwardedApprovalRequest;
+
+        if (!$approvalRequest || $approvalRequest->status !== 'forwarded') {
+            return redirect()->back()->with('error', 'No pending approval request found for chairman review.');
+        }
+
+        // Verify that this chairman is actually the correct approver
+        $requester = $maintenanceRequest->user;
+        $isAuthorized = false;
+
+        if ($user->isDivisionChairman()) {
+            // Check if the requester belongs to this chairman's division
+            if ($requester && $requester->division_id === $user->division_id) {
+                $isAuthorized = true;
+            }
+        } elseif ($user->isClusterChairman()) {
+            // Check if the requester belongs to this chairman's cluster
+            $requesterClusterId = optional($requester->division)->cluster_id;
+            if (
+                $requesterClusterId === $user->cluster_id ||
+                ($requester && !$requester->division_id && $requester->cluster_id === $user->cluster_id)
+            ) {
+                $isAuthorized = true;
+            }
+        }
+
+        if (!$isAuthorized) {
+            return redirect()->back()->with('error', 'You are not authorized to approve this request.');
+        }
+
+        // ✅ Validate request with attachments
+        $validated = $request->validate([
+            'attachments' => 'required|array',
+            'attachments.*' => 'file|mimes:pdf,jpg,jpeg,png,gif,doc,docx,xls,xlsx|max:5120',
+            'approval_notes' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Update the issue type on the MaintenanceRequestItem
+            $requestItem = $maintenanceRequest->items()
+                ->where('item_id', $approvalRequest->item_id)
+                ->first();
+
+            if ($requestItem) {
+                $requestItem->update([
+                    'issue_type_id' => $approvalRequest->issue_type_id,
+                ]);
+            }
+
+            // Update approval request status
+            $approvalRequest->update([
+                'status' => 'approved',
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now(),
+                'approval_notes' => $validated['approval_notes'] ?? null,
+            ]);
+
+            // Update maintenance request status back to assigned so technician can proceed
+            $oldStatus = $maintenanceRequest->status;
+            $maintenanceRequest->update([
+                'status' => 'assigned',
+                'chairman_approved_at' => now(),
+                'chairman_approved_by' => $user->id,
+                'chairman_approval_notes' => $validated['approval_notes'] ?? null,
+            ]);
+
+            // Record status history
+            StatusHistory::create([
+                'maintenance_request_id' => $maintenanceRequest->id,
+                'from_status' => $oldStatus,
+                'to_status' => 'assigned',
+                'changed_by' => $user->id,
+            ]);
+
+            // 📎 Store attachments if any
+            if (!empty($validated['attachments'])) {
+                foreach ($validated['attachments'] as $file) {
+                    $filename = \Str::uuid() . '.' . $file->getClientOriginalExtension();
+
+                    $path = $file->storeAs(
+                        "maintenance-requests/{$maintenanceRequest->id}/chairman-approval",
+                        $filename,
+                        'public'
+                    );
+
+                    MaintenanceRequestFile::create([
+                        'maintenance_request_id' => $maintenanceRequest->id,
+                        'filename' => $filename,
+                        'original_name' => $file->getClientOriginalName(),
+                        'mime_type' => $file->getMimeType(),
+                        'size' => $file->getSize(),
+                        'path' => $path,
+                        'type' => 'chairman_approval', // Different type for chairman approval
+                        'uploaded_by' => $user->id,
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            // Notify the technician that the issue type has been approved
+            $technician = $approvalRequest->technician;
+            if ($technician) {
+                $technician->notify(new ChairmanApprovalNotification(
+                    $maintenanceRequest,
+                    $approvalRequest,
+                    'approved',
+                    $validated['approval_notes'] ?? null
+                ));
+            }
+
+            return redirect()->back()->with('success', 'Issue type approved. Technician has been notified to proceed with maintenance.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Chairman approval failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()->with('error', 'Failed to approve issue type request: ' . $e->getMessage());
+        }
+    }
+
+    public function chairmanReject(Request $request, MaintenanceRequest $maintenanceRequest)
+    {
+        $user = Auth::user();
+
+        // Check if user is chairman
+        if (!$user->isDivisionChairman() && !$user->isClusterChairman()) {
+            return redirect()->back()->with('error', 'You are not authorized to perform this action.');
+        }
+
+        // Validate rejection reason
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|min:5|max:1000',
+        ]);
+
+        // ✅ FIXED: Get the forwarded approval request instead
+        $approvalRequest = $maintenanceRequest->forwardedApprovalRequest;
+
+        if (!$approvalRequest || $approvalRequest->status !== 'forwarded') {
+            return redirect()->back()->with('error', 'No pending approval request found for chairman review.');
+        }
+
+        // Optional: Verify that this chairman is actually the correct approver
+        $requester = $maintenanceRequest->user;
+        $isAuthorized = false;
+
+        if ($user->isDivisionChairman()) {
+            // Check if the requester belongs to this chairman's division
+            if ($requester && $requester->division_id === $user->division_id) {
+                $isAuthorized = true;
+            }
+        } elseif ($user->isClusterChairman()) {
+            // Check if the requester belongs to this chairman's cluster
+            $requesterClusterId = optional($requester->division)->cluster_id;
+            if (
+                $requesterClusterId === $user->cluster_id ||
+                ($requester && !$requester->division_id && $requester->cluster_id === $user->cluster_id)
+            ) {
+                $isAuthorized = true;
+            }
+        }
+
+        if (!$isAuthorized) {
+            return redirect()->back()->with('error', 'You are not authorized to reject this request.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update approval request status
+            $approvalRequest->update([
+                'status' => 'rejected',
+                'rejection_reason' => $validated['rejection_reason'],
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now(),
+            ]);
+
+            // Update maintenance request status back to assigned (or keep it as is)
+            $oldStatus = $maintenanceRequest->status;
+            $maintenanceRequest->update([
+                'status' => 'assigned', // Keep it assigned so technician can continue with original issue type
+            ]);
+
+            // Record status history
+            StatusHistory::create([
+                'maintenance_request_id' => $maintenanceRequest->id,
+                'from_status' => $oldStatus,
+                'to_status' => 'assigned',
+                'changed_by' => $user->id,
+            ]);
+
+            DB::commit();
+
+            // Notify the technician that the request was rejected
+            $technician = $approvalRequest->technician;
+            if ($technician) {
+                $technician->notify(new ChairmanApprovalNotification($maintenanceRequest, $approvalRequest, 'rejected', $validated['rejection_reason']));
+            }
+
+            return redirect()->back()->with('warning', 'Issue type request rejected. Technician has been notified.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Chairman rejection failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to reject issue type request: ' . $e->getMessage());
         }
     }
 }

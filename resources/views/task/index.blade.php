@@ -41,9 +41,32 @@
                         <i class="bi bi-question-circle"></i>
                     </div>
                     <div>
-                        <div class="text-sm text-purple-700 dark:text-purple-300">Pending Review</div>
+                        <div class="text-sm text-purple-700 dark:text-purple-300">Pending ICT Review</div>
                         <div class="text-2xl font-semibold text-purple-800 dark:text-purple-200">
                             {{ $pendingApprovalReviews }}</div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- Chairman Pending Approvals Badge --}}
+        @if (
+            (auth()->user()->isDivisionChairman() || auth()->user()->isClusterChairman()) &&
+                isset($pendingChairmanApprovals) &&
+                $pendingChairmanApprovals > 0)
+            <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+                <div class="flex items-center">
+                    <div
+                        class="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm text-yellow-700 dark:text-yellow-300">Pending Your Approval</div>
+                        <div class="text-2xl font-semibold text-yellow-800 dark:text-yellow-200">
+                            {{ $pendingChairmanApprovals }}</div>
+                        <div class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                            Chairman approval required for issue type changes
+                        </div>
                     </div>
                 </div>
             </div>
@@ -149,7 +172,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
-                                    {{ $request->user->division?->name ?? 'N/A' }}
+                                    {{ $request->user->division?->name ?? ($request->user->cluster?->name ?? 'N/A') }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span

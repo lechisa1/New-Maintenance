@@ -511,11 +511,18 @@ class MaintenanceRequest extends Model
     {
         return $this->hasOne(ApprovalRequest::class)->where('status', 'pending');
     }
-
+    public function forwardedApprovalRequest()
+    {
+        return $this->hasOne(ApprovalRequest::class)->where('status', 'forwarded');
+    }
     public function approvalRequests()
     {
         return $this->hasMany(ApprovalRequest::class);
     }
+    public function allApprovalRequests()
+{
+    return $this->hasMany(ApprovalRequest::class);
+}
     /**
      * Scope for closed requests
      */

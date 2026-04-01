@@ -137,7 +137,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
-                                    {{ $request->department?->name ?? 'N/A' }}
+                                    {{ $request->user->division?->name ?? ($request->user->cluster?->name ?? 'N/A') }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span

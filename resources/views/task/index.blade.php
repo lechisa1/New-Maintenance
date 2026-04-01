@@ -50,10 +50,7 @@
         @endif
 
         {{-- Chairman Pending Approvals Badge --}}
-        @if (
-            (auth()->user()->isDivisionChairman() || auth()->user()->isClusterChairman()) &&
-                isset($pendingChairmanApprovals) &&
-                $pendingChairmanApprovals > 0)
+        {{-- @if ((auth()->user()->isDivisionChairman() || auth()->user()->isClusterChairman()) && isset($pendingChairmanApprovals) && $pendingChairmanApprovals > 0)
             <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
                 <div class="flex items-center">
                     <div
@@ -70,7 +67,7 @@
                     </div>
                 </div>
             </div>
-        @endif
+        @endif --}}
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <form action="{{ $pageType === 'tasks' ? route('user.task') : route('my.requests') }}" method="GET"
                 id="filterForm" class="space-y-4">

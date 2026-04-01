@@ -60,7 +60,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('index')->middleware('permission:users.view');
         Route::get('/create', [UserController::class, 'create'])->name('create')->middleware('permission:users.create');
         Route::post('/', [UserController::class, 'store'])->name('store')->middleware('permission:users.create');
-        Route::get('/{user}', [UserController::class, 'show'])->name('show')->middleware('permission:users.view');
+        Route::get('/{user}', [UserController::class, 'show'])->name('show');
         Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit')->middleware('permission:users.update');
         Route::put('/{user}', [UserController::class, 'update'])->name('update')->middleware('permission:users.update');
         Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy')->middleware('permission:users.delete');

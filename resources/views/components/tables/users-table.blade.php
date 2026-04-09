@@ -71,10 +71,10 @@
                                 <i class="bi bi-eye"></i>
                             </a>
 
-                            <button type="button" onclick='openEditUserModal(@json($user))'
+                            {{-- <button type="button" onclick='openEditUserModal(@json($user))'
                                 class="text-blue-600 hover:text-blue-800">
                                 <i class="bi bi-pencil-square"></i>
-                            </button>
+                            </button> --}}
 
 
                             <button type="button"

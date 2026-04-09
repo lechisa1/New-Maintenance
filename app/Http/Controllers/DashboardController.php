@@ -8,6 +8,9 @@ use App\Models\User;
 use App\Models\Role;
 use App\Models\Division;
 use App\Models\Cluster;
+
+use App\Models\MaintenanceRequestTechnician;
+
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,54 +20,54 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
-        
+
         // Check if user has user management permissions
         if ($user->can('users.create') || $user->can('users.index')) {
             // System Admin Dashboard
             return $this->adminDashboard();
         }
-        
+
         // Otherwise, show maintenance dashboard
         return $this->maintenanceDashboard($user);
     }
-    
+
     private function adminDashboard()
     {
         $user = auth()->user();
-        
+
         // System Administration Statistics
         $totalUsers = User::count();
-      
+
         $activeUsers = User::where('is_active', 1)->count();
         $inactiveUsers = User::where('is_active', 0)->count();
-        
+
         $totalRoles = Role::count();
         $totalDivisions = Division::count();
         $totalClusters = Cluster::count();
-        
+
         // User distribution by role
         $roleDistribution = Role::withCount('users')->get();
-        
+
         // User distribution by division
         $divisionDistribution = Division::withCount('users')
             ->orderBy('users_count', 'desc')
             ->limit(10)
             ->get();
-            
+
         // Recent users
         $recentUsers = User::with(['roles', 'division', 'cluster'])
             ->latest()
             ->limit(5)
             ->get();
-            
+
         // User activity statistics
         $usersWithActivity = User::whereNotNull('last_login_at')->count();
         $usersLastWeek = User::where('last_login_at', '>=', now()->subWeek())->count();
         $usersLastMonth = User::where('last_login_at', '>=', now()->subMonth())->count();
-        
+
         // Get users per month for chart
         $monthlyUserStats = $this->getMonthlyUserStatistics();
-        
+
         return view('pages.dashboard.admin', compact(
             'totalUsers',
             'activeUsers',
@@ -81,7 +84,7 @@ class DashboardController extends Controller
             'monthlyUserStats'
         ));
     }
-    
+
     private function maintenanceDashboard($user)
     {
         // Initialize variables with default values
@@ -91,31 +94,42 @@ class DashboardController extends Controller
         $completedRequests = 0;
         $assignedToMe = 0;
         $recentRequests = collect();
-        $issueTypeStats = collect(); 
+        $issueTypeStats = collect();
         $issueTypes = 0;
-        $issueTypeAnalysis=collect();
-        $itemAnalysis=collect();
-        
+        $issueTypeAnalysis = collect();
+        $itemAnalysis = collect();
+
         // Metrics based on user role
         if ($user->can('maintenance_requests.assign')) {
             // Admin/ICT Director view
             $totalRequests = MaintenanceRequest::count();
-            $pendingRequests = MaintenanceRequest::whereIn('status',[MaintenanceRequest::STATUS_PENDING,MaintenanceRequest::STATUS_WAITING_APPROVAL])->count();
+            $pendingRequests = MaintenanceRequest::whereIn('status', [
+                MaintenanceRequest::STATUS_PENDING,
+                MaintenanceRequest::STATUS_WAITING_APPROVAL
+            ])->count();
             $inProgressRequests = MaintenanceRequest::where('status', MaintenanceRequest::STATUS_IN_PROGRESS)->count();
-           $completedRequests = MaintenanceRequest::whereIn('status', [
-    MaintenanceRequest::STATUS_COMPLETED,
-    MaintenanceRequest::STATUS_CONFIRMED,
-])->count();
+            $completedRequests = MaintenanceRequest::whereIn('status', [
+                MaintenanceRequest::STATUS_COMPLETED,
+                MaintenanceRequest::STATUS_CONFIRMED,
+            ])->count();
 
-            $assignedToMe = MaintenanceRequest::where('assigned_to', $user->id)->count();
+            // Updated: Count requests where user is assigned as a technician through the pivot table
+            $assignedToMe = MaintenanceRequestTechnician::where('user_id', $user->id)
+                ->whereIn('status', ['assigned', 'in_progress'])
+                ->count();
+
             $issueTypes = IssueType::count();
-            
-            // Recent requests for admin
-            $recentRequests = MaintenanceRequest::with(['user', 'issueType', 'assignedTechnician'])
+
+            // Recent requests for admin with technician assignments
+            $recentRequests = MaintenanceRequest::with([
+                'user',
+                'items.issueType',
+                'assignedTechnicians.technician'  // Updated to load all assigned technicians
+            ])
                 ->latest()
                 ->limit(5)
                 ->get();
-                
+
             $issueTypeStats = IssueType::withTrashed()
                 ->withCount([
                     'maintenanceRequests' => function ($q) {
@@ -123,46 +137,49 @@ class DashboardController extends Controller
                     }
                 ])
                 ->get();
-                // Item analysis: which items have most maintenance requests
-$itemAnalysis = MaintenanceRequest::select('item_id', DB::raw('COUNT(*) as total'))
-    ->groupBy('item_id')
-    ->with('item') // eager load related item
-    ->orderByDesc('total')
-    ->take(5) // top 5 most problematic items
-    ->get()
-    ->map(function($request) {
-        return [
-            'name' => $request->item?->name ?? 'N/A',
-            'count' => $request->total
-        ];
-    });
-// Issue Type analysis: which types occur most frequently
-$issueTypeAnalysis = MaintenanceRequest::select('issue_type_id', DB::raw('COUNT(*) as total'))
-    ->groupBy('issue_type_id')
-    ->with('issueType') // eager load related issueType
-    ->orderByDesc('total')
-    ->take(5) // top 5 most frequent
-    ->get()
-    ->map(function($request) {
-        return [
-            'name' => $request->issueType?->name ?? 'N/A',
-            'count' => $request->total
-        ];
-    });
 
-                
+            // Updated: Item analysis using the pivot table
+            $itemAnalysis = MaintenanceRequestItem::select('item_id', DB::raw('COUNT(*) as total'))
+                ->groupBy('item_id')
+                ->with('item')
+                ->orderByDesc('total')
+                ->take(5)
+                ->get()
+                ->map(function ($requestItem) {
+                    return [
+                        'name' => $requestItem->item?->name ?? 'N/A',
+                        'count' => $requestItem->total
+                    ];
+                });
+
+            // Updated: Issue Type analysis using the pivot table
+            $issueTypeAnalysis = MaintenanceRequestItem::select('issue_type_id', DB::raw('COUNT(*) as total'))
+                ->groupBy('issue_type_id')
+                ->with('issueType')
+                ->orderByDesc('total')
+                ->take(5)
+                ->get()
+                ->map(function ($requestItem) {
+                    return [
+                        'name' => $requestItem->issueType?->name ?? 'N/A',
+                        'count' => $requestItem->total
+                    ];
+                });
         } elseif ($user->isDivisionChairman() || $user->isClusterChairman()) {
-            // Approver view
-            $totalRequests = MaintenanceRequest::whereHas('user', function($query) use ($user) {
+            // Approver view - queries remain the same as they don't depend on assigned_to
+            $totalRequests = MaintenanceRequest::whereHas('user', function ($query) use ($user) {
                 if ($user->isDivisionChairman()) {
                     $query->where('division_id', $user->division_id);
                 } elseif ($user->isClusterChairman()) {
                     $query->where('cluster_id', $user->cluster_id);
                 }
             })->count();
-            
-            $pendingRequests = MaintenanceRequest::whereIn('status',[MaintenanceRequest::STATUS_PENDING,MaintenanceRequest::STATUS_WAITING_APPROVAL])
-                ->whereHas('user', function($query) use ($user) {
+
+            $pendingRequests = MaintenanceRequest::whereIn('status', [
+                MaintenanceRequest::STATUS_PENDING,
+                MaintenanceRequest::STATUS_WAITING_APPROVAL
+            ])
+                ->whereHas('user', function ($query) use ($user) {
                     if ($user->isDivisionChairman()) {
                         $query->where('division_id', $user->division_id);
                     } elseif ($user->isClusterChairman()) {
@@ -170,12 +187,12 @@ $issueTypeAnalysis = MaintenanceRequest::select('issue_type_id', DB::raw('COUNT(
                     }
                 })
                 ->count();
-                
+
             $completedRequests = MaintenanceRequest::whereIn('status', [
-        MaintenanceRequest::STATUS_COMPLETED,
-        MaintenanceRequest::STATUS_CONFIRMED,
-    ])
-                ->whereHas('user', function($query) use ($user) {
+                MaintenanceRequest::STATUS_COMPLETED,
+                MaintenanceRequest::STATUS_CONFIRMED,
+            ])
+                ->whereHas('user', function ($query) use ($user) {
                     if ($user->isDivisionChairman()) {
                         $query->where('division_id', $user->division_id);
                     } elseif ($user->isClusterChairman()) {
@@ -183,8 +200,12 @@ $issueTypeAnalysis = MaintenanceRequest::select('issue_type_id', DB::raw('COUNT(
                     }
                 })
                 ->count();
-                
-            $recentRequests = MaintenanceRequest::with(['user', 'issueType', 'assignedTechnician'])
+
+            $recentRequests = MaintenanceRequest::with([
+                'user',
+                'items.issueType',
+                'assignedTechnicians.technician'  // Updated to load all assigned technicians
+            ])
                 ->whereHas('user', function ($query) use ($user) {
                     if ($user->isDivisionChairman()) {
                         $query->where('division_id', $user->division_id);
@@ -195,61 +216,94 @@ $issueTypeAnalysis = MaintenanceRequest::select('issue_type_id', DB::raw('COUNT(
                 ->latest()
                 ->limit(3)
                 ->get();
-                
-        } 
-        else if($user->can('maintenance_requests.resolve')) {
-            // Admin/ICT Director view 
-            $totalRequests = MaintenanceRequest::where('assigned_to', $user->id)->count();
-            $pendingRequests = MaintenanceRequest::where('assigned_to', $user->id)->whereIn('status',[MaintenanceRequest::STATUS_PENDING,MaintenanceRequest::STATUS_ASSIGNED])->count();
-            $inProgressRequests = MaintenanceRequest::where('assigned_to', $user->id)->whereIn('status', [MaintenanceRequest::STATUS_IN_PROGRESS,MaintenanceRequest::STATUS_WAITING_CONFIRMATION])->count();
-            $completedRequests = MaintenanceRequest::where('assigned_to', $user->id)->whereIn('status', [
-        MaintenanceRequest::STATUS_COMPLETED,
-        MaintenanceRequest::STATUS_CONFIRMED,
-])->count();
-            $assignedToMe = MaintenanceRequest::where('assigned_to', $user->id)->count();
-          
-            
-            // Recent requests for admin
-            $recentRequests = MaintenanceRequest::where('assigned_to', $user->id)->with(['user', 'issueType', 'assignedTechnician'])
+        } else if ($user->can('maintenance_requests.resolve')) {
+            // Technician view - updated to use the pivot table
+
+            // Get all request IDs where this user is assigned as a technician
+            $assignedRequestIds = MaintenanceRequestTechnician::where('user_id', $user->id)
+                ->pluck('maintenance_request_id');
+
+            // Total requests assigned to this technician
+            $totalRequests = $assignedRequestIds->count();
+
+            // Pending requests (assigned but not started)
+            $pendingRequests = MaintenanceRequestTechnician::where('user_id', $user->id)
+                ->where('status', 'assigned')
+                ->count();
+
+            // In progress requests
+            $inProgressRequests = MaintenanceRequestTechnician::where('user_id', $user->id)
+                ->where('status', 'in_progress')
+                ->count();
+
+            // Completed requests (where technician completed their items)
+            $completedRequests = MaintenanceRequestTechnician::where('user_id', $user->id)
+                ->where('status', 'completed')
+                ->count();
+
+            // Total active assignments count
+            $assignedToMe = MaintenanceRequestTechnician::where('user_id', $user->id)
+                ->whereIn('status', ['assigned', 'in_progress'])
+                ->count();
+
+            // Recent requests for technician with their assignments
+            $recentRequests = MaintenanceRequest::whereIn('id', $assignedRequestIds)
+                ->with([
+                    'user',
+                    'items.issueType',
+                    'assignedTechnicians' => function ($query) use ($user) {
+                        $query->where('user_id', $user->id)->with('technician');
+                    }
+                ])
                 ->latest()
                 ->limit(5)
                 ->get();
-                
-         
-                
-        }
-        else {
-            // Regular user view
+        } else {
+            // Regular user view - queries remain mostly the same
             $totalRequests = MaintenanceRequest::where('user_id', $user->id)->count();
+
             $pendingRequests = MaintenanceRequest::where('user_id', $user->id)
                 ->where('status', MaintenanceRequest::STATUS_PENDING)
                 ->count();
+
             $inProgressRequests = MaintenanceRequest::where('user_id', $user->id)
-                ->whereIn('status', [MaintenanceRequest::STATUS_ASSIGNED, MaintenanceRequest::STATUS_IN_PROGRESS])
+                ->whereIn('status', [
+                    MaintenanceRequest::STATUS_ASSIGNED,
+                    MaintenanceRequest::STATUS_IN_PROGRESS
+                ])
                 ->count();
+
             $completedRequests = MaintenanceRequest::where('user_id', $user->id)
-                    ->whereIn('status', [
-        MaintenanceRequest::STATUS_COMPLETED,
-        MaintenanceRequest::STATUS_CONFIRMED,
-    ])
+                ->whereIn('status', [
+                    MaintenanceRequest::STATUS_COMPLETED,
+                    MaintenanceRequest::STATUS_CONFIRMED,
+                ])
                 ->count();
-            
-            // Recent requests for user
-            $recentRequests = MaintenanceRequest::with(['issueType', 'assignedTechnician'])
+
+            // Assigned to me count for users (requests assigned to technicians working on their items)
+            $assignedToMe = MaintenanceRequestTechnician::whereHas('maintenanceRequest', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })->count();
+
+            // Recent requests for user with technician assignments
+            $recentRequests = MaintenanceRequest::with([
+                'items.issueType',
+                'assignedTechnicians.technician'  // Show which technicians are assigned
+            ])
                 ->where('user_id', $user->id)
                 ->latest()
                 ->limit(5)
                 ->get();
         }
-        
-        // Monthly statistics data
-        $monthlyStats = $this->getMonthlyStatistics();
-        
-        // Priority distribution
-        $priorityStats = $this->getPriorityStatistics();
-        
-        // Response time metrics
-        $responseMetrics = $this->getResponseTimeMetrics();
+
+        // Monthly statistics data (updated to filter by user role)
+        $monthlyStats = $this->getMonthlyStatistics($user);
+
+        // Priority distribution (updated to filter by user role)
+        $priorityStats = $this->getPriorityStatistics($user);
+
+        // Response time metrics (updated to filter by user role)
+        $responseMetrics = $this->getResponseTimeMetrics($user);
 
         return view('pages.dashboard.ecommerce', compact(
             'totalRequests',
@@ -263,16 +317,42 @@ $issueTypeAnalysis = MaintenanceRequest::select('issue_type_id', DB::raw('COUNT(
             'responseMetrics',
             'issueTypeStats',
             'issueTypes',
-                'issueTypeAnalysis',
-    'itemAnalysis'
+            'issueTypeAnalysis',
+            'itemAnalysis'
         ));
     }
-    
-    private function getMonthlyStatistics()
+
+    private function getMonthlyStatistics($user)
     {
         $currentYear = Carbon::now()->year;
-        
-        $monthlyData = MaintenanceRequest::selectRaw('
+
+        // Build base query based on user role
+        $query = MaintenanceRequest::query();
+
+        if ($user->can('maintenance_requests.assign')) {
+            // Admin/ICT Director: see all requests
+            // No additional filter needed
+        } elseif ($user->isDivisionChairman()) {
+            // Division Chairman: see requests from their division
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('division_id', $user->division_id);
+            });
+        } elseif ($user->isClusterChairman()) {
+            // Cluster Chairman: see requests from their cluster
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('cluster_id', $user->cluster_id);
+            });
+        } elseif ($user->can('maintenance_requests.resolve')) {
+            // Technician: see only assigned requests
+            $query->whereHas('assignedTechnicians', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        } else {
+            // Regular user: see only their own requests
+            $query->where('user_id', $user->id);
+        }
+
+        $monthlyData = (clone $query)->selectRaw('
             MONTH(requested_at) as month,
             COUNT(*) as total,
             SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed,
@@ -283,61 +363,114 @@ $issueTypeAnalysis = MaintenanceRequest::select('issue_type_id', DB::raw('COUNT(
             MaintenanceRequest::STATUS_COMPLETED,
             MaintenanceRequest::STATUS_PENDING
         ])
-        ->whereYear('requested_at', $currentYear)
-        ->whereNotNull('requested_at')
-        ->groupBy('month')
-        ->orderBy('month')
-        ->get();
-        
+            ->whereYear('requested_at', $currentYear)
+            ->whereNotNull('requested_at')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
         return $monthlyData;
     }
-    
-    private function getPriorityStatistics()
+
+    private function getPriorityStatistics($user)
     {
-        return MaintenanceRequest::selectRaw('
+        // Build base query based on user role
+        $query = MaintenanceRequest::query();
+
+        if ($user->can('maintenance_requests.assign')) {
+            // Admin/ICT Director: see all requests
+            // No additional filter needed
+        } elseif ($user->isDivisionChairman()) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('division_id', $user->division_id);
+            });
+        } elseif ($user->isClusterChairman()) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('cluster_id', $user->cluster_id);
+            });
+        } elseif ($user->can('maintenance_requests.resolve')) {
+            $query->whereHas('assignedTechnicians', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        } else {
+            $query->where('user_id', $user->id);
+        }
+
+        // Get total count for percentage calculation
+        $totalCount = (clone $query)->count();
+
+        if ($totalCount === 0) {
+            return collect();
+        }
+
+        return (clone $query)->selectRaw('
             priority,
             COUNT(*) as count,
-            ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM maintenance_requests)), 2) as percentage
-        ')
-        ->groupBy('priority')
-        ->orderByRaw("FIELD(priority, 'emergency', 'high', 'medium', 'low')")
-        ->get();
+            ROUND((COUNT(*) * 100.0 / ?), 2) as percentage
+        ', [$totalCount])
+            ->groupBy('priority')
+            ->orderByRaw("FIELD(priority, 'emergency', 'high', 'medium', 'low')")
+            ->get();
     }
-    
-    private function getResponseTimeMetrics()
+
+    private function getResponseTimeMetrics($user)
     {
+        // Build base query based on user role
+        $query = MaintenanceRequest::query();
+
+        if ($user->can('maintenance_requests.assign')) {
+            // Admin/ICT Director: see all requests
+        } elseif ($user->isDivisionChairman()) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('division_id', $user->division_id);
+            });
+        } elseif ($user->isClusterChairman()) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('cluster_id', $user->cluster_id);
+            });
+        } elseif ($user->can('maintenance_requests.resolve')) {
+            $query->whereHas('assignedTechnicians', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        } else {
+            $query->where('user_id', $user->id);
+        }
+
         return [
-            'avg_response_time' => MaintenanceRequest::whereNotNull('assigned_at')
+            'avg_response_time' => (clone $query)
+                ->whereNotNull('assigned_at')
                 ->whereNotNull('requested_at')
                 ->avg(DB::raw('TIMESTAMPDIFF(HOUR, requested_at, assigned_at)')),
-            
-            'avg_resolution_time' => MaintenanceRequest::where('status', MaintenanceRequest::STATUS_COMPLETED)
+
+            'avg_resolution_time' => (clone $query)
+                ->where('status', MaintenanceRequest::STATUS_COMPLETED)
                 ->whereNotNull('completed_at')
                 ->whereNotNull('assigned_at')
                 ->avg(DB::raw('TIMESTAMPDIFF(HOUR, assigned_at, completed_at)')),
-            
-            'total_open' => MaintenanceRequest::whereIn('status', [
-                MaintenanceRequest::STATUS_PENDING,
-                MaintenanceRequest::STATUS_ASSIGNED,
-                MaintenanceRequest::STATUS_IN_PROGRESS
-            ])->count(),
+
+            'total_open' => (clone $query)
+                ->whereIn('status', [
+                    MaintenanceRequest::STATUS_PENDING,
+                    MaintenanceRequest::STATUS_ASSIGNED,
+                    MaintenanceRequest::STATUS_IN_PROGRESS
+                ])->count(),
         ];
     }
-    
+
     private function getMonthlyUserStatistics()
     {
         $currentYear = Carbon::now()->year;
-        
+
         return User::selectRaw('
             MONTH(created_at) as month,
             COUNT(*) as total_users,
             SUM(CASE WHEN email_verified_at IS NOT NULL THEN 1 ELSE 0 END) as active_users,
             SUM(CASE WHEN email_verified_at IS NULL THEN 1 ELSE 0 END) as inactive_users
         ')
-        ->whereYear('created_at', $currentYear)
-        ->whereNotNull('created_at')
-        ->groupBy('month')
-        ->orderBy('month')
-        ->get();
+            ->whereYear('created_at', $currentYear)
+            ->whereNotNull('created_at')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
     }
 }

@@ -214,7 +214,7 @@
     <table class="data-table">
         <tr>
             <th>Equipment / Asset</th>
-            <td>{{ $request->item?->name ?? 'N/A' }}</td>
+            <td>{{ $request->item_names ?: 'N/A' }}</td>
         </tr>
         <tr>
             <th>Issue Type</th>
@@ -231,16 +231,43 @@
     </table>
 
     {{-- Personnel Information --}}
-    <div class="section-title">Personnel Information</div>
+    <div class="section-title">Equipment & Assigned Technicians</div>
+
     <table class="data-table">
         <tr>
-            <th>Requested By</th>
-            <td>{{ $request->user?->full_name ?? 'N/A' }}</td>
+            <th>Equipment / Asset</th>
+            <th>Assigned Technician(s)</th>
         </tr>
-        <tr>
-            <th>Assigned Technician</th>
-            <td>{{ $request->assignedTechnician?->full_name ?? 'N/A' }}</td>
-        </tr>
+
+        @foreach ($request->items as $requestItem)
+            @php
+                $itemId = $requestItem->item_id;
+
+                // Get technicians assigned to THIS item
+                $techniciansForItem = $request->assignedTechnicians->filter(function ($assignment) use ($itemId) {
+                    return in_array($itemId, $assignment->item_ids ?? []);
+                });
+            @endphp
+
+            <tr>
+                <td>
+                    {{ $requestItem->item?->name ?? 'N/A' }}
+                </td>
+
+                <td>
+                    @if ($techniciansForItem->isNotEmpty())
+                        @foreach ($techniciansForItem as $assignment)
+                            {{ $assignment->technician?->full_name }}
+                            @if (!$loop->last)
+                                <br>
+                            @endif
+                        @endforeach
+                    @else
+                        Not Assigned
+                    @endif
+                </td>
+            </tr>
+        @endforeach
     </table>
 
     {{-- Timeline Information --}}

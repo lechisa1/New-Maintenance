@@ -21,7 +21,7 @@
 
 @section('content')
     <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
- @include('maintenance-requests.partials.alerts')
+    @include('maintenance-requests.partials.alerts')
 
     <div class="space-y-6">
         {{-- <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -32,7 +32,42 @@
                 variant="success" />
             <x-common.stat-card title="My Requests" value="{{ $myRequests ?? 0 }}" icon="bi bi-person" variant="info" />
         </div> --}}
+        {{-- In your task/index.blade.php, add this to the stats cards --}}
+        @if (auth()->user()->isIctDirector() && isset($pendingApprovalReviews) && $pendingApprovalReviews > 0)
+            <div class="rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-900/20">
+                <div class="flex items-center">
+                    <div
+                        class="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                        <i class="bi bi-question-circle"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm text-purple-700 dark:text-purple-300">Pending ICT Review</div>
+                        <div class="text-2xl font-semibold text-purple-800 dark:text-purple-200">
+                            {{ $pendingApprovalReviews }}</div>
+                    </div>
+                </div>
+            </div>
+        @endif
 
+        {{-- Chairman Pending Approvals Badge --}}
+        {{-- @if ((auth()->user()->isDivisionChairman() || auth()->user()->isClusterChairman()) && isset($pendingChairmanApprovals) && $pendingChairmanApprovals > 0)
+            <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+                <div class="flex items-center">
+                    <div
+                        class="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm text-yellow-700 dark:text-yellow-300">Pending Your Approval</div>
+                        <div class="text-2xl font-semibold text-yellow-800 dark:text-yellow-200">
+                            {{ $pendingChairmanApprovals }}</div>
+                        <div class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                            Chairman approval required for issue type changes
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif --}}
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <form action="{{ $pageType === 'tasks' ? route('user.task') : route('my.requests') }}" method="GET"
                 id="filterForm" class="space-y-4">
@@ -46,10 +81,10 @@
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <a href="{{ route('maintenance-requests.export') }}"
+                        {{-- <a href="{{ route('maintenance-requests.export') }}"
                             class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                             <i class="bi bi-download me-2"></i> Export
-                        </a>
+                        </a> --}}
                         @if (auth()->user()->can('maintenance_requests.create'))
                             <a href="{{ route('maintenance-requests.create') }}"
                                 class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">
@@ -104,6 +139,7 @@
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Item</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Issue Type</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Priority</th>
+                            <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Requester Division</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
                             <th class="px-6 py-4 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                         </tr>
@@ -114,15 +150,26 @@
                                 <td class="px-6 py-4 text-gray-500">{{ $requests->firstItem() + $index }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-800 dark:text-white">
                                     {{ $request->ticket_number }}</td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ $request->item?->name ?? 'N/A' }}
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                    @foreach ($request->items as $requestItem)
+                                        {{ $requestItem->item?->name ?? 'N/A' }}
+                                        @if (!$loop->last)
+                                            ,
+                                        @endif
+                                    @endforeach
                                 </td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ $request->getIssueTypeText() }}
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                    {{ $request->getIssueTypeText() }}
                                 </td>
+
                                 <td class="px-6 py-4">
                                     <span
                                         class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $request->getPriorityBadgeClass() }}">
                                         {{ $request->getPriorityText() }}
                                     </span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                    {{ $request->user->division?->name ?? ($request->user->cluster?->name ?? 'N/A') }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span

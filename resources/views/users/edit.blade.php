@@ -1,7 +1,13 @@
 @extends('layouts.app')
-
+@php
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => url('/')],
+        ['label' => 'Users', 'url' => route('users.index')],
+        ['label' => $user->email . ' Edit'], // current page
+    ];
+@endphp
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Edit User" />
+    <x-common.page-breadcrumb :breadcrumbs="$breadcrumbs" />
     @include('maintenance-requests.partials.alerts')
     <div class="max-w-5xl mx-auto pb-10">
         <form action="{{ route('users.update', $user) }}" method="POST">

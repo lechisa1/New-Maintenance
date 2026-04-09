@@ -108,6 +108,7 @@
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Item</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Issue Type</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Priority</th>
+                            <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Requester Department</th>
                             <th class="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
                             <th class="px-6 py-4 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                         </tr>
@@ -118,15 +119,25 @@
                                 <td class="px-6 py-4 text-gray-500">{{ $requests->firstItem() + $index }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-800 dark:text-white">
                                     {{ $request->ticket_number }}</td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ $request->item?->name ?? 'N/A' }}
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                    @foreach ($request->items as $requestItem)
+                                        {{ $requestItem->item?->name ?? 'N/A' }}
+                                        @if (!$loop->last)
+                                            ,
+                                        @endif
+                                    @endforeach
                                 </td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ $request->getIssueTypeText() }}
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                    {{ $request->getIssueTypeText() }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span
                                         class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $request->getPriorityBadgeClass() }}">
                                         {{ $request->getPriorityText() }}
                                     </span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                    {{ $request->user->division?->name ?? ($request->user->cluster?->name ?? 'N/A') }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span

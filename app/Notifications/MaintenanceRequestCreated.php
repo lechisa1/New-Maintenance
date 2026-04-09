@@ -24,9 +24,17 @@ class MaintenanceRequestCreated extends Notification
 
     public function toArray($notifiable): array
     {
+        // Get item names from the request items
+        $itemNames = $this->maintenanceRequest->items
+            ->map(fn($item) => $item->item?->name ?? 'Unknown Item')
+            ->filter()
+            ->values()
+            ->toArray();
         return [
             'maintenance_request_id' => $this->maintenanceRequest->id,
             'ticket_number'          => $this->maintenanceRequest->ticket_number,
+            'item_names' => $itemNames,
+            'items_count' => count($itemNames),
             'message'                => 'A new maintenance request has been created.',
             'url'                    => route('maintenance-requests.show', $this->maintenanceRequest->id),
             'type'                   => 'maintenance_request_created',

@@ -23,8 +23,9 @@
 
                 <!-- Request Information -->
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    @include('maintenance-requests.partials.request-info.equipment-info')
+
                     @include('maintenance-requests.partials.request-info.request-details')
+                    @include('maintenance-requests.partials.request-info.equipment-info')
                 </div>
 
                 @include('maintenance-requests.partials.request-info.problem-description')
@@ -38,7 +39,10 @@
         <div class="space-y-6">
             @include('maintenance-requests.partials.sidebar.quick-actions')
             @include('maintenance-requests.partials.sidebar.approval-section')
+            @include('maintenance-requests.partials.sidebar.needs-approval-reviewed')
+            @include('maintenance-requests.partials.sidebar.chairman-approval-section')
             @include('maintenance-requests.partials.sidebar.work-log-section')
+            @include('maintenance-requests.partials.sidebar.status-history-section')
             @include('maintenance-requests.partials.sidebar.similar-requests')
         </div>
     </div>
@@ -47,8 +51,10 @@
     @include('maintenance-requests.partials.modals.update-status')
     @include('maintenance-requests.partials.modals.approve-request')
     @include('maintenance-requests.partials.modals.reject-request')
+    @include('maintenance-requests.partials.modals.reject-request-assigner')
     @include('maintenance-requests.partials.modals.preview-modal')
     @include('maintenance-requests.partials.sidebar.work-log-modals')
+
     {{-- Add this near the bottom of your show.blade.php --}}
     <div x-data="{
         init() {
@@ -61,6 +67,9 @@
             });
             this.$el.addEventListener('open-reject-modal', () => {
                 this.$dispatch('open-modal', 'reject');
+            });
+            this.$el.addEventListener('open-reject-assigner-modal', () => {
+                this.$dispatch('open-modal', 'rejectAssigner');
             });
             this.$el.addEventListener('open-worklog-modal', () => {
                 this.$dispatch('open-modal', 'worklog');

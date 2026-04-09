@@ -21,11 +21,14 @@ class WorkLog extends Model
         'time_spent_minutes',
         'completion_notes',
         'log_date',
-        'status', 
-        'rejected_at',           // Add these
-        'rejected_by',           // Add these
-        'rejection_reason',      // Add these
-        'rejection_notes',    // Add these
+        'status',
+        'rejected_at',
+        'rejected_by',
+        'rejection_reason',
+        'rejection_notes',
+        'item_ids', // JSON array of item IDs
+        'issue_type_ids', // JSON array of issue type IDs
+        'item_notes', // JSON object with notes per item
     ];
 
     protected $casts = [
@@ -33,6 +36,9 @@ class WorkLog extends Model
         'materials_used' => 'array', // If storing as JSON
         'time_spent_minutes' => 'integer',
         'rejected_at' => 'datetime',
+        'item_ids' => 'array',
+        'issue_type_ids' => 'array',
+        'item_notes' => 'array',
     ];
 
     /**
@@ -58,7 +64,7 @@ class WorkLog extends Model
     {
         $hours = floor($this->time_spent_minutes / 60);
         $minutes = $this->time_spent_minutes % 60;
-        
+
         if ($hours > 0 && $minutes > 0) {
             return "{$hours}h {$minutes}m";
         } elseif ($hours > 0) {
@@ -80,16 +86,36 @@ class WorkLog extends Model
         return $this->belongsTo(User::class, 'rejected_by');
     }
 
-public function isRejected(): bool
-{
-    return $this->status === self::STATUS_REJECTED;
-}
+    public function isRejected(): bool
+    {
+        return $this->status === self::STATUS_REJECTED;
+    }
 
-public function isAccepted(): bool
-{
-    return $this->status === self::STATUS_ACCEPTED;
-}
+    public function isAccepted(): bool
+    {
+        return $this->status === self::STATUS_ACCEPTED;
+    }
+    public function getItems()
+    {
+        if (empty($this->item_ids)) {
+            return collect([]);
+        }
 
+        return Item::withTrashed()->whereIn('id', $this->item_ids)->get();
+    }
+    public function getIssueTypes()
+    {
+        if (empty($this->issue_type_ids)) {
+            return collect([]);
+        }
+
+        return IssueType::whereIn('id', $this->issue_type_ids)->get();
+    }
+
+    public function getItemNote($itemId)
+    {
+        return $this->item_notes[$itemId] ?? null;
+    }
 
     // Add method to get rejection badge class:
     public function getRejectionBadgeClass(): string
@@ -137,20 +163,19 @@ public function isAccepted(): bool
         return $query->where('log_date', '>=', now()->subDays($days));
     }
     public function getStatusBadgeText(): string
-{
-    return match ($this->status) {
-        self::STATUS_ACCEPTED => 'Accepted',
-        self::STATUS_REJECTED => 'Rejected',
-        default => 'Pending',
-    };
-}
-public function getStatusBadgeClass(): string
-{
-    return match ($this->status) {
-        self::STATUS_ACCEPTED => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-        self::STATUS_REJECTED => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-        default => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    };
-}
-
+    {
+        return match ($this->status) {
+            self::STATUS_ACCEPTED => 'Accepted',
+            self::STATUS_REJECTED => 'Rejected',
+            default => 'Pending',
+        };
+    }
+    public function getStatusBadgeClass(): string
+    {
+        return match ($this->status) {
+            self::STATUS_ACCEPTED => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+            self::STATUS_REJECTED => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+            default => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+        };
+    }
 }

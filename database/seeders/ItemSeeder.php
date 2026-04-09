@@ -61,7 +61,7 @@ class ItemSeeder extends Seeder
         ];
 
         foreach ($items as $item) {
-            Item::create($item);
+            Item::firstOrCreate($item);
         }
     }
 }

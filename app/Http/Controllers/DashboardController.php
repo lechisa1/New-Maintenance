@@ -14,6 +14,7 @@ use App\Models\MaintenanceRequestTechnician;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\MaintenanceRequestItem;
 
 class DashboardController extends Controller
 {
@@ -131,11 +132,12 @@ class DashboardController extends Controller
                 ->get();
 
             $issueTypeStats = IssueType::withTrashed()
-                ->withCount([
-                    'maintenanceRequests' => function ($q) {
-                        $q->withTrashed();
-                    }
-                ])
+                ->select('issue_types.*')
+                ->selectSub(
+                    MaintenanceRequestItem::whereColumn('issue_type_id', 'issue_types.id')
+                        ->selectRaw('COUNT(*)'),
+                    'maintenance_requests_count'
+                )
                 ->get();
 
             // Updated: Item analysis using the pivot table

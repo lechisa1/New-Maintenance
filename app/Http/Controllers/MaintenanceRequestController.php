@@ -387,6 +387,7 @@ class MaintenanceRequestController extends Controller
 
         $MAX_WORKLOAD = 15; // Items per technician
         $errors = [];
+        $assignedCount = 0;
 
         try {
             \DB::beginTransaction();
@@ -399,7 +400,7 @@ class MaintenanceRequestController extends Controller
                     continue;
                 }
 
-                // ✅ WORKLOAD CHECK - Count items per technician
+                // WORKLOAD CHECK - Count items per technician
                 $activeStatuses = [
                     MaintenanceRequest::STATUS_ASSIGNED,
                     'in_progress',
@@ -459,6 +460,8 @@ class MaintenanceRequestController extends Controller
                     ]);
                 }
 
+                $assignedCount++;
+
                 // Send notification to each technician
                 try {
                     $assignedUser->notify(new \App\Notifications\MaintenanceRequestAssigned(
@@ -487,18 +490,24 @@ class MaintenanceRequestController extends Controller
 
             \DB::commit();
 
-            if (!empty($errors)) {
-                return response()->json([
-                    'success' => true,
-                    'warning' => 'Some technicians could not be assigned:',
-                    'errors' => $errors,
-                    'message' => 'Technicians assigned with some warnings.'
-                ]);
+            // Return appropriate redirect with flash messages
+            if ($assignedCount === 0 && !empty($errors)) {
+                return redirect()->back()
+                    ->with('error', 'Failed to assign technicians: ' . implode(', ', $errors));
             }
 
-            return redirect()->back()
-                ->with('warning', 'Some technicians could not be assigned.')
-                ->with('errors', $errors);
+            if (!empty($errors)) {
+                return redirect()->back()
+                    ->with('warning', 'Technicians assigned with some warnings.')
+                    ->with('errors', $errors)
+                    ->with('success', "{$assignedCount} technician(s) assigned successfully.");
+            }
+
+            $message = count($validated['assigned_technicians']) === 1
+                ? 'Technician assigned successfully.'
+                : 'Technicians assigned successfully.';
+
+            return redirect()->back()->with('success', $message);
         } catch (\Exception $e) {
             \DB::rollBack();
             \Log::error('Failed to assign technicians: ' . $e->getMessage());
@@ -571,7 +580,7 @@ class MaintenanceRequestController extends Controller
         //     abort(403, 'Unauthorized access.');
         // }
 
-        $maintenanceRequest->load(['item']);
+        $maintenanceRequest->load(['items']);
 
         // Get active items for dropdown
         $items = Item::active()->orderBy('name')->get(['id', 'name', 'type']);
@@ -590,10 +599,16 @@ class MaintenanceRequestController extends Controller
     /**
      * Update the specified resource in storage.
      */
+    /**
+     * Update the specified resource in storage.
+     */
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(UpdateMaintenanceRequestRequest $request, MaintenanceRequest $maintenanceRequest)
     {
         // Authorization check
-        if ($maintenanceRequest->user_id !== auth()->id()) {
+        if ($maintenanceRequest->user_id !== auth()->id() && !auth()->user()->hasRole(['admin', 'technician'])) {
             abort(403, 'Unauthorized access.');
         }
 
@@ -602,18 +617,73 @@ class MaintenanceRequestController extends Controller
         try {
             $updates = $request->validated();
 
+            // Remove items from updates array (they are handled separately)
+            $itemsData = $request->input('items', []);
+            unset($updates['items']);
+
+            // Remove any fields that don't belong to maintenance_requests table
+            $allowedFields = [
+                'description',
+                'priority',
+                'status',
+                'assigned_to',
+                'technician_notes',
+                'resolution_notes',
+                'title'
+            ];
+
+            $allowedUpdates = array_intersect_key($updates, array_flip($allowedFields));
+
             // Handle status changes
             if ($request->has('status')) {
-                $updates = $this->handleStatusChange($maintenanceRequest, $request->status, $updates);
+                $allowedUpdates = $this->handleStatusChange($maintenanceRequest, $request->status, $allowedUpdates);
             }
 
             // Update maintenance request
-            $maintenanceRequest->update($updates);
+            if (!empty($allowedUpdates)) {
+                $maintenanceRequest->update($allowedUpdates);
+            }
 
-            // Handle file uploads - FIXED
+            // Update items if provided
+            if (!empty($itemsData)) {
+                // Get existing item IDs
+                $existingItemIds = $maintenanceRequest->items->pluck('id')->toArray();
+                $updatedItemIds = [];
+
+                foreach ($itemsData as $itemData) {
+                    if (isset($itemData['id']) && in_array($itemData['id'], $existingItemIds)) {
+                        // Update existing item
+                        $item = MaintenanceRequestItem::find($itemData['id']);
+                        if ($item && $item->maintenance_request_id == $maintenanceRequest->id) {
+                            $item->update([
+                                'item_id' => $itemData['item_id'],
+                                'issue_type_id' => $itemData['issue_type_id'],
+                                'description' => $itemData['description'] ?? null,
+                            ]);
+                            $updatedItemIds[] = $itemData['id'];
+                        }
+                    } else {
+                        // Create new item
+                        $newItem = MaintenanceRequestItem::create([
+                            'maintenance_request_id' => $maintenanceRequest->id,
+                            'item_id' => $itemData['item_id'],
+                            'issue_type_id' => $itemData['issue_type_id'],
+                            'description' => $itemData['description'] ?? null,
+                        ]);
+                        $updatedItemIds[] = $newItem->id;
+                    }
+                }
+
+                // Delete items that were removed
+                $itemsToDelete = array_diff($existingItemIds, $updatedItemIds);
+                if (!empty($itemsToDelete)) {
+                    MaintenanceRequestItem::whereIn('id', $itemsToDelete)->delete();
+                }
+            }
+
+            // Handle file uploads
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    // Validate individual file
                     if ($file->isValid()) {
                         $originalName = $file->getClientOriginalName();
                         $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
@@ -631,19 +701,11 @@ class MaintenanceRequestController extends Controller
                             'path' => $path,
                             'type' => "requester",
                             'size' => $file->getSize(),
-                        ]);
-                    } else {
-                        \Log::warning('Invalid file upload attempt', [
-                            'file_name' => $file->getClientOriginalName(),
-                            'error' => $file->getError(),
-                            'maintenance_request_id' => $maintenanceRequest->id
+                            'uploaded_by' => auth()->id(),
                         ]);
                     }
                 }
             }
-
-            // Update item status based on request status
-            $this->updateItemStatus($maintenanceRequest);
 
             DB::commit();
 
@@ -701,24 +763,69 @@ class MaintenanceRequestController extends Controller
     /**
      * Handle file download
      */
-    public function downloadFile(MaintenanceRequest $maintenanceRequest, $fileId)
+    public function downloadFile(MaintenanceRequest $maintenanceRequest, MaintenanceRequestFile $file)
     {
-        $file = MaintenanceRequestFile::findOrFail($fileId);
+        // Authorization: Check if user has permission to view this file
+        if (!$this->canAccessFile($maintenanceRequest, $file)) {
+            abort(403, 'Unauthorized access to this file.');
+        }
 
-        // Authorization check
+        // Verify file belongs to the request
         if ($file->maintenance_request_id !== $maintenanceRequest->id) {
-            abort(404);
+            abort(404, 'File not found.');
         }
 
-        if (auth()->user()->hasRole('user') && $maintenanceRequest->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized access.');
+        $filePath = storage_path('app/public/' . $file->path);
+
+        if (!file_exists($filePath)) {
+            abort(404, 'File not found on server.');
         }
 
-        if (!Storage::disk('public')->exists($file->path)) {
-            abort(404);
+        return response()->download($filePath, $file->original_name, [
+            'Content-Type' => $file->mime_type,
+            'Content-Disposition' => 'inline; filename="' . $file->original_name . '"'
+        ]);
+    }
+
+    /**
+     * Preview a file (returns file for inline viewing)
+     */
+    public function previewFile(MaintenanceRequest $maintenanceRequest, MaintenanceRequestFile $file)
+    {
+        // Authorization: Check if user has permission to view this file
+        if (!$this->canAccessFile($maintenanceRequest, $file)) {
+            abort(403, 'Unauthorized access to this file.');
         }
 
-        return Storage::disk('public')->download($file->path, $file->original_name);
+        // Verify file belongs to the request
+        if ($file->maintenance_request_id !== $maintenanceRequest->id) {
+            abort(404, 'File not found.');
+        }
+
+        $filePath = storage_path('app/public/' . $file->path);
+
+        if (!file_exists($filePath)) {
+            abort(404, 'File not found on server.');
+        }
+
+        // For images, return the file directly for inline display
+        if (str_starts_with($file->mime_type, 'image/')) {
+            return response()->file($filePath, [
+                'Content-Type' => $file->mime_type,
+                'Content-Disposition' => 'inline; filename="' . $file->original_name . '"'
+            ]);
+        }
+
+        // For PDF, return for inline display
+        if ($file->mime_type === 'application/pdf') {
+            return response()->file($filePath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $file->original_name . '"'
+            ]);
+        }
+
+        // For other files, force download
+        return response()->download($filePath, $file->original_name);
     }
 
     /**
@@ -750,7 +857,48 @@ class MaintenanceRequestController extends Controller
                 ->with('error', 'Failed to delete file.');
         }
     }
+    private function canAccessFile(MaintenanceRequest $maintenanceRequest, MaintenanceRequestFile $file): bool
+    {
+        $user = auth()->user();
 
+        // File owner (requester) can access
+        if ($maintenanceRequest->user_id === $user->id) {
+            return true;
+        }
+
+        // Admin/ICT Director can access
+        if ($user->can('maintenance_requests.assign')) {
+            return true;
+        }
+
+        // Technician assigned to this request can access
+        if ($user->can('maintenance_requests.resolve')) {
+            $isAssignedTechnician = $maintenanceRequest->assignedTechnicians()
+                ->where('user_id', $user->id)
+                ->exists();
+
+            if ($isAssignedTechnician) {
+                return true;
+            }
+        }
+
+        // Division/Cluster Chairman can access requests from their area
+        if ($user->isDivisionChairman()) {
+            $isInDivision = $maintenanceRequest->user && $maintenanceRequest->user->division_id === $user->division_id;
+            if ($isInDivision) {
+                return true;
+            }
+        }
+
+        if ($user->isClusterChairman()) {
+            $isInCluster = $maintenanceRequest->user && $maintenanceRequest->user->cluster_id === $user->cluster_id;
+            if ($isInCluster) {
+                return true;
+            }
+        }
+
+        return false;
+    }
     /**
      * Handle status change with timestamps
      */
@@ -935,12 +1083,7 @@ class MaintenanceRequestController extends Controller
      */
     public function updateStatus(Request $request, MaintenanceRequest $maintenanceRequest)
     {
-        if (
-            !auth()->user()->hasRole('technician') ||
-            $maintenanceRequest->assigned_to !== auth()->id()
-        ) {
-            abort(403, 'Unauthorized.');
-        }
+
 
         $request->validate([
             'status' => 'required|in:' . implode(',', [
@@ -971,13 +1114,100 @@ class MaintenanceRequestController extends Controller
             // Update item status
             $this->updateItemStatus($maintenanceRequest);
 
-            return redirect()->back()
-                ->with('success', 'Status updated successfully.');
+            // ========== SEND NOTIFICATIONS ==========
+
+            // Get the technician who performed the update
+            $technician = auth()->user();
+
+            // Update the technician's assignment status if needed
+            $userAssignment = $maintenanceRequest->assignedTechnicians()
+                ->where('user_id', $technician->id)
+                ->first();
+
+            if ($userAssignment) {
+                $assignmentStatus = 'assigned';
+                if ($request->status === MaintenanceRequest::STATUS_COMPLETED) {
+                    $assignmentStatus = 'completed';
+                } elseif ($request->status === MaintenanceRequest::STATUS_NOT_FIXED) {
+                    $assignmentStatus = 'not_fixed';
+                } elseif ($request->status === MaintenanceRequest::STATUS_IN_PROGRESS) {
+                    $assignmentStatus = 'in_progress';
+                }
+
+                $userAssignment->update([
+                    'status' => $assignmentStatus,
+                    'completed_at' => in_array($request->status, ['completed', 'not_fixed']) ? now() : null,
+                ]);
+            }
+
+            // Notify the requester based on status change
+            if ($maintenanceRequest->user) {
+                switch ($request->status) {
+                    case MaintenanceRequest::STATUS_COMPLETED:
+                        $maintenanceRequest->user->notify(
+                            new \App\Notifications\MaintenanceRequestCompleted(
+                                $maintenanceRequest,
+                                'completed'
+                            )
+                        );
+                        break;
+
+                    case MaintenanceRequest::STATUS_NOT_FIXED:
+                        $maintenanceRequest->user->notify(
+                            new \App\Notifications\MaintenanceRequestCompleted(
+                                $maintenanceRequest,
+                                'not_fixed'
+                            )
+                        );
+
+                        // Notify ICT directors for review when not fixed
+                        $ictDirectors = $maintenanceRequest->getGeneralIctDirectors();
+                        foreach ($ictDirectors as $director) {
+                            $director->notify(
+                                new \App\Notifications\MaintenanceRequestEscalated($maintenanceRequest)
+                            );
+                        }
+                        break;
+
+                    case MaintenanceRequest::STATUS_IN_PROGRESS:
+                        // Optional: Send in-progress notification if you have one
+                        // You can create a MaintenanceRequestInProgress notification class
+                        break;
+                }
+            }
+
+            // Log the status change
+            \Log::info('Status updated by technician', [
+                'request_id' => $maintenanceRequest->id,
+                'ticket_number' => $maintenanceRequest->ticket_number,
+                'old_status' => $oldStatus,
+                'new_status' => $request->status,
+                'technician_id' => $technician->id,
+                'technician_name' => $technician->name
+            ]);
+
+            // Return with appropriate success message
+            $statusMessages = [
+                MaintenanceRequest::STATUS_IN_PROGRESS => 'Request marked as in progress.',
+                MaintenanceRequest::STATUS_COMPLETED => 'Request marked as completed successfully. The requester has been notified.',
+                MaintenanceRequest::STATUS_NOT_FIXED => 'Request marked as not fixed. Requester and ICT directors have been notified.'
+            ];
+
+            $successMessage = $statusMessages[$request->status] ?? 'Status updated successfully.';
+
+            if ($request->filled('resolution_notes')) {
+                $successMessage .= ' Resolution notes have been saved.';
+            }
+
+            return redirect()->back()->with('success', $successMessage);
         } catch (\Exception $e) {
-            \Log::error('Status update failed: ' . $e->getMessage());
+            \Log::error('Status update failed: ' . $e->getMessage(), [
+                'request_id' => $maintenanceRequest->id,
+                'user_id' => auth()->id()
+            ]);
 
             return redirect()->back()
-                ->with('error', 'Failed to update status.');
+                ->with('error', 'Failed to update status. Please try again.');
         }
     }
     public function downloadReport(MaintenanceRequest $maintenanceRequest)

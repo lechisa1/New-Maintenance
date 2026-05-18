@@ -124,14 +124,14 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/maintenance-requests/statistics', [MaintenanceRequestController::class, 'statistics'])->name('maintenance-requests.statistics')->middleware('permission:maintenance_requests.view_all');
     // Route::post('/maintenance-requests/{maintenanceRequest}/assign', [MaintenanceRequestController::class, 'assign'])->name('maintenance-requests.assign');
     Route::post('/maintenance-requests/{maintenanceRequest}/update-status', [MaintenanceRequestController::class, 'updateStatus'])->name('maintenance-requests.update-status')->middleware('permission:maintenance_requests.update');
-    Route::get('/maintenance-requests/{maintenanceRequest}/download-file/{file}', [MaintenanceRequestController::class, 'downloadFile'])->name('maintenance-requests.download-file')->middleware('permission:maintenance_requests.view_all');
+    Route::get('/maintenance-requests/{maintenanceRequest}/download-file/{file}', [MaintenanceRequestController::class, 'downloadFile'])->name('maintenance-requests.download-file');
     Route::delete('/maintenance-requests/{maintenanceRequest}/delete-file/{file}', [MaintenanceRequestController::class, 'deleteFile'])->name('maintenance-requests.delete-file')->middleware('permission:maintenance_requests.update');
     Route::resource('maintenance-requests', MaintenanceRequestController::class)->middleware('permission:maintenance_requests.view_all|maintenance_requests.create|maintenance_requests.update|maintenance_requests.delete');
-    Route::get('/maintenance/{maintenanceRequest}/report', [MaintenanceRequestController::class, 'downloadReport'])->name('maintenance.report')->middleware('permission:maintenance_requests.view_all');
+    Route::get('/maintenance/{maintenanceRequest}/report', [MaintenanceRequestController::class, 'downloadReport'])->name('maintenance.report')->middleware('permission:maintenance_requests.view_all|maintenance_requests.resolve|maintenance_requests.view_assigned|maintenance_requests.assign');
     Route::get(
         '/maintenance-requests/{maintenanceRequest}/description-pdf',
         [MaintenanceRequestController::class, 'descriptionPdf']
-    )->name('maintenance.description.pdf')->middleware('permission:maintenance_requests.view_all');
+    )->name('maintenance.description.pdf');
 
     // Items (Equipment)
     Route::resource('items', ItemController::class)->middleware('permission:equipment.view|equipment.create|equipment.update|equipment.delete');

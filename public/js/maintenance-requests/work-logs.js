@@ -96,35 +96,84 @@ function setupWorkLogActions() {
 }
 
 // Accept Work Log
+// Accept Work Log
 async function acceptWorkLog(workLogId) {
-    // if (!confirm('Are you sure you want to accept and confirm this work log?')) {
-    //     return;
-    // }
+    // Show loading state on the button
+    const button = document.querySelector(`[data-accept-worklog="${workLogId}"]`);
+    const originalText = button?.innerHTML;
+    
+    if (button) {
+        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Processing...';
+        button.disabled = true;
+    }
 
     try {
         const response = await fetch(`/work-logs/${workLogId}/accept`, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': getCsrfToken(),
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             }
         });
 
         const result = await response.json();
 
         if (result.success) {
-            showToast('✅ Work accepted! Technician and ICT directors have been notified.', 'success');
+            // Show success toast
+            showToast('✅ ' + result.message, 'success');
             
-            // Reload page after 1.5 seconds
+            // Update the UI immediately
+            updateWorkLogStatus(workLogId, 'accepted');
+            
+            // Reload page after 2 seconds to show updated status
             setTimeout(() => {
                 window.location.reload();
-            }, 1500);
+            }, 2000);
         } else {
-            showToast('❌ ' + result.message, 'error');
+            // Show error toast
+            showToast('❌ ' + (result.message || 'Failed to accept work log.'), 'error');
+            
+            // Restore button if failed
+            if (button && originalText) {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
         }
     } catch (error) {
         console.error('Error:', error);
         showToast('❌ An error occurred. Please try again.', 'error');
+        
+        // Restore button if failed
+        if (button && originalText) {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    }
+}
+
+// Helper function to update UI without reload
+function updateWorkLogStatus(workLogId, status) {
+    // Find the work log container
+    const workLogDiv = document.querySelector(`[data-worklog-id="${workLogId}"]`);
+    if (!workLogDiv) return;
+    
+    // Update status badge
+    const statusBadge = workLogDiv.querySelector('.status-badge');
+    if (statusBadge) {
+        if (status === 'accepted') {
+            statusBadge.innerHTML = `
+                <span class="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <i class="bi bi-check-circle me-1"></i>Confirmed
+                </span>
+            `;
+        }
+    }
+    
+    // Remove action buttons
+    const actionButtons = workLogDiv.querySelector('.action-buttons');
+    if (actionButtons) {
+        actionButtons.remove();
     }
 }
 

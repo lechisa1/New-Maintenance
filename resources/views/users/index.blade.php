@@ -31,8 +31,6 @@
                             class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">
                             <i class="bi bi-person-plus mr-2"></i> Add User
                         </button>
-
-
                     </div>
                 </div>
 
@@ -80,6 +78,18 @@
                         </select>
                     </div>
 
+                    {{-- Show Per Page - Same as Roles page --}}
+                    <div class="flex items-center gap-2 ml-auto">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Show:</label>
+                        <select name="per_page"
+                            class="filter-select h-9 rounded-md border-gray-300 bg-gray-50 py-1 text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                            @foreach ([5, 10, 25, 50, 100] as $size)
+                                <option value="{{ $size }}"
+                                    {{ request('per_page', 10) == $size ? 'selected' : '' }}>{{ $size }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     @if (request()->anyFilled(['search', 'division_id', 'cluster_id', 'role']))
                         <a href="{{ route('users.index') }}"
                             class="text-xs font-medium text-red-500 hover:text-red-600 transition-colors">
@@ -90,6 +100,61 @@
             </form>
         </div>
 
+        {{-- Statistics Cards (Optional) --}}
+        {{-- <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Total Users</p>
+                        <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ number_format($totalUsers) }}</p>
+                    </div>
+                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20">
+                        <i class="bi bi-people text-xl text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Active Users</p>
+                        <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ number_format($activeUsers) }}
+                        </p>
+                    </div>
+                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
+                        <i class="bi bi-check-circle text-xl text-green-600 dark:text-green-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Inactive Users</p>
+                        <p class="text-2xl font-bold text-gray-500 dark:text-gray-400">{{ number_format($inactiveUsers) }}
+                        </p>
+                    </div>
+                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-500/20">
+                        <i class="bi bi-person-x text-xl text-gray-500 dark:text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Administrators</p>
+                        <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ number_format($adminUsers) }}
+                        </p>
+                    </div>
+                    <div
+                        class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-500/20">
+                        <i class="bi bi-shield-lock text-xl text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div> --}}
+
         <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="overflow-x-auto">
                 <x-tables.users-table :users="$users" />
@@ -97,38 +162,38 @@
 
             @if ($users->hasPages())
                 <div class="border-t border-gray-100 p-6 dark:border-gray-800">
-                    {{ $users->withQueryString()->links('vendor.pagination.dashboard') }}
+                    {{ $users->appends(request()->query())->links('vendor.pagination.dashboard') }}
                 </div>
             @endif
+
+            {{-- Results info --}}
+            <div class="border-t border-gray-100 px-6 py-3 text-center text-sm text-gray-500 dark:border-gray-800">
+                Showing {{ $users->firstItem() ?? 0 }} to {{ $users->lastItem() ?? 0 }} of {{ $users->total() }} users
+            </div>
         </div>
     </div>
+
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
         <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-
             <div class="flex items-center gap-3 mb-4">
                 <div
                     class="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400">
                     <i class="bi bi-exclamation-triangle text-lg"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                    Delete User
-                </h3>
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Delete User</h3>
             </div>
-
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
                 Are you sure you want to delete
                 <span id="deleteUserName" class="font-semibold text-gray-800 dark:text-white"></span>?
                 <br>
                 This action cannot be undone.
             </p>
-
             <div class="flex justify-end gap-3">
                 <button type="button" onclick="closeDeleteModal()"
                     class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
                     Cancel
                 </button>
-
                 <form id="deleteForm" method="POST">
                     @csrf
                     @method('DELETE')
@@ -140,31 +205,27 @@
             </div>
         </div>
     </div>
-    {{-- Create User Modal --}}
+
+    {{-- Create/Edit User Modal --}}
     <div id="userModal"
         class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-sm flex items-center justify-center mt-5 dark:border-white">
-
         <div
             class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl mx-4 shadow-xl overflow-y-auto max-h-[90vh] dark:border-gray-200">
-
-            {{-- Modal Header --}}
             <div class="flex items-center justify-between p-6 border-b dark:border-gray-800">
                 <h3 id="modalTitle" class="text-lg font-bold text-gray-800 dark:text-white">
                     <i id="modalIcon" class="bi bi-person-plus mr-2"></i>
                     <span id="modalText">Create New User</span>
                 </h3>
-
                 <button onclick="closeUserModal()" class="text-gray-500 hover:text-gray-700">
                     <i class="bi bi-x-lg dark:text-white"></i>
                 </button>
             </div>
-
-            {{-- Modal Body --}}
             <div class="p-6">
                 @include('users.partials._form')
             </div>
         </div>
     </div>
+
     @if ($errors->any())
         <script>
             document.addEventListener('DOMContentLoaded', () => {
@@ -221,6 +282,7 @@
                 closeDeleteModal();
             }
         });
+
         // Auto-hide success alert after 5 seconds
         const successAlert = document.getElementById('alert-success');
         if (successAlert) {
@@ -245,7 +307,6 @@
             document.getElementById('userModal').classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
         }
-
 
         function closeUserModal() {
             document.getElementById('userModal').classList.add('hidden');

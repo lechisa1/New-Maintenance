@@ -661,7 +661,7 @@ class WorkLogController extends Controller
             $oldStatus = $maintenanceRequest->status;
             $maintenanceRequest->update([
                 'status' => MaintenanceRequest::STATUS_CONFIRMED,
-                'completed_at' => now(), // Ensure completed_at is set
+                'completed_at' => now(),
             ]);
 
             // Record status history
@@ -677,17 +677,17 @@ class WorkLogController extends Controller
 
             \DB::commit();
 
+            // Return success response
             return response()->json([
                 'success' => true,
-                'message' => 'Work log accepted successfully. Notifications have been sent.',
-                'work_log_id' => $workLog->id,
+                'message' => 'Work log accepted successfully! The technician has been notified.',
+                'work_log_id' => $workLog->id
             ]);
         } catch (\Exception $e) {
             \DB::rollBack();
             \Log::error('Error accepting work log: ' . $e->getMessage(), [
                 'work_log_id' => $workLog->id,
-                'user_id' => $user->id,
-                'error' => $e->getTraceAsString()
+                'user_id' => $user->id
             ]);
 
             return response()->json([

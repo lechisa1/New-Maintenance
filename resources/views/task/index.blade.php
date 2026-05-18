@@ -33,41 +33,18 @@
             <x-common.stat-card title="My Requests" value="{{ $myRequests ?? 0 }}" icon="bi bi-person" variant="info" />
         </div> --}}
         {{-- In your task/index.blade.php, add this to the stats cards --}}
-        @if (auth()->user()->isIctDirector() && isset($pendingApprovalReviews) && $pendingApprovalReviews > 0)
+        {{-- @if (auth()->user()->isIctDirector() && isset($pendingApprovalReviews) && $pendingApprovalReviews > 0)
             <div class="rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-900/20">
                 <div class="flex items-center">
                     <div
                         class="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
                         <i class="bi bi-question-circle"></i>
                     </div>
-                    <div>
-                        <div class="text-sm text-purple-700 dark:text-purple-300">Pending ICT Review</div>
-                        <div class="text-2xl font-semibold text-purple-800 dark:text-purple-200">
-                            {{ $pendingApprovalReviews }}</div>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        {{-- Chairman Pending Approvals Badge --}}
-        {{-- @if ((auth()->user()->isDivisionChairman() || auth()->user()->isClusterChairman()) && isset($pendingChairmanApprovals) && $pendingChairmanApprovals > 0)
-            <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
-                <div class="flex items-center">
-                    <div
-                        class="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400">
-                        <i class="bi bi-shield-check"></i>
-                    </div>
-                    <div>
-                        <div class="text-sm text-yellow-700 dark:text-yellow-300">Pending Your Approval</div>
-                        <div class="text-2xl font-semibold text-yellow-800 dark:text-yellow-200">
-                            {{ $pendingChairmanApprovals }}</div>
-                        <div class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                            Chairman approval required for issue type changes
-                        </div>
-                    </div>
+               
                 </div>
             </div>
         @endif --}}
+
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <form action="{{ $pageType === 'tasks' ? route('user.task') : route('my.requests') }}" method="GET"
                 id="filterForm" class="space-y-4">

@@ -57,19 +57,40 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     // User Management
     Route::prefix('users')->name('users.')->group(function () {
+
+        // Static routes FIRST
         Route::get('/', [UserController::class, 'index'])->name('index')->middleware('permission:users.view');
+
         Route::get('/create', [UserController::class, 'create'])->name('create')->middleware('permission:users.create');
-        Route::post('/', [UserController::class, 'store'])->name('store')->middleware('permission:users.create');
-        Route::get('/{user}', [UserController::class, 'show'])->name('show');
-        Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit')->middleware('permission:users.update');
-        Route::put('/{user}', [UserController::class, 'update'])->name('update')->middleware('permission:users.update');
-        Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy')->middleware('permission:users.delete');
+
         Route::get('/trashed', [UserController::class, 'trashed'])->name('trashed')->middleware('permission:users.view');
-        Route::post('/{user}/restore', [UserController::class, 'restore'])->name('restore')->middleware('permission:users.delete');
-        Route::delete('/{user}/force', [UserController::class, 'forceDelete'])->name('force-delete')->middleware('permission:users.delete');
-        Route::get('/export', [UserController::class, 'export'])->name('export')->middleware('permission:users.view');
+
         Route::get('/statistics', [UserController::class, 'statistics'])->name('statistics')->middleware('permission:users.view');
+
         Route::get('/api/users', [UserController::class, 'getUsers'])->name('api.users')->middleware('permission:users.view');
+
+        // Export/Import routes
+        Route::get('/export', [UserController::class, 'exports'])->name('export')->middleware('permission:users.view');
+
+        Route::get('/export/template', [UserController::class, 'exportTemplate'])->name('export.template')->middleware('permission:users.view');
+
+        Route::post('/import', [UserController::class, 'import'])->name('import')->middleware('permission:users.create');
+
+        // Store
+        Route::post('/', [UserController::class, 'store'])->name('store')->middleware('permission:users.create');
+
+        // Dynamic routes LAST
+        Route::get('/{user}', [UserController::class, 'show'])->name('show');
+
+        Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit')->middleware('permission:users.update');
+
+        Route::put('/{user}', [UserController::class, 'update'])->name('update')->middleware('permission:users.update');
+
+        Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy')->middleware('permission:users.delete');
+
+        Route::post('/{user}/restore', [UserController::class, 'restore'])->name('restore')->middleware('permission:users.delete');
+
+        Route::delete('/{user}/force', [UserController::class, 'forceDelete'])->name('force-delete')->middleware('permission:users.delete');
     });
 
     // Role Management

@@ -23,10 +23,33 @@
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <a href="{{ route('users.export') }}"
+                        {{-- Export Dropdown - Pure CSS version --}}
+                        <div class="relative group">
+                            <button type="button"
+                                class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                                <i class="bi bi-download me-2"></i> Export
+                                <i class="bi bi-chevron-down ml-2 group-hover:rotate-180 transition-transform"></i>
+                            </button>
+
+                            <div
+                                class="absolute right-0 mt-2 w-48 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                <a href="{{ route('users.export') }}"
+                                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+                                    <i class="bi bi-file-earmark-excel mr-2 text-green-600"></i> Export All Users
+                                </a>
+                                <a href="{{ route('users.export.template') }}"
+                                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+                                    <i class="bi bi-file-earmark-plus mr-2 text-blue-600"></i> Download Template
+                                </a>
+                            </div>
+                        </div>
+
+                        {{-- Import Button --}}
+                        <button type="button" onclick="openImportModal()"
                             class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                            <i class="bi bi-download me-2"></i> Export
-                        </a>
+                            <i class="bi bi-upload me-2"></i> Import
+                        </button>
+
                         <button type="button" onclick="openUserModal()"
                             class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">
                             <i class="bi bi-person-plus mr-2"></i> Add User
@@ -71,14 +94,15 @@
                             class="filter-select h-9 rounded-md border-gray-300 bg-gray-50 py-1 text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                             <option value="">All Roles</option>
                             @foreach ($roles as $role)
-                                <option value="{{ $role->name }}" {{ request('role') == $role->name ? 'selected' : '' }}>
+                                <option value="{{ $role->name }}"
+                                    {{ request('role') == $role->name ? 'selected' : '' }}>
                                     {{ $role->name }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
 
-                    {{-- Show Per Page - Same as Roles page --}}
+                    {{-- Show Per Page --}}
                     <div class="flex items-center gap-2 ml-auto">
                         <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Show:</label>
                         <select name="per_page"
@@ -99,61 +123,6 @@
                 </div>
             </form>
         </div>
-
-        {{-- Statistics Cards (Optional) --}}
-        {{-- <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Total Users</p>
-                        <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ number_format($totalUsers) }}</p>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20">
-                        <i class="bi bi-people text-xl text-blue-600 dark:text-blue-400"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Active Users</p>
-                        <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ number_format($activeUsers) }}
-                        </p>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
-                        <i class="bi bi-check-circle text-xl text-green-600 dark:text-green-400"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Inactive Users</p>
-                        <p class="text-2xl font-bold text-gray-500 dark:text-gray-400">{{ number_format($inactiveUsers) }}
-                        </p>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-500/20">
-                        <i class="bi bi-person-x text-xl text-gray-500 dark:text-gray-400"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Administrators</p>
-                        <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ number_format($adminUsers) }}
-                        </p>
-                    </div>
-                    <div
-                        class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-500/20">
-                        <i class="bi bi-shield-lock text-xl text-purple-600 dark:text-purple-400"></i>
-                    </div>
-                </div>
-            </div>
-        </div> --}}
 
         <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="overflow-x-auto">
@@ -226,6 +195,46 @@
         </div>
     </div>
 
+    {{-- Import Modal --}}
+    <div id="importModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+        <div class="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Import Users</h3>
+                <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('users.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-4">
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Select Excel File (.xlsx, .xls, .csv)
+                    </label>
+                    <input type="file" name="import_file" accept=".xlsx,.xls,.csv" required
+                        class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm dark:border-gray-600 dark:bg-gray-700">
+                    <p class="mt-2 text-xs text-gray-500">
+                        <i class="bi bi-info-circle"></i>
+                        <a href="{{ route('users.export.template') }}" class="text-blue-600 hover:underline">Download
+                            template</a>
+                        to see the required format
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeImportModal()"
+                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                        Import Users
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @if ($errors->any())
         <script>
             document.addEventListener('DOMContentLoaded', () => {
@@ -256,8 +265,7 @@
                 }, 600);
             });
         });
-    </script>
-    <script>
+
         function confirmDelete(actionUrl, userName) {
             const modal = document.getElementById('deleteModal');
             const form = document.getElementById('deleteForm');
@@ -283,17 +291,6 @@
             }
         });
 
-        // Auto-hide success alert after 5 seconds
-        const successAlert = document.getElementById('alert-success');
-        if (successAlert) {
-            setTimeout(() => {
-                successAlert.style.transition = 'opacity 0.5s ease';
-                successAlert.style.opacity = '0';
-                setTimeout(() => successAlert.remove(), 500);
-            }, 5000);
-        }
-    </script>
-    <script>
         function openUserModal() {
             const form = document.getElementById('userForm');
 
@@ -317,8 +314,7 @@
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closeUserModal();
         });
-    </script>
-    <script>
+
         function openEditUserModal(user) {
             const modal = document.getElementById('userModal');
             const form = document.getElementById('userForm');
@@ -356,6 +352,37 @@
 
             modal.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
+        }
+
+        function openImportModal() {
+            const modal = document.getElementById('importModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeImportModal() {
+            const modal = document.getElementById('importModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        // Close import modal on backdrop click
+        document.getElementById('importModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeImportModal();
+            }
+        });
+
+        // Auto-hide success alert after 5 seconds
+        const successAlert = document.getElementById('alert-success');
+        if (successAlert) {
+            setTimeout(() => {
+                successAlert.style.transition = 'opacity 0.5s ease';
+                successAlert.style.opacity = '0';
+                setTimeout(() => successAlert.remove(), 500);
+            }, 5000);
         }
     </script>
 @endpush

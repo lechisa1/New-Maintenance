@@ -185,9 +185,9 @@
                             </h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div x-data="{ show: false }" class="relative">
-                                    <label
-                                        class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Password
-                                        <span class="text-red-500">*</span></label>
+                                    <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                        Password <span class="text-red-500">*</span>
+                                    </label>
                                     <input :type="show ? 'text' : 'password'" name="password"
                                         class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800 @error('password') border-red-500 @enderror">
                                     <button type="button" @click="show = !show"
@@ -199,12 +199,16 @@
                                     @enderror
                                 </div>
 
-                                <div>
-                                    <label
-                                        class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Confirm
-                                        Password <span class="text-red-500">*</span></label>
-                                    <input type="password" name="password_confirmation"
+                                <div x-data="{ showConfirm: false }" class="relative">
+                                    <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                        Confirm Password <span class="text-red-500">*</span>
+                                    </label>
+                                    <input :type="showConfirm ? 'text' : 'password'" name="password_confirmation"
                                         class="w-full rounded-lg border-gray-300 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800">
+                                    <button type="button" @click="showConfirm = !showConfirm"
+                                        class="absolute right-3 top-[38px] text-gray-400 hover:text-gray-600 transition">
+                                        <i class="bi" :class="showConfirm ? 'bi-eye-slash' : 'bi-eye'"></i>
+                                    </button>
                                 </div>
                             </div>
                         </section>

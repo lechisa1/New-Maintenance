@@ -16,6 +16,10 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\UserWelcomeMail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use App\Exports\UsersExport;
+use App\Exports\UsersTemplateExport;
+use App\Imports\UsersImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class UserController extends Controller
 {
@@ -499,5 +503,43 @@ class UserController extends Controller
         ];
 
         return response()->json($stats);
+    }
+    public function exports()
+    {
+        try {
+            $users = User::with('roles', 'division', 'cluster')->get();
+            return Excel::download(new UsersExport($users), 'users_' . date('Y-m-d_His') . '.xlsx');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Export failed: ' . $e->getMessage());
+        }
+    }
+
+    public function exportTemplate()
+    {
+        try {
+            return Excel::download(new UsersTemplateExport, 'users_import_template.xlsx');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Template download failed: ' . $e->getMessage());
+        }
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'import_file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        try {
+            $import = new UsersImport();
+            Excel::import($import, $request->file('import_file'));
+
+            $count = $import->getImportedCount();
+
+            return redirect()->route('users.index')
+                ->with('success', "Successfully imported {$count} users.");
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Import failed: ' . $e->getMessage());
+        }
     }
 }

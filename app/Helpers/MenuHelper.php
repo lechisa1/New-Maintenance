@@ -9,7 +9,7 @@ class MenuHelper
     public static function getMainNavItems()
     {
         $user = Auth::user();
-
+        // dd($user->getAllPermissions()->pluck('name'));
         $items = [
             [
                 'icon' => 'dashboard',
@@ -77,17 +77,38 @@ class MenuHelper
             ],
         ];
 
-        // Filter items based on permission
-        return array_filter($items, function ($item) use ($user) {
+        $filteredItems = [];
+
+        foreach ($items as $item) {
+
+            // Handle items with subItems
             if (isset($item['subItems'])) {
-                // Filter subItems
-                $item['subItems'] = array_filter($item['subItems'], function ($sub) use ($user) {
-                    return !isset($sub['permission']) || $user->can($sub['permission']);
-                });
-                return count($item['subItems']) > 0;
+
+                $item['subItems'] = array_values(array_filter(
+                    $item['subItems'],
+                    function ($sub) use ($user) {
+                        return !isset($sub['permission']) ||
+                            $user->can($sub['permission']);
+                    }
+                ));
+
+                // Only keep parent if it still has visible subitems
+                if (count($item['subItems']) > 0) {
+                    $filteredItems[] = $item;
+                }
+            } else {
+
+                // Normal menu item
+                if (
+                    !isset($item['permission']) ||
+                    $user->can($item['permission'])
+                ) {
+                    $filteredItems[] = $item;
+                }
             }
-            return !isset($item['permission']) || $user->can($item['permission']);
-        });
+        }
+
+        return $filteredItems;
     }
 
     public static function getOthersItems()

@@ -108,7 +108,7 @@
         </div>
 
         <!-- Submitted On Section -->
-        <div>
+        {{-- <div>
             <div class="flex items-center gap-1.5 mb-2">
                 <div class="h-4 w-1 bg-amber-500 rounded-full"></div>
                 <span class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Submitted
@@ -130,7 +130,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> --}}
 
         <!-- Assigned Technicians Section -->
         @if ($maintenanceRequest->assignedTechnicians->count() > 0)

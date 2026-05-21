@@ -117,10 +117,10 @@
                                             <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 Select Technicians <span class="text-red-500">*</span>
                                             </label>
-                                            <button type="button" @click="selectAllTechnicians"
+                                            {{-- <button type="button" @click="selectAllTechnicians"
                                                 class="text-xs text-blue-600 hover:text-blue-800">
                                                 Select All
-                                            </button>
+                                            </button> --}}
                                         </div>
 
                                         <div class="border rounded-lg p-3 max-h-48 overflow-y-auto dark:border-gray-700">
@@ -282,7 +282,7 @@
 
         {{-- UPDATE STATUS BUTTON --}}
         @can('maintenance_requests.view_assigned')
-            @if (in_array($maintenanceRequest->status, ['assigned', 'in_progress', 'not_fixed']))
+            @if (in_array($maintenanceRequest->status, ['in_progress', 'not_fixed']))
                 <button @click="$dispatch('open-update-status-modal')"
                     class="flex w-full items-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                     <i class="bi bi-arrow-repeat me-3"></i>
@@ -313,8 +313,8 @@
 {{-- WORK LOG SUBMIT MODAL --}}
 <div x-data="workLogSubmitModal()" @open-worklog-modal.window="showWorkLogModal = true; initializeItems();">
 
-    <div x-show="showWorkLogModal" x-cloak class="fixed inset-0 z-[999] overflow-y-auto"
-        aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div x-show="showWorkLogModal" x-cloak class="fixed inset-0 z-[999] overflow-y-auto" aria-labelledby="modal-title"
+        role="dialog" aria-modal="true">
 
         <!-- Backdrop with blur -->
         <div x-show="showWorkLogModal" x-transition:enter="transition ease-out duration-300"
@@ -519,7 +519,118 @@
         </div>
     </div>
 </div>
+{{-- UPDATE STATUS MODAL --}}
+<div x-data="updateStatusModal()" @open-update-status-modal.window="showUpdateStatusModal = true;">
 
+    <div x-show="showUpdateStatusModal" x-cloak class="fixed inset-0 z-[999] overflow-y-auto"
+        aria-labelledby="modal-title" role="dialog" aria-modal="true">
+
+        <!-- Backdrop -->
+        <div x-show="showUpdateStatusModal" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200" @click="closeModal"
+            class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"></div>
+
+        <!-- Modal Container -->
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div x-show="showUpdateStatusModal" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all dark:bg-gray-900">
+
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                        <i class="bi bi-arrow-repeat me-2 text-blue-500"></i>Update Request Status
+                    </h3>
+                    <button @click="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <form action="{{ route('maintenance-requests.update-status', $maintenanceRequest) }}" method="POST"
+                    class="p-6">
+                    @csrf
+                    {{-- Note: Using POST as per your route, not PUT --}}
+
+                    <div class="space-y-6">
+                        <!-- Status Selection -->
+                        <div>
+                            <label class="mb-3 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                Select New Status <span class="text-red-500">*</span>
+                            </label>
+                            <div class="space-y-3">
+                                {{-- In Progress Option --}}
+                                <label
+                                    class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 dark:border-gray-700 cursor-pointer">
+                                    <input type="radio" name="status" value="in_progress"
+                                        class="h-4 w-4 text-blue-600">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-800 dark:text-white">In Progress</div>
+                                        <div class="text-xs text-gray-500">Mark this request as in progress</div>
+                                    </div>
+                                    <i class="bi bi-play-circle text-blue-500 text-xl"></i>
+                                </label>
+
+                                {{-- Completed Option --}}
+                                <label
+                                    class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 dark:border-gray-700 cursor-pointer">
+                                    <input type="radio" name="status" value="completed"
+                                        class="h-4 w-4 text-green-600">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-800 dark:text-white">Completed</div>
+                                        <div class="text-xs text-gray-500">Mark this request as completed</div>
+                                    </div>
+                                    <i class="bi bi-check-circle text-green-500 text-xl"></i>
+                                </label>
+
+                                {{-- Not Fixed Option --}}
+                                <label
+                                    class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 dark:border-gray-700 cursor-pointer">
+                                    <input type="radio" name="status" value="not_fixed"
+                                        class="h-4 w-4 text-red-600">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-800 dark:text-white">Not Fixed</div>
+                                        <div class="text-xs text-gray-500">Issue could not be resolved, requires
+                                            reassignment</div>
+                                    </div>
+                                    <i class="bi bi-x-circle text-red-500 text-xl"></i>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Resolution Notes (matches your controller's field name) -->
+                        <div>
+                            <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                Resolution Notes (Optional)
+                            </label>
+                            <textarea name="resolution_notes" rows="4"
+                                class="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-gray-800 dark:bg-gray-800/50 dark:text-white"
+                                placeholder="Add resolution notes (max 2000 characters)..."></textarea>
+                            <p class="mt-1 text-xs text-gray-500">Maximum 2000 characters</p>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button type="button" @click="closeModal"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                                Update Status
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 @push('scripts')
     <script>
@@ -644,6 +755,16 @@
                         .finally(() => {
                             this.loading = false;
                         });
+                }
+            }
+        }
+
+        function updateStatusModal() {
+            return {
+                showUpdateStatusModal: false,
+
+                closeModal() {
+                    this.showUpdateStatusModal = false;
                 }
             }
         }

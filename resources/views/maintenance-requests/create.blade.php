@@ -67,53 +67,61 @@
                         </button>
 
                         <!-- Priority Selection (keep your existing code) -->
+                        <!-- Priority Selection -->
                         <div>
-                            <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90 ">
+                            <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                                 <i class="bi bi-flag me-1"></i>Priority Level
                             </h4>
                             <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                                 @foreach (App\Models\MaintenanceRequest::getPriorityOptions() as $key => $value)
-                                    <label class="cursor-pointer ">
+                                    @php
+                                        $priorityStyles = [
+                                            'low' => [
+                                                'border' => 'border-green-200 peer-checked:border-green-500',
+                                                'bg' => 'bg-green-50 peer-checked:bg-green-100',
+                                                'text' => 'text-green-800',
+                                                'dark_border' =>
+                                                    'dark:border-green-800 dark:peer-checked:border-green-500',
+                                                'dark_bg' => 'dark:bg-green-900/20 dark:peer-checked:bg-green-900/40',
+                                                'dark_text' => 'dark:text-green-200',
+                                            ],
+                                            'medium' => [
+                                                'border' => 'border-yellow-200 peer-checked:border-yellow-500',
+                                                'bg' => 'bg-yellow-50 peer-checked:bg-yellow-100',
+                                                'text' => 'text-yellow-800',
+                                                'dark_border' =>
+                                                    'dark:border-yellow-800 dark:peer-checked:border-yellow-500',
+                                                'dark_bg' => 'dark:bg-yellow-900/20 dark:peer-checked:bg-yellow-900/40',
+                                                'dark_text' => 'dark:text-yellow-200',
+                                            ],
+                                            'high' => [
+                                                'border' => 'border-orange-200 peer-checked:border-orange-500',
+                                                'bg' => 'bg-orange-50 peer-checked:bg-orange-100',
+                                                'text' => 'text-orange-800',
+                                                'dark_border' =>
+                                                    'dark:border-orange-800 dark:peer-checked:border-orange-500',
+                                                'dark_bg' => 'dark:bg-orange-900/20 dark:peer-checked:bg-orange-900/40',
+                                                'dark_text' => 'dark:text-orange-200',
+                                            ],
+                                            'emergency' => [
+                                                'border' => 'border-red-200 peer-checked:border-red-500',
+                                                'bg' => 'bg-red-50 peer-checked:bg-red-100',
+                                                'text' => 'text-red-800',
+                                                'dark_border' => 'dark:border-red-800 dark:peer-checked:border-red-500',
+                                                'dark_bg' => 'dark:bg-red-900/20 dark:peer-checked:bg-red-900/40',
+                                                'dark_text' => 'dark:text-red-200',
+                                            ],
+                                        ];
+                                        $style = $priorityStyles[$key];
+                                    @endphp
+                                    <label class="cursor-pointer">
                                         <input type="radio" name="priority" value="{{ $key }}"
                                             {{ old('priority', 'medium') == $key ? 'checked' : '' }} required
                                             class="peer sr-only">
-                                        @php
-                                            $colors = [
-                                                'low' => [
-                                                    'border' => 'border-green-500',
-                                                    'bg' => 'bg-green-100',
-                                                    'text' => 'text-green-800',
-                                                    'dark_bg' => 'dark:bg-green-900',
-                                                    'dark_text' => 'dark:text-green-200',
-                                                ],
-                                                'medium' => [
-                                                    'border' => 'border-yellow-500',
-                                                    'bg' => 'bg-yellow-100',
-                                                    'text' => 'text-yellow-800',
-                                                    'dark_bg' => 'dark:bg-yellow-900',
-                                                    'dark_text' => 'dark:text-yellow-200',
-                                                ],
-                                                'high' => [
-                                                    'border' => 'border-orange-500',
-                                                    'bg' => 'bg-orange-100',
-                                                    'text' => 'text-orange-800',
-                                                    'dark_bg' => 'dark:bg-orange-900',
-                                                    'dark_text' => 'dark:text-orange-200',
-                                                ],
-                                                'emergency' => [
-                                                    'border' => 'border-red-500',
-                                                    'bg' => 'bg-red-100',
-                                                    'text' => 'text-red-800',
-                                                    'dark_bg' => 'dark:bg-red-900',
-                                                    'dark_text' => 'dark:text-red-200',
-                                                ],
-                                            ];
-                                            $color = $colors[$key] ?? $colors['medium'];
-                                        @endphp
                                         <div
-                                            class="rounded-lg border-2 p-4 text-center transition-all peer-checked:{{ $color['border'] }} {{ $color['bg'] }} {{ $color['text'] }} dark:border-gray-700 peer-checked:dark:{{ $color['border'] }} {{ $color['dark_bg'] }} {{ $color['dark_text'] }}">
+                                            class="rounded-lg border-2 p-4 text-center transition-all {{ $style['border'] }} {{ $style['bg'] }} {{ $style['text'] }} {{ $style['dark_border'] }} {{ $style['dark_bg'] }} {{ $style['dark_text'] }}">
                                             <div class="text-sm font-medium">{{ $value }}</div>
-                                            <div class="mt-1 text-xs text-gray-600 dark:text-gray-400 dark:border-white">
+                                            <div class="mt-1 text-xs {{ $style['text'] }} {{ $style['dark_text'] }}">
                                                 @if ($key === 'low')
                                                     Non-urgent, can wait
                                                 @elseif($key === 'medium')

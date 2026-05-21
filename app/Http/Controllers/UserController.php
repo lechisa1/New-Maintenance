@@ -16,50 +16,58 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\UserWelcomeMail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use App\Exports\UsersExport;
+use App\Exports\UsersTemplateExport;
+use App\Imports\UsersImport;
+use Maatwebsite\Excel\Facades\Excel;
+
 class UserController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-public function index(Request $request)
-{
-    $filters = $request->only(['search', 'division_id', 'cluster_id', 'role', 'status']);
-    //   dd(auth()->id());
-      
-    $usersQuery = User::with(['division', 'cluster', 'roles'])
-        ->filter($filters);
+    public function index(Request $request)
+    {
+        $filters = $request->only(['search', 'division_id', 'cluster_id', 'role', 'status']);
 
-    // Paginated users
-    $users = (clone $usersQuery)
-        ->latest()
-        ->paginate(5)
-        ->withQueryString();
+        $usersQuery = User::with(['division', 'cluster', 'roles'])
+            ->filter($filters);
 
-    // ✅ STATISTICS
-    $totalUsers = User::count();
-    $activeUsers = User::whereNotNull('email_verified_at')->count();
-    $inactiveUsers = User::whereNull('email_verified_at')->count();
-    $adminUsers = 10;
+        // Get per_page from request, default to 10
+        $perPage = $request->input('per_page', 10);
 
-    // Filters data
-    $divisions = Division::orderBy('name')->get(['id', 'name']);
-    $clusters = Cluster::orderBy('name')->get(['id', 'name']);
-    $organizations = Organization::orderBy('name')->get(['id', 'name']);
-    $roles = Role::orderBy('name')->get(['id', 'name']);
+        // Paginated users with per_page
+        $users = (clone $usersQuery)
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
 
-    return view('users.index', compact(
-        'users',
-        'divisions',
-        'clusters',
-        'organizations',
-        'roles',
-        'filters',
-        'totalUsers',
-        'activeUsers',
-        'inactiveUsers',
-        'adminUsers'
-    ));
-}
+        // Statistics
+        $totalUsers = User::count();
+        $activeUsers = User::whereNotNull('email_verified_at')->count();
+        $inactiveUsers = User::whereNull('email_verified_at')->count();
+        $adminUsers = 1;
+
+        // Filters data
+        $divisions = Division::orderBy('name')->get(['id', 'name']);
+        $clusters = Cluster::orderBy('name')->get(['id', 'name']);
+        $organizations = Organization::orderBy('name')->get(['id', 'name']);
+        $roles = Role::orderBy('name')->get(['id', 'name']);
+
+        return view('users.index', compact(
+            'users',
+            'divisions',
+            'clusters',
+            'organizations',
+            'roles',
+            'filters',
+            'totalUsers',
+            'activeUsers',
+            'inactiveUsers',
+            'adminUsers',
+            'perPage'
+        ));
+    }
 
 
     /**
@@ -80,57 +88,56 @@ public function index(Request $request)
     /**
      * Store a newly created resource in storage.
      */
-public function store(StoreUserRequest $request)
-{
-    DB::beginTransaction();
- 
-    try {
-        $clusterId = null;
-        $divisionId = null;
+    public function store(StoreUserRequest $request)
+    {
+        DB::beginTransaction();
 
-        if ($request->assign_type === 'cluster') {
-            $clusterId = $request->cluster_id;
-        }
+        try {
+            $clusterId = null;
+            $divisionId = null;
 
-        if ($request->assign_type === 'division') {
-            $division = Division::findOrFail($request->division_id);
-            $divisionId = $division->id;
-            $clusterId  = $division->cluster_id; // inferred automatically
-        }
+            if ($request->assign_type === 'cluster') {
+                $clusterId = $request->cluster_id;
+            }
 
-        $user = User::create([
-            'id' => Str::uuid(),
-            'full_name' => $request->full_name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'cluster_id' => $clusterId,
-            'division_id' => $divisionId,
-            
-        ]);
+            if ($request->assign_type === 'division') {
+                $division = Division::findOrFail($request->division_id);
+                $divisionId = $division->id;
+                $clusterId  = $division->cluster_id; // inferred automatically
+            }
 
-        // ONE role only
-      $user->assignRole($request->roles);
+            $user = User::create([
+                'id' => Str::uuid(),
+                'full_name' => $request->full_name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'password' => Hash::make($request->password),
+                'cluster_id' => $clusterId,
+                'division_id' => $divisionId,
+
+            ]);
+
+            // ONE role only
+            $user->assignRole($request->roles);
 
 
-        DB::commit();
+            DB::commit();
 
-        return redirect()
-            ->route('users.index')
-            ->with('success', 'User created successfully');
-
-    } catch (\Throwable $e) {
-        DB::rollBack();
+            return redirect()
+                ->route('users.index')
+                ->with('success', 'User created successfully');
+        } catch (\Throwable $e) {
+            DB::rollBack();
             dd(
-        $e->getMessage(),
-        $e->getFile(),
-        $e->getLine()
-    );
-        report($e);
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
+            );
+            report($e);
 
-        return back()->withInput()->with('error', 'Failed to create user');
+            return back()->withInput()->with('error', 'Failed to create user');
+        }
     }
-}
 
 
     /**
@@ -141,7 +148,7 @@ public function store(StoreUserRequest $request)
         // $this->authorize('view', $user);
 
         $user->load(['division', 'cluster', 'roles', 'organization']);
-        
+
         // Get user activity logs
         // $activities = $user->activities()
         //     ->with('causer')
@@ -155,79 +162,78 @@ public function store(StoreUserRequest $request)
     /**
      * Show the form for editing the specified resource.
      */
-public function edit(User $user)
-{
-    $divisions = Division::orderBy('name')->get(['id', 'name']);
-    $clusters = Cluster::orderBy('name')->get(['id', 'name']);
-    $organizations = Organization::orderBy('name')->get(['id', 'name']);
-    $roles = Role::orderBy('name')->get(['id', 'name']);
+    public function edit(User $user)
+    {
+        $divisions = Division::orderBy('name')->get(['id', 'name']);
+        $clusters = Cluster::orderBy('name')->get(['id', 'name']);
+        $organizations = Organization::orderBy('name')->get(['id', 'name']);
+        $roles = Role::orderBy('name')->get(['id', 'name']);
 
-    return view('users.edit', compact(
-        'user',
-        'divisions',
-        'clusters',
-        'organizations',
-        'roles'
-    ));
-}
-
-/**
- * Update the specified user
- */
-public function update(UpdateUserRequest $request, User $user)
-{
-    DB::beginTransaction();
-
-    try {
-        $clusterId  = null;
-        $divisionId = null;
-
-        if ($request->assign_type === 'cluster') {
-            $clusterId = $request->cluster_id;
-        }
-
-        if ($request->assign_type === 'division') {
-            $division = Division::findOrFail($request->division_id);
-            $divisionId = $division->id;
-            $clusterId  = $division->cluster_id;
-        }
-
-        $updateData = [
-            'full_name'   => $request->full_name,
-            'email'       => $request->email,
-            'phone'       => $request->phone,
-            'cluster_id'  => $clusterId,
-            'division_id' => $divisionId,
-        ];
-
-        // Update password only if provided
-        if ($request->filled('password')) {
-            $updateData['password'] = Hash::make($request->password);
-        }
-
-        $user->update($updateData);
-
-        // 🔐 SINGLE ROLE (same as create)
-        if ($request->filled('roles')) {
-            $user->syncRoles([$request->roles]);
-        }
-
-        DB::commit();
-
-        return redirect()
-            ->route('users.index')
-            ->with('success', 'User updated successfully');
-
-    } catch (\Throwable $e) {
-        DB::rollBack();
-
-        report($e);
-
-        return back()
-            ->withInput()
-            ->with('error', 'Failed to update user');
+        return view('users.edit', compact(
+            'user',
+            'divisions',
+            'clusters',
+            'organizations',
+            'roles'
+        ));
     }
-}
+
+    /**
+     * Update the specified user
+     */
+    public function update(UpdateUserRequest $request, User $user)
+    {
+        DB::beginTransaction();
+
+        try {
+            $clusterId  = null;
+            $divisionId = null;
+
+            if ($request->assign_type === 'cluster') {
+                $clusterId = $request->cluster_id;
+            }
+
+            if ($request->assign_type === 'division') {
+                $division = Division::findOrFail($request->division_id);
+                $divisionId = $division->id;
+                $clusterId  = $division->cluster_id;
+            }
+
+            $updateData = [
+                'full_name'   => $request->full_name,
+                'email'       => $request->email,
+                'phone'       => $request->phone,
+                'cluster_id'  => $clusterId,
+                'division_id' => $divisionId,
+            ];
+
+            // Update password only if provided
+            if ($request->filled('password')) {
+                $updateData['password'] = Hash::make($request->password);
+            }
+
+            $user->update($updateData);
+
+            // 🔐 SINGLE ROLE (same as create)
+            if ($request->filled('roles')) {
+                $user->syncRoles([$request->roles]);
+            }
+
+            DB::commit();
+
+            return redirect()
+                ->route('users.index')
+                ->with('success', 'User updated successfully');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            report($e);
+
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to update user');
+        }
+    }
 
     /**
      * Remove the specified resource from storage.
@@ -247,7 +253,7 @@ public function update(UpdateUserRequest $request, User $user)
         try {
             // Store user info for logging
             $userEmail = $user->email;
-            
+
             // Soft delete the user
             $user->delete();
 
@@ -261,12 +267,11 @@ public function update(UpdateUserRequest $request, User $user)
 
             return redirect()->route('users.index')
                 ->with('success', 'User deleted successfully.');
-                
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             \Log::error('User deletion failed: ' . $e->getMessage());
-            
+
             return redirect()->back()
                 ->with('error', 'Failed to delete user. Please try again.');
         }
@@ -278,27 +283,26 @@ public function update(UpdateUserRequest $request, User $user)
     public function restore($id)
     {
         $user = User::withTrashed()->findOrFail($id);
-        
+
         DB::beginTransaction();
 
         try {
             $user->restore();
-        // Make user active
-        $user->update([
-            'is_active' => true
-        ]);
+            // Make user active
+            $user->update([
+                'is_active' => true
+            ]);
 
 
             DB::commit();
 
             return redirect()->route('users.index')
                 ->with('success', 'User restored successfully.');
-                
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             \Log::error('User restoration failed: ' . $e->getMessage());
-            
+
             return redirect()->back()
                 ->with('error', 'Failed to restore user. Please try again.');
         }
@@ -310,7 +314,7 @@ public function update(UpdateUserRequest $request, User $user)
     public function forceDelete($id)
     {
         $user = User::withTrashed()->findOrFail($id);
-        
+
         $this->authorize('forceDelete', $user);
 
         // Prevent self-permanent deletion
@@ -324,7 +328,7 @@ public function update(UpdateUserRequest $request, User $user)
         try {
             // Store user info for logging
             $userEmail = $user->email;
-            
+
             // Permanently delete
             $user->forceDelete();
 
@@ -338,12 +342,11 @@ public function update(UpdateUserRequest $request, User $user)
 
             return redirect()->route('users.index', ['trashed' => true])
                 ->with('success', 'User permanently deleted.');
-                
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             \Log::error('User permanent deletion failed: ' . $e->getMessage());
-            
+
             return redirect()->back()
                 ->with('error', 'Failed to permanently delete user. Please try again.');
         }
@@ -372,7 +375,7 @@ public function update(UpdateUserRequest $request, User $user)
         $this->authorize('export', User::class);
 
         $filters = $request->only(['search', 'division_id', 'cluster_id', 'role', 'status']);
-        
+
         $users = User::with(['division', 'cluster', 'roles'])
             ->filter($filters)
             ->latest()
@@ -383,12 +386,12 @@ public function update(UpdateUserRequest $request, User $user)
             'Content-Disposition' => 'attachment; filename=users_' . date('Y-m-d_H-i-s') . '.csv',
         ];
 
-        $callback = function() use ($users) {
+        $callback = function () use ($users) {
             $file = fopen('php://output', 'w');
-            
+
             // Add BOM for UTF-8
             fwrite($file, "\xEF\xBB\xBF");
-            
+
             // Headers
             fputcsv($file, [
                 'ID',
@@ -435,9 +438,9 @@ public function update(UpdateUserRequest $request, User $user)
         $query = User::query();
 
         if ($request->has('q')) {
-            $query->where(function($q) use ($request) {
+            $query->where(function ($q) use ($request) {
                 $q->where('full_name', 'like', '%' . $request->q . '%')
-                  ->orWhere('email', 'like', '%' . $request->q . '%');
+                    ->orWhere('email', 'like', '%' . $request->q . '%');
             });
         }
 
@@ -453,7 +456,7 @@ public function update(UpdateUserRequest $request, User $user)
             ->orderBy('full_name')
             ->limit(20)
             ->get()
-            ->map(function($user) {
+            ->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'text' => $user->full_name . ' (' . $user->email . ')'
@@ -478,14 +481,14 @@ public function update(UpdateUserRequest $request, User $user)
                 ->select('division_id', DB::raw('count(*) as count'))
                 ->groupBy('division_id')
                 ->get()
-                ->mapWithKeys(function($item) {
+                ->mapWithKeys(function ($item) {
                     return [$item->division?->name ?? 'Unassigned' => $item->count];
                 }),
             'by_cluster' => User::with('cluster')
                 ->select('cluster_id', DB::raw('count(*) as count'))
                 ->groupBy('cluster_id')
                 ->get()
-                ->mapWithKeys(function($item) {
+                ->mapWithKeys(function ($item) {
                     return [$item->cluster?->name ?? 'Unassigned' => $item->count];
                 }),
             'by_role' => DB::table('model_has_roles')
@@ -493,12 +496,50 @@ public function update(UpdateUserRequest $request, User $user)
                 ->select('roles.name', DB::raw('count(*) as count'))
                 ->groupBy('roles.name')
                 ->get()
-                ->mapWithKeys(function($item) {
+                ->mapWithKeys(function ($item) {
                     return [$item->name => $item->count];
                 }),
             'recent' => User::latest()->take(5)->get(),
         ];
 
         return response()->json($stats);
+    }
+    public function exports()
+    {
+        try {
+            $users = User::with('roles', 'division', 'cluster')->get();
+            return Excel::download(new UsersExport($users), 'users_' . date('Y-m-d_His') . '.xlsx');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Export failed: ' . $e->getMessage());
+        }
+    }
+
+    public function exportTemplate()
+    {
+        try {
+            return Excel::download(new UsersTemplateExport, 'users_import_template.xlsx');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Template download failed: ' . $e->getMessage());
+        }
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'import_file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        try {
+            $import = new UsersImport();
+            Excel::import($import, $request->file('import_file'));
+
+            $count = $import->getImportedCount();
+
+            return redirect()->route('users.index')
+                ->with('success', "Successfully imported {$count} users.");
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Import failed: ' . $e->getMessage());
+        }
     }
 }

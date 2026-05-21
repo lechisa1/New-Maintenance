@@ -12,16 +12,56 @@
                     class="h-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-800 dark:bg-white/[0.03]">
                     <div class="flex items-center justify-between px-5 pt-5 sm:px-6 sm:pt-6">
                         <div>
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-white/90">
-                                Monthly Statistics
-                            </h3>
-                            <p class="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">Activity overview per month</p>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white/90">Statistics Overview</h3>
+                            <p class="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">Activity overview by period</p>
                         </div>
-                        <x-common.dropdown-menu :items="['Last 7 days', 'Last 30 days', 'Last 90 days']" />
+                        <div class="relative" x-data="{ open: false, selectedPeriod: 'month' }">
+                            <button @click="open = !open"
+                                class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                                <span
+                                    x-text="selectedPeriod === 'week' ? 'Weekly' : (selectedPeriod === 'month' ? 'Monthly' : 'Yearly')"></span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div x-show="open" @click.outside="open = false"
+                                class="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700 z-50">
+                                <div class="py-1">
+                                    <button @click="selectedPeriod = 'week'; open = false; window.updateChart('week')"
+                                        class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Weekly</button>
+                                    <button @click="selectedPeriod = 'month'; open = false; window.updateChart('month')"
+                                        class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Monthly</button>
+                                    <button @click="selectedPeriod = 'year'; open = false; window.updateChart('year')"
+                                        class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Yearly</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="max-w-full overflow-x-auto custom-scrollbar px-5 pb-5">
-                        <div id="monthlyChart" class="-ml-5 h-80 min-w-[690px] pl-2 xl:min-w-full"></div>
+                        <div id="statisticsChart" class="h-80 w-full"></div>
+                    </div>
+
+                    <!-- Status Summary Cards -->
+                    <div
+                        class="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
+                        <div class="text-center p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Pending</p>
+                            <p class="text-xl font-bold text-blue-600 dark:text-blue-400" id="pendingTotal">0</p>
+                        </div>
+                        <div class="text-center p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">In Progress</p>
+                            <p class="text-xl font-bold text-yellow-600 dark:text-yellow-400" id="progressTotal">0</p>
+                        </div>
+                        <div class="text-center p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Completed</p>
+                            <p class="text-xl font-bold text-green-600 dark:text-green-400" id="completedTotal">0</p>
+                        </div>
+                        <div class="text-center p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Total</p>
+                            <p class="text-xl font-bold text-purple-600 dark:text-purple-400" id="grandTotal">0</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -72,13 +112,12 @@
             </div>
         </div>
 
-
-
         <div class="col-span-12">
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
                 <x-ecommerce.recent-orders :recentRequests="$recentRequests" />
             </div>
         </div>
+
         @if (auth()->user()->can('maintenance_requests.assign'))
             <div class="grid grid-cols-12 gap-4 md:gap-6 mt-6">
                 <!-- Issue Type Chart -->
@@ -100,7 +139,6 @@
                 </div>
             </div>
         @endif
-
     </div>
 @endsection
 
@@ -108,71 +146,323 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Monthly Statistics Chart
+            // ========== STATUS STATISTICS CHART ==========
+            // ========== STATUS STATISTICS CHART ==========
+            // Use the existing monthlyStats data which already has correct counts
             @if (isset($monthlyStats) && $monthlyStats->count() > 0)
-                const monthlyData = {!! $monthlyStats->toJson() !!};
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                let monthlyStatsData = @json($monthlyStats);
+                let currentChart = null;
 
-                const monthlyCategories = monthlyData.map(item => months[item.month - 1] || '');
-                const monthlyTotals = monthlyData.map(item => item.total || 0);
-                const monthlyCompleted = monthlyData.map(item => item.completed || 0);
+                // Update summary cards with actual totals from metrics
+                document.getElementById('pendingTotal').textContent = '{{ $pendingRequests }}';
+                document.getElementById('progressTotal').textContent = '{{ $inProgressRequests }}';
+                document.getElementById('completedTotal').textContent = '{{ $completedRequests }}';
+                document.getElementById('grandTotal').textContent = '{{ $totalRequests }}';
 
-                const monthlyChartOptions = {
+                // Define month names
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov',
+                    'Dec'
+                ];
+
+                // Transform monthlyStats into the format needed for the chart
+                // First, get all available months
+                const availableMonths = monthlyStatsData.map(item => monthNames[item.month - 1]);
+                const pendingData = monthlyStatsData.map(item => item.pending || 0);
+                const completedData = monthlyStatsData.map(item => item.completed || 0);
+
+                // Calculate in_progress as total - pending - completed (since we don't have it directly)
+                const totalData = monthlyStatsData.map(item => item.total || 0);
+                const inProgressData = monthlyStatsData.map((item, index) => {
+                    return totalData[index] - (pendingData[index] + completedData[index]);
+                });
+
+                const statusColors = {
+                    'pending': '#f59e0b',
+                    'in_progress': '#3b82f6',
+                    'completed': '#10b981'
+                };
+
+                function renderStatisticsChart() {
+                    const chartOptions = {
+                        series: [{
+                                name: 'Pending',
+                                data: pendingData,
+                                color: statusColors.pending
+                            },
+                            {
+                                name: 'In Progress',
+                                data: inProgressData,
+                                color: statusColors.in_progress
+                            },
+                            {
+                                name: 'Completed',
+                                data: completedData,
+                                color: statusColors.completed
+                            },
+                            {
+                                name: 'Total',
+                                data: totalData,
+                                color: '#6366f1',
+                                type: 'line'
+                            }
+                        ],
+                        chart: {
+                            type: 'bar',
+                            height: 350,
+                            toolbar: {
+                                show: true,
+                                tools: {
+                                    download: true,
+                                    zoom: true,
+                                    pan: true,
+                                    reset: true
+                                }
+                            },
+                            stacked: false,
+                            animations: {
+                                enabled: true,
+                                easing: 'easeinout',
+                                speed: 500
+                            }
+                        },
+                        plotOptions: {
+                            bar: {
+                                borderRadius: 6,
+                                columnWidth: '55%',
+                                borderRadiusApplication: 'end'
+                            }
+                        },
+                        dataLabels: {
+                            enabled: false
+                        },
+                        stroke: {
+                            width: [0, 0, 0, 3],
+                            curve: 'smooth',
+                            dashArray: [0, 0, 0, 5]
+                        },
+                        xaxis: {
+                            categories: availableMonths,
+                            labels: {
+                                style: {
+                                    fontSize: '11px'
+                                }
+                            },
+                            title: {
+                                text: 'Month',
+                                style: {
+                                    fontSize: '12px',
+                                    fontWeight: 500
+                                }
+                            }
+                        },
+                        yaxis: {
+                            title: {
+                                text: 'Number of Requests',
+                                style: {
+                                    fontSize: '12px',
+                                    fontWeight: 500
+                                }
+                            },
+                            min: 0,
+                            forceNiceScale: true
+                        },
+                        tooltip: {
+                            shared: true,
+                            intersect: false,
+                            y: {
+                                formatter: function(val, {
+                                    seriesIndex,
+                                    dataPointIndex
+                                }) {
+                                    const seriesName = ['Pending', 'In Progress', 'Completed', 'Total'][
+                                        seriesIndex
+                                    ];
+                                    return `${seriesName}: ${val} requests`;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            horizontalAlign: 'center',
+                            fontSize: '11px',
+                            markers: {
+                                width: 10,
+                                height: 10,
+                                radius: 4
+                            },
+                            itemMargin: {
+                                horizontal: 10,
+                                vertical: 5
+                            }
+                        },
+                        grid: {
+                            borderColor: '#e5e7eb',
+                            strokeDashArray: 5,
+                            xaxis: {
+                                lines: {
+                                    show: false
+                                }
+                            }
+                        },
+                        responsive: [{
+                            breakpoint: 768,
+                            options: {
+                                chart: {
+                                    height: 300
+                                },
+                                xaxis: {
+                                    labels: {
+                                        rotate: -45,
+                                        fontSize: '10px'
+                                    }
+                                },
+                                legend: {
+                                    position: 'bottom',
+                                    fontSize: '10px'
+                                }
+                            }
+                        }]
+                    };
+
+                    if (currentChart) {
+                        currentChart.destroy();
+                    }
+
+                    const chartElement = document.querySelector("#statisticsChart");
+                    if (chartElement) {
+                        chartElement.innerHTML = '';
+                        currentChart = new ApexCharts(chartElement, chartOptions);
+                        currentChart.render();
+                    }
+                }
+
+                // Simple update function for period (just re-renders with same data for now)
+                window.updateChart = function(period) {
+                    // For now, just re-render. You can implement actual period filtering later
+                    renderStatisticsChart();
+                };
+
+                renderStatisticsChart();
+            @else
+                // Fallback: Use the metrics data directly
+                const pendingTotal = {{ $pendingRequests }};
+                const progressTotal = {{ $inProgressRequests }};
+                const completedTotal = {{ $completedRequests }};
+                const grandTotal = {{ $totalRequests }};
+
+                document.getElementById('pendingTotal').textContent = pendingTotal;
+                document.getElementById('progressTotal').textContent = progressTotal;
+                document.getElementById('completedTotal').textContent = completedTotal;
+                document.getElementById('grandTotal').textContent = grandTotal;
+
+                // Create simple chart with current totals distributed across months
+                const currentYear = new Date().getFullYear();
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov',
+                    'Dec'
+                ];
+                const currentMonth = new Date().getMonth();
+
+                // Distribute totals across last 6 months
+                const months = [];
+                const pendingData = [];
+                const progressData = [];
+                const completedData = [];
+                const totalData = [];
+
+                for (let i = 5; i >= 0; i--) {
+                    const monthIndex = currentMonth - i;
+                    const adjustedMonth = monthIndex < 0 ? monthIndex + 12 : monthIndex;
+                    months.push(monthNames[adjustedMonth]);
+
+                    // Distribute values (simplified - evenly distribute)
+                    pendingData.push(Math.ceil(pendingTotal / 6));
+                    progressData.push(Math.ceil(progressTotal / 6));
+                    completedData.push(Math.ceil(completedTotal / 6));
+                    totalData.push(Math.ceil(grandTotal / 6));
+                }
+
+                const fallbackChartOptions = {
                     series: [{
-                        name: 'Total Requests',
-                        data: monthlyTotals
-                    }, {
-                        name: 'Completed',
-                        data: monthlyCompleted
-                    }],
+                            name: 'Pending',
+                            data: pendingData,
+                            color: '#f59e0b'
+                        },
+                        {
+                            name: 'In Progress',
+                            data: progressData,
+                            color: '#3b82f6'
+                        },
+                        {
+                            name: 'Completed',
+                            data: completedData,
+                            color: '#10b981'
+                        },
+                        {
+                            name: 'Total',
+                            data: totalData,
+                            color: '#6366f1',
+                            type: 'line'
+                        }
+                    ],
                     chart: {
                         type: 'bar',
                         height: 350,
                         toolbar: {
-                            show: false
-                        }
+                            show: true
+                        },
+                        stacked: false
                     },
                     plotOptions: {
                         bar: {
-                            horizontal: false,
-                            columnWidth: '55%',
-                            borderRadius: 4
-                        },
+                            borderRadius: 6,
+                            columnWidth: '55%'
+                        }
                     },
                     dataLabels: {
                         enabled: false
                     },
                     stroke: {
-                        show: true,
-                        width: 2,
-                        colors: ['transparent']
+                        width: [0, 0, 0, 3],
+                        curve: 'smooth',
+                        dashArray: [0, 0, 0, 5]
                     },
                     xaxis: {
-                        categories: monthlyCategories
+                        categories: months,
+                        title: {
+                            text: 'Month'
+                        }
                     },
                     yaxis: {
                         title: {
                             text: 'Number of Requests'
-                        }
-                    },
-                    fill: {
-                        opacity: 1
+                        },
+                        min: 0
                     },
                     tooltip: {
-                        y: {
-                            formatter: function(val) {
-                                return val + " requests"
-                            }
-                        }
+                        shared: true,
+                        intersect: false
                     },
-                    colors: ['#3b82f6', '#10b981']
+                    legend: {
+                        position: 'top',
+                        horizontalAlign: 'center'
+                    }
                 };
 
-                const monthlyChart = new ApexCharts(document.querySelector("#monthlyChart"), monthlyChartOptions);
-                monthlyChart.render();
+                const chartElement = document.querySelector("#statisticsChart");
+                if (chartElement) {
+                    const fallbackChart = new ApexCharts(chartElement, fallbackChartOptions);
+                    fallbackChart.render();
+                }
+
+                window.updateChart = function(period) {
+                    // Simple re-render
+                    if (window.fallbackChart) {
+                        window.fallbackChart.render();
+                    }
+                };
             @endif
 
-            // Priority Distribution Chart
+            // ========== PRIORITY DISTRIBUTION CHART ==========
             @if (isset($priorityStats) && $priorityStats->count() > 0)
                 const priorityData = {!! $priorityStats->toJson() !!};
                 const priorityLabels = priorityData.map(item => {
@@ -192,15 +482,18 @@
                     series: priorityCounts,
                     chart: {
                         type: 'donut',
-                        height: 200, // Reduced height
-                        fontFamily: 'Inter, sans-serif'
+                        height: 200,
+                        fontFamily: 'Inter, sans-serif',
+                        toolbar: {
+                            show: false
+                        }
                     },
                     labels: priorityLabels,
                     colors: priorityLabels.map(label => priorityColors[label] || '#6b7280'),
                     plotOptions: {
                         pie: {
                             donut: {
-                                size: '65%', // Make donut hole larger
+                                size: '65%',
                                 labels: {
                                     show: true,
                                     name: {
@@ -228,10 +521,10 @@
                         }
                     },
                     dataLabels: {
-                        enabled: false // Disable data labels on slices
+                        enabled: false
                     },
                     legend: {
-                        show: false // Hide legend since we have stats below
+                        show: false
                     },
                     responsive: [{
                         breakpoint: 640,
@@ -256,125 +549,234 @@
                 priorityChart.render();
             @endif
 
-            // Issue Type Chart (for admin only)
+            // ========== ISSUE TYPE CHART ==========
             @if (auth()->user()->can('maintenance_requests.assign'))
+                function aggregateTopItems(data, limit = 10) {
+                    if (!data || data.length === 0) return [];
 
+                    const filteredData = data.filter(item => {
+                        const count = item.maintenance_requests_count || item.count || 0;
+                        return count > 1;
+                    });
 
-                @if ($issueTypes > 0)
-                    const issueTypeData = {!! $issueTypeStats->toJson() !!};
+                    if (filteredData.length === 0) return [];
 
-                    const issueTypeLabels = issueTypeData.map(item => item.name || 'Unknown');
-                    const issueTypeCounts = issueTypeData.map(item => item.maintenance_requests_count || 0);
+                    const sorted = [...filteredData].sort((a, b) => {
+                        const countA = a.maintenance_requests_count || a.count || 0;
+                        const countB = b.maintenance_requests_count || b.count || 0;
+                        return countB - countA;
+                    });
 
-                    const issueTypeChartOptions = {
-                        series: [{
-                            data: issueTypeCounts
-                        }],
-                        chart: {
-                            type: 'bar',
-                            height: 350,
-                            toolbar: {
-                                show: false
+                    const topItems = sorted.slice(0, limit);
+                    const otherItems = sorted.slice(limit);
+
+                    if (otherItems.length > 0) {
+                        const otherCount = otherItems.reduce((sum, item) => sum + (item
+                            .maintenance_requests_count || item.count || 0), 0);
+                        topItems.push({
+                            name: `Others (${otherItems.length} items)`,
+                            maintenance_requests_count: otherCount
+                        });
+                    }
+
+                    return topItems;
+                }
+
+                @if ($issueTypes > 0 && isset($issueTypeStats) && $issueTypeStats->count() > 0)
+                    const rawIssueData = {!! $issueTypeStats->toJson() !!};
+                    const aggregatedIssues = aggregateTopItems(rawIssueData, 12);
+
+                    if (aggregatedIssues.length > 0) {
+                        const issueTypeLabels = aggregatedIssues.map(item => {
+                            let label = item.name || 'Unknown';
+                            return label.length > 30 ? label.substring(0, 27) + '...' : label;
+                        });
+                        const issueTypeCounts = aggregatedIssues.map(item => item.maintenance_requests_count || 0);
+                        const issueColors = issueTypeLabels.map((_, i) => `hsl(${(i * 30) % 360}, 70%, 50%)`);
+
+                        const issueTypeChartOptions = {
+                            series: [{
+                                data: issueTypeCounts
+                            }],
+                            chart: {
+                                type: 'bar',
+                                height: Math.min(500, Math.max(300, issueTypeLabels.length * 35)),
+                                toolbar: {
+                                    show: true,
+                                    tools: {
+                                        download: true,
+                                        zoom: true,
+                                        pan: true
+                                    }
+                                }
+                            },
+                            plotOptions: {
+                                bar: {
+                                    borderRadius: 4,
+                                    horizontal: true,
+                                    distributed: true,
+                                    barHeight: '70%',
+                                    dataLabels: {
+                                        position: 'top'
+                                    }
+                                }
+                            },
+                            dataLabels: {
+                                enabled: true,
+                                formatter: (val) => val + ' reqs',
+                                offsetX: 10,
+                                style: {
+                                    fontSize: '11px',
+                                    colors: ['#333']
+                                }
+                            },
+                            xaxis: {
+                                categories: issueTypeLabels,
+                                labels: {
+                                    style: {
+                                        fontSize: '11px'
+                                    },
+                                    rotate: 0,
+                                    trim: true
+                                },
+                                title: {
+                                    text: 'Number of Requests'
+                                }
+                            },
+                            yaxis: {
+                                labels: {
+                                    style: {
+                                        fontSize: '11px'
+                                    },
+                                    formatter: (val) => val.length > 25 ? val.substring(0, 22) + '...' : val
+                                }
+                            },
+                            colors: issueColors,
+                            title: {
+                                text: 'Top Issue Types',
+                                align: 'left',
+                                style: {
+                                    fontSize: '14px',
+                                    fontWeight: 'bold'
+                                }
                             }
-                        },
-                        plotOptions: {
-                            bar: {
-                                borderRadius: 4,
-                                horizontal: true,
-                                distributed: true
-                            }
-                        },
-                        dataLabels: {
-                            enabled: true
-                        },
-                        xaxis: {
-                            categories: issueTypeLabels
-                        },
-                        colors: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4']
-                    };
+                        };
 
-                    const issueTypeChart = new ApexCharts(document.querySelector("#issueTypeChart"),
-                        issueTypeChartOptions);
-                    issueTypeChart.render();
+                        const issueTypeChart = new ApexCharts(document.querySelector("#issueTypeChart"),
+                            issueTypeChartOptions);
+                        issueTypeChart.render();
+                    } else {
+                        document.getElementById('issueTypeChart').innerHTML =
+                            '<div class="flex items-center justify-center h-64 text-gray-500">No issue types with >1 request</div>';
+                    }
                 @else
                     document.getElementById('issueTypeChart').innerHTML =
                         '<div class="flex items-center justify-center h-64 text-gray-500">No issue type data available</div>';
                 @endif
-                // ===== Issue Type Line Chart =====
-                @if (isset($issueTypeAnalysis) && $issueTypeAnalysis->count() > 0)
-                    const issueTypeDataLine = {!! $issueTypeAnalysis->toJson() !!};
-                    const issueTypeLabelsLine = issueTypeDataLine.map(item => item.name || 'Unknown');
-                    const issueTypeCountsLine = issueTypeDataLine.map(item => item.count || 0);
 
-                    new ApexCharts(document.querySelector("#issueTypeChart"), {
-                        series: [{
-                            name: 'Requests',
-                            data: issueTypeCountsLine
-                        }],
-                        chart: {
-                            type: 'line',
-                            height: 300,
-                            toolbar: {
-                                show: false
-                            }
-                        },
-                        stroke: {
-                            curve: 'smooth',
-                            width: 3
-                        },
-                        markers: {
-                            size: 5
-                        },
-                        xaxis: {
-                            categories: issueTypeLabelsLine
-                        },
-                        tooltip: {
-                            y: {
-                                formatter: val => val + " requests"
-                            }
-                        },
-                        colors: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
-                    }).render();
-                @endif
-
-                // ===== Item Line Chart =====
+                // ========== ITEM CHART ==========
                 @if (isset($itemAnalysis) && $itemAnalysis->count() > 0)
-                    const itemDataLine = {!! $itemAnalysis->toJson() !!};
-                    const itemLabelsLine = itemDataLine.map(item => item.name || 'Unknown');
-                    const itemCountsLine = itemDataLine.map(item => item.count || 0);
+                    const rawItemData = {!! $itemAnalysis->toJson() !!};
+                    const aggregatedItems = aggregateTopItems(rawItemData, 15);
 
-                    new ApexCharts(document.querySelector("#itemChart"), {
-                        series: [{
-                            name: 'Requests',
-                            data: itemCountsLine
-                        }],
-                        chart: {
-                            type: 'line',
-                            height: 300,
-                            toolbar: {
-                                show: false
+                    if (aggregatedItems.length > 0) {
+                        const treemapData = aggregatedItems.map(item => ({
+                            x: (item.name || 'Unknown').length > 35 ? (item.name || 'Unknown')
+                                .substring(0, 32) + '...' : (item.name || 'Unknown'),
+                            y: item.maintenance_requests_count || item.count || 0
+                        }));
+
+                        const itemChartOptions = {
+                            series: [{
+                                data: treemapData
+                            }],
+                            chart: {
+                                type: 'treemap',
+                                height: 400,
+                                toolbar: {
+                                    show: true,
+                                    tools: {
+                                        download: true
+                                    }
+                                }
+                            },
+                            plotOptions: {
+                                treemap: {
+                                    distributed: true,
+                                    enableShades: true,
+                                    shadeIntensity: 0.5,
+                                    colorScale: {
+                                        ranges: [{
+                                                from: 2,
+                                                to: 10,
+                                                color: '#86efac'
+                                            },
+                                            {
+                                                from: 11,
+                                                to: 50,
+                                                color: '#4ade80'
+                                            },
+                                            {
+                                                from: 51,
+                                                to: 100,
+                                                color: '#22c55e'
+                                            },
+                                            {
+                                                from: 101,
+                                                to: 200,
+                                                color: '#16a34a'
+                                            },
+                                            {
+                                                from: 201,
+                                                to: 500,
+                                                color: '#15803d'
+                                            },
+                                            {
+                                                from: 501,
+                                                to: 1000,
+                                                color: '#166534'
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+                            dataLabels: {
+                                enabled: true,
+                                style: {
+                                    fontSize: '11px',
+                                    colors: ['#fff']
+                                },
+                                formatter: (text, op) => [text, op.value],
+                                offsetY: -2
+                            },
+                            tooltip: {
+                                y: {
+                                    formatter: (value, {
+                                        dataPointIndex
+                                    }) => `${treemapData[dataPointIndex].x}: ${value} requests`
+                                }
+                            },
+                            title: {
+                                text: 'Problematic Items Distribution',
+                                align: 'left',
+                                style: {
+                                    fontSize: '14px',
+                                    fontWeight: 'bold'
+                                }
                             }
-                        },
-                        stroke: {
-                            curve: 'smooth',
-                            width: 3
-                        },
-                        markers: {
-                            size: 5
-                        },
-                        xaxis: {
-                            categories: itemLabelsLine
-                        },
-                        tooltip: {
-                            y: {
-                                formatter: val => val + " requests"
-                            }
-                        },
-                        colors: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444']
-                    }).render();
+                        };
+
+                        const itemChart = new ApexCharts(document.querySelector("#itemChart"), itemChartOptions);
+                        itemChart.render();
+                    } else {
+                        document.getElementById('itemChart').innerHTML =
+                            '<div class="flex items-center justify-center h-64 text-gray-500">No items with >1 request</div>';
+                    }
+                @else
+                    document.getElementById('itemChart').innerHTML =
+                        '<div class="flex items-center justify-center h-64 text-gray-500">No item data available</div>';
                 @endif
             @endif
-
         });
     </script>
 @endpush

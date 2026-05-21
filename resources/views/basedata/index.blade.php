@@ -106,10 +106,10 @@
                     class="flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800">
                     <i class="bi bi-plus-lg text-green-500"></i> New Issue Type
                 </a>
-                <a href="{{ route('items.index', ['export' => 'excel']) }}"
+                {{-- <a href="{{ route('items.index', ['export' => 'excel']) }}"
                     class="flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800">
                     <i class="bi bi-file-earmark-excel text-amber-500"></i> Export Excel
-                </a>
+                </a> --}}
                 <button onclick="window.location.reload()"
                     class="flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800">
                     <i class="bi bi-arrow-clockwise text-purple-500"></i> Refresh

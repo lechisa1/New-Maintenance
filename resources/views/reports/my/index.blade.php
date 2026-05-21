@@ -98,7 +98,7 @@
             </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+        {{-- <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Avg. Completion Time</p>
@@ -114,7 +114,7 @@
                     </svg>
                 </div>
             </div>
-        </div>
+        </div> --}}
 
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-between">

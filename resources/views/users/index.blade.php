@@ -23,16 +23,37 @@
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <a href="{{ route('users.export') }}"
+                        {{-- Export Dropdown - Pure CSS version --}}
+                        <div class="relative group">
+                            <button type="button"
+                                class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                                <i class="bi bi-download me-2"></i> Export
+                                <i class="bi bi-chevron-down ml-2 group-hover:rotate-180 transition-transform"></i>
+                            </button>
+
+                            <div
+                                class="absolute right-0 mt-2 w-48 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                <a href="{{ route('users.export') }}"
+                                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+                                    <i class="bi bi-file-earmark-excel mr-2 text-green-600"></i> Export All Users
+                                </a>
+                                <a href="{{ route('users.export.template') }}"
+                                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+                                    <i class="bi bi-file-earmark-plus mr-2 text-blue-600"></i> Download Template
+                                </a>
+                            </div>
+                        </div>
+
+                        {{-- Import Button --}}
+                        <button type="button" onclick="openImportModal()"
                             class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                            <i class="bi bi-download me-2"></i> Export
-                        </a>
+                            <i class="bi bi-upload me-2"></i> Import
+                        </button>
+
                         <button type="button" onclick="openUserModal()"
                             class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">
                             <i class="bi bi-person-plus mr-2"></i> Add User
                         </button>
-
-
                     </div>
                 </div>
 
@@ -73,9 +94,22 @@
                             class="filter-select h-9 rounded-md border-gray-300 bg-gray-50 py-1 text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                             <option value="">All Roles</option>
                             @foreach ($roles as $role)
-                                <option value="{{ $role->name }}" {{ request('role') == $role->name ? 'selected' : '' }}>
+                                <option value="{{ $role->name }}"
+                                    {{ request('role') == $role->name ? 'selected' : '' }}>
                                     {{ $role->name }}
                                 </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Show Per Page --}}
+                    <div class="flex items-center gap-2 ml-auto">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Show:</label>
+                        <select name="per_page"
+                            class="filter-select h-9 rounded-md border-gray-300 bg-gray-50 py-1 text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                            @foreach ([5, 10, 25, 50, 100] as $size)
+                                <option value="{{ $size }}"
+                                    {{ request('per_page', 10) == $size ? 'selected' : '' }}>{{ $size }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -97,38 +131,38 @@
 
             @if ($users->hasPages())
                 <div class="border-t border-gray-100 p-6 dark:border-gray-800">
-                    {{ $users->withQueryString()->links('vendor.pagination.dashboard') }}
+                    {{ $users->appends(request()->query())->links('vendor.pagination.dashboard') }}
                 </div>
             @endif
+
+            {{-- Results info --}}
+            <div class="border-t border-gray-100 px-6 py-3 text-center text-sm text-gray-500 dark:border-gray-800">
+                Showing {{ $users->firstItem() ?? 0 }} to {{ $users->lastItem() ?? 0 }} of {{ $users->total() }} users
+            </div>
         </div>
     </div>
+
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
         <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-
             <div class="flex items-center gap-3 mb-4">
                 <div
                     class="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400">
                     <i class="bi bi-exclamation-triangle text-lg"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                    Delete User
-                </h3>
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Delete User</h3>
             </div>
-
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
                 Are you sure you want to delete
                 <span id="deleteUserName" class="font-semibold text-gray-800 dark:text-white"></span>?
                 <br>
                 This action cannot be undone.
             </p>
-
             <div class="flex justify-end gap-3">
                 <button type="button" onclick="closeDeleteModal()"
                     class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
                     Cancel
                 </button>
-
                 <form id="deleteForm" method="POST">
                     @csrf
                     @method('DELETE')
@@ -140,31 +174,67 @@
             </div>
         </div>
     </div>
-    {{-- Create User Modal --}}
+
+    {{-- Create/Edit User Modal --}}
     <div id="userModal"
         class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-sm flex items-center justify-center mt-5 dark:border-white">
-
         <div
             class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl mx-4 shadow-xl overflow-y-auto max-h-[90vh] dark:border-gray-200">
-
-            {{-- Modal Header --}}
             <div class="flex items-center justify-between p-6 border-b dark:border-gray-800">
                 <h3 id="modalTitle" class="text-lg font-bold text-gray-800 dark:text-white">
                     <i id="modalIcon" class="bi bi-person-plus mr-2"></i>
                     <span id="modalText">Create New User</span>
                 </h3>
-
                 <button onclick="closeUserModal()" class="text-gray-500 hover:text-gray-700">
                     <i class="bi bi-x-lg dark:text-white"></i>
                 </button>
             </div>
-
-            {{-- Modal Body --}}
             <div class="p-6">
                 @include('users.partials._form')
             </div>
         </div>
     </div>
+
+    {{-- Import Modal --}}
+    <div id="importModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+        <div class="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Import Users</h3>
+                <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('users.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-4">
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Select Excel File (.xlsx, .xls, .csv)
+                    </label>
+                    <input type="file" name="import_file" accept=".xlsx,.xls,.csv" required
+                        class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm dark:border-gray-600 dark:bg-gray-700">
+                    <p class="mt-2 text-xs text-gray-500">
+                        <i class="bi bi-info-circle"></i>
+                        <a href="{{ route('users.export.template') }}" class="text-blue-600 hover:underline">Download
+                            template</a>
+                        to see the required format
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeImportModal()"
+                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                        Import Users
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @if ($errors->any())
         <script>
             document.addEventListener('DOMContentLoaded', () => {
@@ -195,8 +265,7 @@
                 }, 600);
             });
         });
-    </script>
-    <script>
+
         function confirmDelete(actionUrl, userName) {
             const modal = document.getElementById('deleteModal');
             const form = document.getElementById('deleteForm');
@@ -221,17 +290,7 @@
                 closeDeleteModal();
             }
         });
-        // Auto-hide success alert after 5 seconds
-        const successAlert = document.getElementById('alert-success');
-        if (successAlert) {
-            setTimeout(() => {
-                successAlert.style.transition = 'opacity 0.5s ease';
-                successAlert.style.opacity = '0';
-                setTimeout(() => successAlert.remove(), 500);
-            }, 5000);
-        }
-    </script>
-    <script>
+
         function openUserModal() {
             const form = document.getElementById('userForm');
 
@@ -246,7 +305,6 @@
             document.body.classList.add('overflow-hidden');
         }
 
-
         function closeUserModal() {
             document.getElementById('userModal').classList.add('hidden');
             document.body.classList.remove('overflow-hidden');
@@ -256,8 +314,7 @@
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closeUserModal();
         });
-    </script>
-    <script>
+
         function openEditUserModal(user) {
             const modal = document.getElementById('userModal');
             const form = document.getElementById('userForm');
@@ -295,6 +352,37 @@
 
             modal.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
+        }
+
+        function openImportModal() {
+            const modal = document.getElementById('importModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeImportModal() {
+            const modal = document.getElementById('importModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        // Close import modal on backdrop click
+        document.getElementById('importModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeImportModal();
+            }
+        });
+
+        // Auto-hide success alert after 5 seconds
+        const successAlert = document.getElementById('alert-success');
+        if (successAlert) {
+            setTimeout(() => {
+                successAlert.style.transition = 'opacity 0.5s ease';
+                successAlert.style.opacity = '0';
+                setTimeout(() => successAlert.remove(), 500);
+            }, 5000);
         }
     </script>
 @endpush

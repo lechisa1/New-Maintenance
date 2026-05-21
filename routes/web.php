@@ -57,19 +57,40 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     // User Management
     Route::prefix('users')->name('users.')->group(function () {
+
+        // Static routes FIRST
         Route::get('/', [UserController::class, 'index'])->name('index')->middleware('permission:users.view');
+
         Route::get('/create', [UserController::class, 'create'])->name('create')->middleware('permission:users.create');
-        Route::post('/', [UserController::class, 'store'])->name('store')->middleware('permission:users.create');
-        Route::get('/{user}', [UserController::class, 'show'])->name('show');
-        Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit')->middleware('permission:users.update');
-        Route::put('/{user}', [UserController::class, 'update'])->name('update')->middleware('permission:users.update');
-        Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy')->middleware('permission:users.delete');
+
         Route::get('/trashed', [UserController::class, 'trashed'])->name('trashed')->middleware('permission:users.view');
-        Route::post('/{user}/restore', [UserController::class, 'restore'])->name('restore')->middleware('permission:users.delete');
-        Route::delete('/{user}/force', [UserController::class, 'forceDelete'])->name('force-delete')->middleware('permission:users.delete');
-        Route::get('/export', [UserController::class, 'export'])->name('export')->middleware('permission:users.view');
+
         Route::get('/statistics', [UserController::class, 'statistics'])->name('statistics')->middleware('permission:users.view');
+
         Route::get('/api/users', [UserController::class, 'getUsers'])->name('api.users')->middleware('permission:users.view');
+
+        // Export/Import routes
+        Route::get('/export', [UserController::class, 'exports'])->name('export')->middleware('permission:users.view');
+
+        Route::get('/export/template', [UserController::class, 'exportTemplate'])->name('export.template')->middleware('permission:users.view');
+
+        Route::post('/import', [UserController::class, 'import'])->name('import')->middleware('permission:users.create');
+
+        // Store
+        Route::post('/', [UserController::class, 'store'])->name('store')->middleware('permission:users.create');
+
+        // Dynamic routes LAST
+        Route::get('/{user}', [UserController::class, 'show'])->name('show');
+
+        Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit')->middleware('permission:users.update');
+
+        Route::put('/{user}', [UserController::class, 'update'])->name('update')->middleware('permission:users.update');
+
+        Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy')->middleware('permission:users.delete');
+
+        Route::post('/{user}/restore', [UserController::class, 'restore'])->name('restore')->middleware('permission:users.delete');
+
+        Route::delete('/{user}/force', [UserController::class, 'forceDelete'])->name('force-delete')->middleware('permission:users.delete');
     });
 
     // Role Management
@@ -124,14 +145,14 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/maintenance-requests/statistics', [MaintenanceRequestController::class, 'statistics'])->name('maintenance-requests.statistics')->middleware('permission:maintenance_requests.view_all');
     // Route::post('/maintenance-requests/{maintenanceRequest}/assign', [MaintenanceRequestController::class, 'assign'])->name('maintenance-requests.assign');
     Route::post('/maintenance-requests/{maintenanceRequest}/update-status', [MaintenanceRequestController::class, 'updateStatus'])->name('maintenance-requests.update-status')->middleware('permission:maintenance_requests.update');
-    Route::get('/maintenance-requests/{maintenanceRequest}/download-file/{file}', [MaintenanceRequestController::class, 'downloadFile'])->name('maintenance-requests.download-file')->middleware('permission:maintenance_requests.view_all');
+    Route::get('/maintenance-requests/{maintenanceRequest}/download-file/{file}', [MaintenanceRequestController::class, 'downloadFile'])->name('maintenance-requests.download-file');
     Route::delete('/maintenance-requests/{maintenanceRequest}/delete-file/{file}', [MaintenanceRequestController::class, 'deleteFile'])->name('maintenance-requests.delete-file')->middleware('permission:maintenance_requests.update');
     Route::resource('maintenance-requests', MaintenanceRequestController::class)->middleware('permission:maintenance_requests.view_all|maintenance_requests.create|maintenance_requests.update|maintenance_requests.delete');
-    Route::get('/maintenance/{maintenanceRequest}/report', [MaintenanceRequestController::class, 'downloadReport'])->name('maintenance.report')->middleware('permission:maintenance_requests.view_all');
+    Route::get('/maintenance/{maintenanceRequest}/report', [MaintenanceRequestController::class, 'downloadReport'])->name('maintenance.report')->middleware('permission:maintenance_requests.view_all|maintenance_requests.resolve|maintenance_requests.view_assigned|maintenance_requests.assign');
     Route::get(
         '/maintenance-requests/{maintenanceRequest}/description-pdf',
         [MaintenanceRequestController::class, 'descriptionPdf']
-    )->name('maintenance.description.pdf')->middleware('permission:maintenance_requests.view_all');
+    )->name('maintenance.description.pdf');
 
     // Items (Equipment)
     Route::resource('items', ItemController::class)->middleware('permission:equipment.view|equipment.create|equipment.update|equipment.delete');

@@ -107,7 +107,7 @@
                     <div
                         class="h-full rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03] p-5">
                         <h3 class="text-lg font-bold text-gray-800 dark:text-white/90 mb-3">Top Issue Types</h3>
-                        <div id="issueTypeChart" class="h-72"></div>
+                        <div id="issueTypeChart"></div>
                     </div>
                 </div>
 
@@ -116,7 +116,7 @@
                     <div
                         class="h-full rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03] p-5">
                         <h3 class="text-lg font-bold text-gray-800 dark:text-white/90 mb-3">Most Problematic Items</h3>
-                        <div id="itemChart" class="h-72"></div>
+                        <div id="itemChart"></div>
                     </div>
                 </div>
             </div>
@@ -563,6 +563,7 @@
                             chart: {
                                 type: 'bar',
                                 height: Math.min(500, Math.max(300, issueTypeLabels.length * 35)),
+                                width: '100%',
                                 toolbar: {
                                     show: true,
                                     tools: {
@@ -570,7 +571,8 @@
                                         zoom: true,
                                         pan: true
                                     }
-                                }
+                                },
+                                parentHeightOffset: 0
                             },
                             plotOptions: {
                                 bar: {
@@ -610,6 +612,7 @@
                                     style: {
                                         fontSize: '11px'
                                     },
+                                    maxWidth: 120,
                                     formatter: (val) => val.length > 25 ? val.substring(0, 22) + '...' : val
                                 }
                             },
@@ -621,7 +624,70 @@
                                     fontSize: '14px',
                                     fontWeight: 'bold'
                                 }
-                            }
+                            },
+                            responsive: [{
+                                breakpoint: 1024,
+                                options: {
+                                    chart: {
+                                        height: Math.min(450, Math.max(250, issueTypeLabels.length * 30))
+                                    },
+                                    plotOptions: {
+                                        bar: {
+                                            barHeight: '65%'
+                                        }
+                                    },
+                                    dataLabels: {
+                                        style: {
+                                            fontSize: '10px'
+                                        }
+                                    },
+                                    xaxis: {
+                                        labels: {
+                                            style: {
+                                                fontSize: '10px'
+                                            }
+                                        }
+                                    },
+                                    yaxis: {
+                                        labels: {
+                                            style: {
+                                                fontSize: '10px'
+                                            },
+                                            maxWidth: 80
+                                        }
+                                    }
+                                }
+                            }, {
+                                breakpoint: 640,
+                                options: {
+                                    chart: {
+                                        height: Math.min(400, Math.max(200, issueTypeLabels.length * 25))
+                                    },
+                                    plotOptions: {
+                                        bar: {
+                                            barHeight: '60%'
+                                        }
+                                    },
+                                    dataLabels: {
+                                        enabled: false
+                                    },
+                                    xaxis: {
+                                        labels: {
+                                            style: {
+                                                fontSize: '9px'
+                                            }
+                                        }
+                                    },
+                                    yaxis: {
+                                        labels: {
+                                            style: {
+                                                fontSize: '9px'
+                                            },
+                                            maxWidth: 60
+                                        }
+                                    }
+                                }
+                            }]
                         };
 
                         const issueTypeChart = new ApexCharts(document.querySelector("#issueTypeChart"),
@@ -655,12 +721,14 @@
                             chart: {
                                 type: 'treemap',
                                 height: 400,
+                                width: '100%',
                                 toolbar: {
                                     show: true,
                                     tools: {
                                         download: true
                                     }
-                                }
+                                },
+                                parentHeightOffset: 0
                             },
                             plotOptions: {
                                 treemap: {
@@ -725,7 +793,20 @@
                                     fontSize: '14px',
                                     fontWeight: 'bold'
                                 }
-                            }
+                            },
+                            responsive: [{
+                                breakpoint: 640,
+                                options: {
+                                    chart: {
+                                        height: 300
+                                    },
+                                    dataLabels: {
+                                        style: {
+                                            fontSize: '9px'
+                                        }
+                                    }
+                                }
+                            }]
                         };
 
                         const itemChart = new ApexCharts(document.querySelector("#itemChart"), itemChartOptions);

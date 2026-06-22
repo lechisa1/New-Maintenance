@@ -2,10 +2,9 @@
 
     <!-- LEFT: Ticket Info -->
     <div>
-        <h3 class="text-xl font-semibold text-gray-800 dark:text-white/90">
-            Ticket #{{ $maintenanceRequest->ticket_number }}
-        </h3>
-
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">
+            {{ $maintenanceRequest->title }}
+        </h1>
         <div class="mt-2 flex flex-wrap items-center gap-2">
             <span class="rounded-full px-3 py-1 text-xs font-medium {{ $maintenanceRequest->getPriorityBadgeClass() }}">
                 {{ strtoupper($maintenanceRequest->priority) }} PRIORITY

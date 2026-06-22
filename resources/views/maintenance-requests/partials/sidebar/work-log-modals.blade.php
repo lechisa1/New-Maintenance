@@ -18,15 +18,18 @@
                  x-transition:leave="transition ease-in duration-200" @click="showWorkLogModal = false"
                  class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"></div>
 
-             <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                 <div x-show="showWorkLogModal" x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                     class="relative w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all dark:bg-gray-900">
+              <div class="flex min-h-full items-start sm:items-center justify-center p-4 text-center sm:p-0">
+                  <div x-show="showWorkLogModal" x-transition:enter="transition ease-out duration-300"
+                      x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                      x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                      x-transition:leave="transition ease-in duration-200"
+                      x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                      x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                      class="relative w-full max-w-[95vw] sm:max-w-2xl transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all dark:bg-gray-900">
 
                      <!-- Modal content remains the same -->
-                     <div
-                         class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800 mt-15">
+                      <div
+                          class="flex items-center justify-between border-b border-gray-100 px-4 sm:px-6 py-4 dark:border-gray-800 mt-15">
                          <h3 class="text-lg font-bold text-gray-900 dark:text-white">
                              <i class="bi bi-file-earmark-medical me-2 text-blue-500"></i>Submit Work Progress
                          </h3>
@@ -36,8 +39,8 @@
                          </button>
                      </div>
 
-                     <form id="work-log-form" action="{{ route('work-logs.store') }}" method="POST"
-                         class="max-h-[80vh] overflow-y-auto p-6">
+                      <form id="work-log-form" action="{{ route('work-logs.store') }}" method="POST"
+                          class="max-h-[90vh] sm:max-h-[80vh] overflow-y-auto p-4 sm:p-6">
                          @csrf
                          <input type="hidden" name="request_id" value="{{ $maintenanceRequest->id }}">
 
@@ -111,7 +114,7 @@
                                              <option value="45">45 mins</option>
                                          </select>
                                      </div>
-                                     <input type="hidden" name="time_spent_minutes" :value="(hours * 60) + minutes">
+                                      <input type="hidden" name="time_spent_minutes" :value="((hours || 0) * 60) + Number(minutes || 0)">
                                  </div>
 
                                  <div

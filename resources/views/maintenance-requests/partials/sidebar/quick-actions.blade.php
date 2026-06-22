@@ -91,7 +91,7 @@
                     <div x-show="showAssignModal" x-cloak @click.away="showAssignModal = false"
                         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
                         <!-- ... rest of modal content remains exactly the same ... -->
-                        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
                                     @if ($activeAssignments === 0)
@@ -326,17 +326,17 @@
             class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"></div>
 
         <!-- Modal Container -->
-        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+        <div class="flex min-h-full items-start sm:items-center justify-center p-4 text-center sm:p-0">
             <div x-show="showWorkLogModal" x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave="transition ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="relative w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all dark:bg-gray-900">
+                class="relative w-full max-w-[95vw] sm:max-w-2xl transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all dark:bg-gray-900">
 
                 <!-- Modal Header -->
-                <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+                <div class="flex items-center justify-between border-b border-gray-100 px-4 sm:px-6 py-4 dark:border-gray-800">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">
                         <i class="bi bi-journal-plus me-2 text-blue-500"></i>Submit Work Progress
                     </h3>
@@ -346,7 +346,7 @@
                 </div>
 
                 <!-- Modal Body -->
-                <form @submit.prevent="submitWorkLog" class="max-h-[80vh] overflow-y-auto p-6">
+                <form @submit.prevent="submitWorkLog" class="max-h-[90vh] sm:max-h-[80vh] overflow-y-auto p-4 sm:p-6">
                     @csrf
                     <input type="hidden" name="request_id" value="{{ $maintenanceRequest->id }}">
 
@@ -458,11 +458,11 @@
                                     Time Spent <span class="text-red-500">*</span>
                                 </label>
                                 <div class="flex items-center gap-2">
-                                    <input type="number" x-model="form.hours" min="0" max="8"
+                                    <input type="number" x-model.number="form.hours" min="0" max="8"
                                         class="w-20 rounded-lg border-gray-200 text-center dark:bg-gray-900 dark:text-white"
                                         placeholder="Hrs">
                                     <span class="font-bold">:</span>
-                                    <select x-model="form.minutes"
+                                    <select x-model.number="form.minutes"
                                         class="flex-1 rounded-lg border-gray-200 dark:bg-gray-900 dark:text-white">
                                         <option value="0">00 mins</option>
                                         <option value="15">15 mins</option>
@@ -535,17 +535,17 @@
             class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"></div>
 
         <!-- Modal Container -->
-        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+        <div class="flex min-h-full items-start sm:items-center justify-center p-4 text-center sm:p-0">
             <div x-show="showUpdateStatusModal" x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave="transition ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all dark:bg-gray-900">
+                class="relative w-full max-w-[95vw] sm:max-w-md transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all dark:bg-gray-900">
 
                 <!-- Modal Header -->
-                <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+                <div class="flex items-center justify-between border-b border-gray-100 px-4 sm:px-6 py-4 dark:border-gray-800">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">
                         <i class="bi bi-arrow-repeat me-2 text-blue-500"></i>Update Request Status
                     </h3>
@@ -556,7 +556,7 @@
 
                 <!-- Modal Body -->
                 <form action="{{ route('maintenance-requests.update-status', $maintenanceRequest) }}" method="POST"
-                    class="p-6">
+                    class="p-4 sm:p-6">
                     @csrf
                     {{-- Note: Using POST as per your route, not PUT --}}
 
@@ -656,7 +656,8 @@
                 form: {
                     work_done: '',
                     materials_used: '',
-                    time_spent_minutes: 60,
+                    hours: 0,
+                    minutes: 0,
                     new_status: 'in_progress',
                     log_date: '{{ date('Y-m-d') }}',
                     completion_notes: ''
@@ -691,7 +692,8 @@
                     this.form = {
                         work_done: '',
                         materials_used: '',
-                        time_spent_minutes: 60,
+                        hours: 0,
+                        minutes: 0,
                         new_status: 'in_progress',
                         log_date: '{{ date('Y-m-d') }}',
                         completion_notes: ''
@@ -712,7 +714,7 @@
                     formData.append('request_id', '{{ $maintenanceRequest->id }}');
                     formData.append('work_done', this.form.work_done);
                     formData.append('materials_used', this.form.materials_used);
-                    formData.append('time_spent_minutes', this.form.time_spent_minutes);
+                    formData.append('time_spent_minutes', Number(this.form.hours) * 60 + Number(this.form.minutes));
                     formData.append('new_status', this.form.new_status);
                     formData.append('log_date', this.form.log_date);
                     formData.append('completion_notes', this.form.completion_notes);

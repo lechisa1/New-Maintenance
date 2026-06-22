@@ -196,7 +196,7 @@ class WorkLogController extends Controller
             'new_status' => 'required|in:in_progress,completed,not_fixed',
             'work_done' => 'required|string|min:10|max:2000',
             'materials_used' => 'nullable|string|max:1000',
-            'time_spent_minutes' => 'required|integer|min:1|max:480',
+            'time_spent_minutes' => 'required|integer|min:1',
             'completion_notes' => 'nullable|string|max:1000',
             'log_date' => 'required|date',
             'item_ids' => 'required|array|min:1',

@@ -107,9 +107,9 @@
         workLogId = $event.detail.workLogId;
         show = true;
     ">
-                     <div x-show="show" x-cloak
-                         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+                      <div x-show="show" x-cloak
+                          class="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black bg-opacity-50">
+                          <div class="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
 
                              <!-- Header -->
                              <div class="flex justify-between items-center mb-4">
@@ -197,9 +197,9 @@
         workLogId = $event.detail.workLogId;
         show = true;
     ">
-                     <div x-show="show" x-cloak
-                         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+                      <div x-show="show" x-cloak
+                          class="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/50">
+                          <div class="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
                              <h3 class="text-lg font-semibold mb-4 text-green-500">
                                  Confirm Work Log
                              </h3>

@@ -1,6 +1,6 @@
 <div x-show="showAssignModal" x-cloak style="display: none;"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+    class="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
                 Assign Request to Technician

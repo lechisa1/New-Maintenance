@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('content')
     <div class="space-y-6">
+        <!-- Header Metrics Cards - Keep these -->
         <div class="col-span-12">
             <x-ecommerce.ecommerce-metrics :totalRequests="$totalRequests" :pendingRequests="$pendingRequests" :inProgressRequests="$inProgressRequests" :completedRequests="$completedRequests"
                 :assignedToMe="$assignedToMe" />
@@ -43,26 +44,7 @@
                         <div id="statisticsChart" class="h-80 w-full"></div>
                     </div>
 
-                    <!-- Status Summary Cards -->
-                    <div
-                        class="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800">
-                        <div class="text-center p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Pending</p>
-                            <p class="text-xl font-bold text-blue-600 dark:text-blue-400" id="pendingTotal">0</p>
-                        </div>
-                        <div class="text-center p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
-                            <p class="text-xs text-gray-500 dark:text-gray-400">In Progress</p>
-                            <p class="text-xl font-bold text-yellow-600 dark:text-yellow-400" id="progressTotal">0</p>
-                        </div>
-                        <div class="text-center p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Completed</p>
-                            <p class="text-xl font-bold text-green-600 dark:text-green-400" id="completedTotal">0</p>
-                        </div>
-                        <div class="text-center p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20">
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Total</p>
-                            <p class="text-xl font-bold text-purple-600 dark:text-purple-400" id="grandTotal">0</p>
-                        </div>
-                    </div>
+                    <!-- REMOVED: Status Summary Cards - They're already in the header metrics -->
                 </div>
             </div>
 
@@ -147,17 +129,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // ========== STATUS STATISTICS CHART ==========
-            // ========== STATUS STATISTICS CHART ==========
-            // Use the existing monthlyStats data which already has correct counts
             @if (isset($monthlyStats) && $monthlyStats->count() > 0)
                 let monthlyStatsData = @json($monthlyStats);
                 let currentChart = null;
-
-                // Update summary cards with actual totals from metrics
-                document.getElementById('pendingTotal').textContent = '{{ $pendingRequests }}';
-                document.getElementById('progressTotal').textContent = '{{ $inProgressRequests }}';
-                document.getElementById('completedTotal').textContent = '{{ $completedRequests }}';
-                document.getElementById('grandTotal').textContent = '{{ $totalRequests }}';
 
                 // Define month names
                 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov',
@@ -165,12 +139,9 @@
                 ];
 
                 // Transform monthlyStats into the format needed for the chart
-                // First, get all available months
                 const availableMonths = monthlyStatsData.map(item => monthNames[item.month - 1]);
                 const pendingData = monthlyStatsData.map(item => item.pending || 0);
                 const completedData = monthlyStatsData.map(item => item.completed || 0);
-
-                // Calculate in_progress as total - pending - completed (since we don't have it directly)
                 const totalData = monthlyStatsData.map(item => item.total || 0);
                 const inProgressData = monthlyStatsData.map((item, index) => {
                     return totalData[index] - (pendingData[index] + completedData[index]);
@@ -336,26 +307,18 @@
                     }
                 }
 
-                // Simple update function for period (just re-renders with same data for now)
                 window.updateChart = function(period) {
-                    // For now, just re-render. You can implement actual period filtering later
                     renderStatisticsChart();
                 };
 
                 renderStatisticsChart();
             @else
-                // Fallback: Use the metrics data directly
+                // Fallback: Create simple chart with current totals distributed across months
                 const pendingTotal = {{ $pendingRequests }};
                 const progressTotal = {{ $inProgressRequests }};
                 const completedTotal = {{ $completedRequests }};
                 const grandTotal = {{ $totalRequests }};
 
-                document.getElementById('pendingTotal').textContent = pendingTotal;
-                document.getElementById('progressTotal').textContent = progressTotal;
-                document.getElementById('completedTotal').textContent = completedTotal;
-                document.getElementById('grandTotal').textContent = grandTotal;
-
-                // Create simple chart with current totals distributed across months
                 const currentYear = new Date().getFullYear();
                 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov',
                     'Dec'
@@ -374,7 +337,6 @@
                     const adjustedMonth = monthIndex < 0 ? monthIndex + 12 : monthIndex;
                     months.push(monthNames[adjustedMonth]);
 
-                    // Distribute values (simplified - evenly distribute)
                     pendingData.push(Math.ceil(pendingTotal / 6));
                     progressData.push(Math.ceil(progressTotal / 6));
                     completedData.push(Math.ceil(completedTotal / 6));
@@ -452,10 +414,10 @@
                 if (chartElement) {
                     const fallbackChart = new ApexCharts(chartElement, fallbackChartOptions);
                     fallbackChart.render();
+                    window.fallbackChart = fallbackChart;
                 }
 
                 window.updateChart = function(period) {
-                    // Simple re-render
                     if (window.fallbackChart) {
                         window.fallbackChart.render();
                     }

@@ -32,7 +32,7 @@ class IssueTypeController extends Controller
                 return $query->where('is_need_approval', true);
             })
             ->latest()
-            ->paginate(3);
+            ->paginate(10);
 
         return view('basedata.issue-types.index', compact('issueTypes', 'search', 'status'));
     }

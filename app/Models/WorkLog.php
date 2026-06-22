@@ -65,13 +65,11 @@ class WorkLog extends Model
         $hours = floor($this->time_spent_minutes / 60);
         $minutes = $this->time_spent_minutes % 60;
 
-        if ($hours > 0 && $minutes > 0) {
-            return "{$hours}h {$minutes}m";
-        } elseif ($hours > 0) {
-            return "{$hours}h";
-        } else {
-            return "{$minutes}m";
+        if ($hours > 0) {
+            return "{$this->time_spent_minutes} mins ({$hours}h {$minutes}m)";
         }
+
+        return "{$this->time_spent_minutes} mins";
     }
 
     /**

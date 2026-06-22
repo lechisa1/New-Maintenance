@@ -607,8 +607,9 @@ class MaintenanceRequestController extends Controller
      */
     public function update(UpdateMaintenanceRequestRequest $request, MaintenanceRequest $maintenanceRequest)
     {
+
         // Authorization check
-        if ($maintenanceRequest->user_id !== auth()->id() && !auth()->user()->hasRole(['admin', 'technician'])) {
+        if ($maintenanceRequest->user_id !== auth()->id()) {
             abort(403, 'Unauthorized access.');
         }
 
@@ -732,6 +733,7 @@ class MaintenanceRequestController extends Controller
     public function destroy(MaintenanceRequest $maintenanceRequest)
     {
         // Only allow deletion if request is pending or user is admin
+
         if (
             $maintenanceRequest->status !== MaintenanceRequest::STATUS_PENDING &&
             !auth()->user()->hasRole('admin')

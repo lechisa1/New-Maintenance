@@ -77,7 +77,10 @@
                         <i class="bi bi-people me-3"></i>
                         @if ($activeAssignments === 0)
                             Assign Technician(s)
-                        @elseif($maintenanceRequest->status === 'not_fixed')
+                        @elseif(
+                            $maintenanceRequest->status === 'not_fixed' ||
+                                $maintenanceRequest->status === 'pending' ||
+                                $maintenanceRequest->status === 'assigned')
                             Re-Assign Technician(s)
                         @else
                             Add More Technicians

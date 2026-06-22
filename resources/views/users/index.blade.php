@@ -129,11 +129,11 @@
                 <x-tables.users-table :users="$users" />
             </div>
 
-            @if ($users->hasPages())
+            {{-- @if ($users->hasPages())
                 <div class="border-t border-gray-100 p-6 dark:border-gray-800">
                     {{ $users->appends(request()->query())->links('vendor.pagination.dashboard') }}
                 </div>
-            @endif
+            @endif --}}
 
             {{-- Results info --}}
             <div class="border-t border-gray-100 px-6 py-3 text-center text-sm text-gray-500 dark:border-gray-800">

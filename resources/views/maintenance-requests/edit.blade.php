@@ -241,20 +241,18 @@
                             </div>
                         </div>
 
-                        <!-- Submit Buttons -->
                         <div class="border-t border-gray-200 pt-6 dark:border-gray-700">
                             <div class="flex justify-between">
-                                @if (auth()->user()->hasAnyRole(['admin', 'technician']))
-                                    <form action="{{ route('maintenance-requests.destroy', $maintenanceRequest) }}"
-                                        method="POST"
-                                        onsubmit="return confirm('Are you sure you want to delete this request?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                            class="rounded-lg border border-red-200 bg-red-50 px-6 py-3 text-sm font-medium text-red-600 shadow-theme-xs hover:bg-red-100 hover:text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
-                                            <i class="bi bi-trash me-2"></i> Delete Request
-                                        </button>
-                                    </form>
+
+                                {{-- Delete button only for owner --}}
+                                @if ($maintenanceRequest->user_id === auth()->id())
+                                    <button type="button"
+                                        onclick="if(confirm('Are you sure you want to delete this request?')) document.getElementById('delete-request-form').submit();"
+                                        class="rounded-lg border border-red-200 bg-red-50 px-6 py-3 text-sm font-medium text-red-600 shadow-theme-xs hover:bg-red-100 hover:text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
+                                        <i class="bi bi-trash me-2"></i> Delete Request
+                                    </button>
+                                @else
+                                    <div></div>
                                 @endif
 
                                 <div class="flex gap-3">
@@ -262,11 +260,13 @@
                                         class="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                                         <i class="bi bi-x-lg me-2"></i> Cancel
                                     </a>
+
                                     <button type="submit"
                                         class="rounded-lg bg-blue-500 px-6 py-3 text-sm font-medium text-white shadow-theme-xs hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                                         <i class="bi bi-save me-2"></i> Update Request
                                     </button>
                                 </div>
+
                             </div>
                         </div>
                     </div>

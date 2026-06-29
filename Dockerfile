@@ -5,9 +5,20 @@ WORKDIR /var/www/html
 
 # Install system dependencies for PHP and build tools
 RUN apk add --no-cache \
-    git curl zip unzip libpng-dev libxml2-dev oniguruma-dev freetype-dev libjpeg-turbo-dev nodejs npm \
+    git curl zip unzip \
+    libpng-dev libxml2-dev oniguruma-dev \
+    freetype-dev libjpeg-turbo-dev \
+    libzip-dev \
+    nodejs npm \
  && docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+ && docker-php-ext-install \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    zip
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -33,13 +44,14 @@ WORKDIR /var/www/html
 
 # Runtime PHP dependencies
 RUN apk add --no-cache \
-    libpng libxml2 oniguruma freetype libjpeg-turbo \
+    libpng libxml2 oniguruma freetype libjpeg-turbo zip libzip-dev \
  && apk add --no-cache --virtual .build-deps \
-    build-base autoconf libpng-dev libxml2-dev oniguruma-dev libjpeg-turbo-dev freetype-dev mariadb-dev \
+    build-base autoconf libpng-dev libxml2-dev oniguruma-dev libjpeg-turbo-dev freetype-dev mariadb-dev libzip-dev \
  && docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd \
+ && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip \
  && apk del .build-deps
 
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Copy built PHP + vendor + frontend assets from builder
 COPY --from=builder /var/www/html /var/www/html
 
